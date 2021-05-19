@@ -6,12 +6,9 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/logical"
-	"github.ibm.com/security-services/secrets-manager-iam/pkg/crn"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	at "github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
-	"strings"
-
 	"net/http"
 )
 
@@ -277,28 +274,6 @@ func (ob *OrdersBackend) pathSecretsConfigRead(ctx context.Context, req *logical
 	return resp, nil
 }
 
-//TODO update this text
-const rootConfigSyn = "Read and Update the root configuration containing the IAM API key that is used to generate IAM credentials."
-const rootConfigDesc = `Read and update the IAM API key that will be used to generate IAM credentials.
-To allow the secret engine to generate IAM credentials for you,
-this IAM API key should have Editor role (IAM role) on both the IAM Identity Service and the IAM Access Groups Service.`
-
-func getAccountIdFromCRN(rawCRN string) (string, error) {
-	instanceCRN, err := crn.ToCRN(rawCRN)
-	if err != nil {
-		common.Logger().Error("failed to configure IAM secrets (config/root): invalid instance CRN found in auth configuration", "error", err, "invalid_CRN", rawCRN)
-		return "", logical.CodedError(http.StatusInternalServerError, "internal error")
-	}
-	if !strings.HasPrefix(instanceCRN.Scope, scopePrefixForAccountIdInCRN) {
-		// The Scope segment will start with "a/" if it contains an accountId
-		// see the documentation on CRN's scope segment: https://cloud.ibm.com/docs/account?topic=account-crn
-		common.Logger().Error("instance CRN does not contain accountId (scope segment prefix is not \"a/\")", "invalid_CRN", rawCRN)
-		return "", logical.CodedError(http.StatusInternalServerError, "internal error")
-	}
-	accountId := strings.TrimPrefix(instanceCRN.Scope, scopePrefixForAccountIdInCRN)
-	return accountId, nil
-}
-
 func (ob *OrdersBackend) pathSecretsListConfigs(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	//validate that the user is authorised to perform this action
 	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, ""); err != nil {
@@ -333,12 +308,57 @@ func (ob *OrdersBackend) pathSecretsListConfigs(ctx context.Context, req *logica
 	return resp, nil
 }
 
-func (ob *OrdersBackend) pathSecretsConfigDelete(ctx context.Context, request *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-
-	resp := &logical.Response{
-		Data: make(map[string]interface{}),
+func (ob *OrdersBackend) pathSecretsConfigDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	//validate that the user is authorised to perform this action
+	//TODO what is action??
+	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, ""); err != nil {
+		if _, ok := err.(logical.HTTPCodedError); ok {
+			common.ErrorLogForCustomer("Internal server error", logdna.Error03088, logdna.InternalErrorMessage)
+			return nil, err
+		}
+		common.ErrorLogForCustomer(err.Error(), logdna.Error03089, logdna.PermissionErrorMessage)
+		return nil, err
 	}
-	return resp, nil
+	if err := common.ValidateUnknownFields(req, d); err != nil {
+		common.ErrorLogForCustomer(err.Error(), logdna.Error03090, "There are unexpected fields. Verify that the request parameters are valid")
+		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
+	}
+	name := d.Get(FieldName).(string)
+	//// lock for reading
+	secretsConfigLock.RLock()
+	defer secretsConfigLock.RUnlock()
+	// Get the storage entry
+	config, err := getRootConfig(ctx, req)
+	if err != nil {
+		common.Logger().Error("Failed to get root configuration from storage.", "error", err)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
+	}
+	//check if config with this name already exists
+	foundConfig := -1
+	for i, caConfig := range config.CaConfigs {
+		if caConfig.Name == name {
+			foundConfig = i
+		}
+	}
+	if foundConfig == -1 {
+		common.Logger().Error("CA configuration with this name was not found.", "name", name, "error", err)
+		//TODO What is errorcode??
+		common.ErrorLogForCustomer("Not Found", logdna.Error03087, logdna.NotFoundErrorMessage)
+		return nil, fmt.Errorf("CA configuration with name '%s' was not found", name)
+	}
+	config.CaConfigs = append(config.CaConfigs[:foundConfig], config.CaConfigs[foundConfig+1:]...)
+
+	err = putRootConfig(ctx, req, config)
+	// Get the storage entry
+	if err != nil {
+		common.Logger().Error("Failed to save root configuration to storage.", "error", err)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+		return nil, fmt.Errorf("failed to persist configuration to storage: %s", err.Error())
+	}
+
+	resp := &logical.Response{}
+	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
 }
 
 func createCAConfigToStore(d *framework.FieldData) (*CAUserConfigToStore, error) {
@@ -371,3 +391,9 @@ func createCAConfigToStore(d *framework.FieldData) (*CAUserConfigToStore, error)
 	}
 	return configToStore, nil
 }
+
+//TODO update this text
+const rootConfigSyn = "Read and Update the root configuration containing the IAM API key that is used to generate IAM credentials."
+const rootConfigDesc = `Read and update the IAM API key that will be used to generate IAM credentials.
+To allow the secret engine to generate IAM credentials for you,
+this IAM API key should have Editor role (IAM role) on both the IAM Identity Service and the IAM Access Groups Service.`
