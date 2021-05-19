@@ -1,0 +1,49 @@
+# .goreleaser.yaml
+project_name: public-cert-secret
+
+github_urls:
+  api: https://github.ibm.com/api/v3/
+  upload: https://github.ibm.com/api/uploads/
+  download: https://github.ibm.com/
+  # set to true if you use a self-signed certificate
+  skip_tls_verify: false
+
+builds:
+  - # Path to main.go file or main package.
+    main: cmd/plugin/main.go
+
+    # Custom asmflags templates.
+    asmflags:
+
+    # Custom gcflags templates.
+    gcflags:
+
+    # Custom environment variables to be set during the builds.
+    env:
+      - CGO_ENABLED=0
+      - GO111MODULE=on
+
+    # Custom flags templates.
+    flags:
+      - -installsuffix
+      - -extldflags "-static"
+      - -tags=netgo
+
+    # GOOS list to build for.
+    goos:
+      - linux
+
+    # GOARCH to build for.
+    goarch:
+      - amd64
+
+archives:
+  - id: plugin
+    format: binary
+    name_template: "vault-plugin-user-credentials-secret-{{.Os}}-{{.Arch}}-{{.Version}}"
+    files:
+      - none*
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
