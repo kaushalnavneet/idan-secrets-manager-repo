@@ -8,10 +8,9 @@ const (
 	FieldDirectoryUrl            = "directory_url"
 	FieldCaCert                  = "ca-cert"
 	FieldEmail                   = "email"
-	FieldTermsOfServiceAgreed    = "terms_of_service_agreed"
 	FieldPrivateKey              = "private_key"
 	scopePrefixForAccountIdInCRN = "a/"
 	ConfigStoragePath            = "config/root"
 	SecretTypePublicCert         = "public_cert"
-	ConfigPath                   = "config/ca"
+	ConfigPath                   = "config/certificate_authorities"
 )

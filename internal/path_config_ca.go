@@ -2,7 +2,6 @@ package publiccerts
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
@@ -62,7 +61,7 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 			Callback: ob.secretBackend.PathCallback(ob.pathSecretsConfigCreate, atSecretConfigUpdate),
 			Summary:  "Create the configuration value",
 		},
-		logical.ListOperation: &framework.PathOperation{
+		logical.ReadOperation: &framework.PathOperation{
 			Callback: ob.secretBackend.PathCallback(ob.pathSecretsListConfigs, atSecretConfigUpdate),
 			Summary:  "Get all the configuration values",
 		},
@@ -117,24 +116,6 @@ func (ob *OrdersBackend) pathSecretsConfigCreate(ctx context.Context, req *logic
 		common.ErrorLogForCustomer(err.Error(), logdna.Error03080, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
-
-	name := d.Get(FieldName).(string)
-	directoryUrl := d.Get(FieldDirectoryUrl).(string)
-	privateKeyPEM := d.Get(FieldPrivateKey).(string)
-	caCert := d.Get(FieldCaCert).(string)
-
-	if name == "" {
-		return nil, fmt.Errorf("directory_url field is empty")
-	}
-
-	if directoryUrl == "" {
-		return nil, fmt.Errorf("directory_url field is empty")
-	}
-
-	if privateKeyPEM == "" {
-		return nil, fmt.Errorf("private key field is empty")
-	}
-
 	// lock for writing
 	secretsConfigLock.Lock()
 	defer secretsConfigLock.Unlock()
@@ -145,28 +126,24 @@ func (ob *OrdersBackend) pathSecretsConfigCreate(ctx context.Context, req *logic
 		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
 		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
 	}
+	name := d.Get(FieldName).(string)
 	//check if config with this name already exists
 	for _, caConfig := range config.CaConfigs {
 		if caConfig.Name == name {
 			common.Logger().Error("CA configuration with this name already exists.", "name", name, "error", err)
 			//TODO What is errorcode??
-			common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+			common.ErrorLogForCustomer("Bad Request", logdna.Error03087, logdna.BadRequestErrorMessage)
 			return nil, fmt.Errorf("CA configuration with name %s already exists", name)
 		}
 	}
 
-	var ca *CAUserConfig
-	ca, err = NewCAAccountConfig(name, directoryUrl, caCert, privateKeyPEM)
+	configToStore, err := createCAConfigToStore(d)
 	if err != nil {
-		return nil, err
-	}
-	err = ca.initCAAccount()
-	if err != nil {
-		return nil, err
-	}
-	configToStore, err := ca.getConfigToStore()
-	if err != nil {
-		return nil, err
+		common.Logger().Error("Parameters validation error.", "error", err)
+		//TODO What is errorcode??
+		common.ErrorLogForCustomer("Bad Request", logdna.Error03087, logdna.BadRequestErrorMessage)
+		return nil, fmt.Errorf("parameters validation error: %s", err.Error())
+
 	}
 	config.CaConfigs = append(config.CaConfigs, configToStore)
 
@@ -200,32 +177,12 @@ func (ob *OrdersBackend) pathSecretsConfigUpdate(ctx context.Context, req *logic
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 
-	name := d.Get(FieldName).(string)
-	directoryUrl := d.Get(FieldDirectoryUrl).(string)
-	privateKeyPEM := d.Get(FieldPrivateKey).(string)
-	caCert := d.Get(FieldCaCert).(string)
-
-	if directoryUrl == "" {
-		return nil, fmt.Errorf("directory_url field is empty")
-	}
-
-	if privateKeyPEM == "" {
-		return nil, fmt.Errorf("private_key field is empty")
-	}
-
-	var ca *CAUserConfig
-	ca, err := NewCAAccountConfig(name, directoryUrl, caCert, privateKeyPEM)
-
+	configToStore, err := createCAConfigToStore(d)
 	if err != nil {
-		return nil, err
-	}
-	err = ca.initCAAccount()
-	if err != nil {
-		return nil, err
-	}
-	configToStore, err := ca.getConfigToStore()
-	if err != nil {
-		return nil, err
+		common.Logger().Error("Parameters validation error.", "error", err)
+		//TODO What is errorcode??
+		common.ErrorLogForCustomer("Bad Request", logdna.Error03087, logdna.BadRequestErrorMessage)
+		return nil, fmt.Errorf("parameters validation error: %s", err.Error())
 	}
 
 	// lock for writing
@@ -238,20 +195,21 @@ func (ob *OrdersBackend) pathSecretsConfigUpdate(ctx context.Context, req *logic
 		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
 		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
 	}
-
+	name := d.Get(FieldName).(string)
 	//check if config with this name already exists
 	found := false
 	for i, caConfig := range config.CaConfigs {
 		if caConfig.Name == name {
 			found = true
 			config.CaConfigs[i] = configToStore
+			break
 		}
 	}
 	if !found {
 		common.Logger().Error("CA configuration with this name was not found.", "name", name, "error", err)
 		//TODO What is errorcode??
-		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
-		return nil, errors.New("CA configuration with this name was not found")
+		common.ErrorLogForCustomer("Not Found", logdna.Error03087, logdna.NotFoundErrorMessage)
+		return nil, fmt.Errorf("CA configuration with name '%s' was not found", name)
 	}
 
 	err = putRootConfig(ctx, req, config)
@@ -302,8 +260,8 @@ func (ob *OrdersBackend) pathSecretsConfigRead(ctx context.Context, req *logical
 	if foundConfig == nil {
 		common.Logger().Error("CA configuration with this name was not found.", "name", name, "error", err)
 		//TODO What is errorcode??
-		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
-		return nil, errors.New("CA configuration with this name was not found")
+		common.ErrorLogForCustomer("Not Found", logdna.Error03087, logdna.NotFoundErrorMessage)
+		return nil, fmt.Errorf("CA configuration with name '%s' was not found", name)
 	}
 	respData := make(map[string]interface{})
 
@@ -341,10 +299,36 @@ func getAccountIdFromCRN(rawCRN string) (string, error) {
 	return accountId, nil
 }
 
-func (ob *OrdersBackend) pathSecretsListConfigs(ctx context.Context, request *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+func (ob *OrdersBackend) pathSecretsListConfigs(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	//validate that the user is authorised to perform this action
+	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, ""); err != nil {
+		if _, ok := err.(logical.HTTPCodedError); ok {
+			common.ErrorLogForCustomer("Internal server error", logdna.Error03088, logdna.InternalErrorMessage)
+			return nil, err
+		}
+		common.ErrorLogForCustomer(err.Error(), logdna.Error03089, logdna.PermissionErrorMessage)
+		return nil, err
+	}
+	if err := common.ValidateUnknownFields(req, d); err != nil {
+		common.ErrorLogForCustomer(err.Error(), logdna.Error03090, "There are unexpected fields. Verify that the request parameters are valid")
+		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
+	}
 
+	//// lock for reading
+	secretsConfigLock.RLock()
+	defer secretsConfigLock.RUnlock()
+	// Get the storage entry
+	config, err := getRootConfig(ctx, req)
+	if err != nil {
+		common.Logger().Error("Failed to get root configuration from storage.", "error", err)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
+	}
+
+	respData := make(map[string]interface{})
+	respData["certificate_authorities"] = config.CaConfigs
 	resp := &logical.Response{
-		Data: make(map[string]interface{}),
+		Data: respData,
 	}
 	return resp, nil
 }
@@ -355,4 +339,35 @@ func (ob *OrdersBackend) pathSecretsConfigDelete(ctx context.Context, request *l
 		Data: make(map[string]interface{}),
 	}
 	return resp, nil
+}
+
+func createCAConfigToStore(d *framework.FieldData) (*CAUserConfigToStore, error) {
+	name := d.Get(FieldName).(string)
+	directoryUrl := d.Get(FieldDirectoryUrl).(string)
+	privateKeyPEM := d.Get(FieldPrivateKey).(string)
+	caCert := d.Get(FieldCaCert).(string)
+
+	if directoryUrl == "" {
+		return nil, fmt.Errorf("directory_url field is empty")
+	}
+
+	if privateKeyPEM == "" {
+		return nil, fmt.Errorf("private_key field is empty")
+	}
+
+	var ca *CAUserConfig
+	ca, err := NewCAAccountConfig(name, directoryUrl, caCert, privateKeyPEM)
+
+	if err != nil {
+		return nil, err
+	}
+	err = ca.initCAAccount()
+	if err != nil {
+		return nil, err
+	}
+	configToStore, err := ca.getConfigToStore()
+	if err != nil {
+		return nil, err
+	}
+	return configToStore, nil
 }
