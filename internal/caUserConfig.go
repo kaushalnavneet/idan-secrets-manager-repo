@@ -2,9 +2,6 @@ package publiccerts
 
 import (
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
 	"github.com/go-acme/lego/v4/certcrypto"
@@ -12,25 +9,21 @@ import (
 )
 
 type CAUserConfig struct {
-	Name                 string `json:"name"`
-	CARootCert           string `json:"ca_cert"`
-	DirectoryURL         string `json:"directory_url"`
-	Email                string `json:"email"`
-	TermsOfServiceAgreed bool   `json:"terms_of_service_agreed"`
-	Registration         *registration.Resource
-	key                  crypto.PrivateKey
-	Provider             string `json:"provider"`
+	Name         string `json:"name"`
+	CARootCert   string `json:"ca_cert"`
+	DirectoryURL string `json:"directory_url"`
+	Email        string `json:"email"`
+	Registration *registration.Resource
+	key          crypto.PrivateKey
 }
 
 type CAUserConfigToStore struct {
-	Name                 string `json:"name"`
-	CARootCert           string `json:"ca_cert"`
-	DirectoryURL         string `json:"directory_url"`
-	Email                string `json:"email"`
-	TermsOfServiceAgreed bool   `json:"terms_of_service_agreed"`
-	RegistrationURL      string `json:"registration_url"`
-	PrivateKey           string `json:"private_key"`
-	Provider             string `json:"provider"`
+	Name            string `json:"name"`
+	CARootCert      string `json:"ca_cert"`
+	DirectoryURL    string `json:"directory_url"`
+	Email           string `json:"email"`
+	RegistrationURL string `json:"registration_url"`
+	PrivateKey      string `json:"private_key"`
 }
 
 func (u *CAUserConfig) GetEmail() string {
@@ -45,32 +38,21 @@ func (u *CAUserConfig) GetPrivateKey() crypto.PrivateKey {
 	return u.key
 }
 
-func NewCAAccountConfig(name, directoryUrl, caRootCertPath, email string, termsOfServiceAgreed bool, privateKeyPEM string) (*CAUserConfig, error) {
-	var privateKey crypto.PrivateKey
-	var err error
-	if privateKeyPEM != "" {
-		privateKey, err = DecodePrivateKey(privateKeyPEM)
-	} else {
-		// Create a user. New accounts need an email and private key to start.
-		// Note - Always use a secp256r1 curve for registering a user to the ACME server
-		privateKey, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	}
+func NewCAAccountConfig(name, directoryUrl, caRootCertPath, privateKeyPEM string) (*CAUserConfig, error) {
+	privateKey, err := DecodePrivateKey(privateKeyPEM)
 	if err != nil {
 		return nil, err
 	}
-
 	userConfig := &CAUserConfig{
-		Name:                 name,
-		Email:                email,
-		key:                  privateKey,
-		DirectoryURL:         directoryUrl,
-		CARootCert:           caRootCertPath,
-		TermsOfServiceAgreed: termsOfServiceAgreed,
+		Name:         name,
+		key:          privateKey,
+		DirectoryURL: directoryUrl,
+		CARootCert:   caRootCertPath,
 	}
 	return userConfig, nil
 }
 
-func (u *CAUserConfig) createCAAccount(privateKeyPEM string) error {
+func (u *CAUserConfig) initCAAccount() error {
 	// Note - This client is used only for registering the user
 	// and the keyType does not matter (keyType relevant only when issuing certificates).
 	// Lego internally uses a default value of RSA2048, hence use that.
@@ -78,12 +60,7 @@ func (u *CAUserConfig) createCAAccount(privateKeyPEM string) error {
 	if err != nil {
 		return err
 	}
-
-	if privateKeyPEM != "" {
-		err = client.RegisterUserWithKey(u)
-	} else {
-		err = client.RegisterUser(u)
-	}
+	err = client.RegisterUserWithKey(u)
 	if err != nil {
 		return err
 	}
@@ -101,13 +78,12 @@ func (u *CAUserConfig) getConfigToStore() (*CAUserConfigToStore, error) {
 	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509Encoded})
 
 	storageEntry = &CAUserConfigToStore{
-		Name:                 u.Name,
-		RegistrationURL:      u.Registration.URI,
-		Email:                u.Email,
-		TermsOfServiceAgreed: u.TermsOfServiceAgreed,
-		PrivateKey:           string(pemEncoded),
-		DirectoryURL:         u.DirectoryURL,
-		CARootCert:           u.CARootCert,
+		Name:            u.Name,
+		RegistrationURL: u.Registration.URI,
+		Email:           u.Email,
+		PrivateKey:      string(pemEncoded),
+		DirectoryURL:    u.DirectoryURL,
+		CARootCert:      u.CARootCert,
 	}
 
 	return storageEntry, nil

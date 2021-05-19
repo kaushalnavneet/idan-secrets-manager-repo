@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -46,12 +45,6 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 			Type:        framework.TypeString,
 			Description: "Email to be used for registering the user. If a user account is being retrieved, then the retrieved email will override this field",
 			Required:    false,
-		},
-		FieldTermsOfServiceAgreed: {
-			Type:        framework.TypeBool,
-			Description: "Whether the user agrees to the terms of service",
-			Required:    true,
-			Default:     false,
 		},
 		FieldPrivateKey: {
 			Type:        framework.TypeString,
@@ -129,24 +122,19 @@ func (ob *OrdersBackend) pathSecretsConfigCreate(ctx context.Context, req *logic
 	directoryUrl := d.Get(FieldDirectoryUrl).(string)
 	privateKeyPEM := d.Get(FieldPrivateKey).(string)
 	caCert := d.Get(FieldCaCert).(string)
-	email := d.Get(FieldEmail).(string)
-	agreed := d.Get(FieldTermsOfServiceAgreed).(bool)
+
+	if name == "" {
+		return nil, fmt.Errorf("directory_url field is empty")
+	}
 
 	if directoryUrl == "" {
 		return nil, fmt.Errorf("directory_url field is empty")
 	}
 
-	if privateKeyPEM == "" && email == "" {
-		return nil, fmt.Errorf("email field is empty")
+	if privateKeyPEM == "" {
+		return nil, fmt.Errorf("private key field is empty")
 	}
-	//
-	//if privateKeyPEM == ""  {
-	//	return nil, fmt.Errorf("private key field is empty")
-	//}
 
-	if agreed == false {
-		return nil, fmt.Errorf("terms of service not agreed")
-	}
 	// lock for writing
 	secretsConfigLock.Lock()
 	defer secretsConfigLock.Unlock()
@@ -155,7 +143,7 @@ func (ob *OrdersBackend) pathSecretsConfigCreate(ctx context.Context, req *logic
 	if err != nil {
 		common.Logger().Error("Failed to get root configuration from storage.", "error", err)
 		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
-		return nil, fmt.Errorf("failed to get configuration from the storage: %w", err)
+		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
 	}
 	//check if config with this name already exists
 	for _, caConfig := range config.CaConfigs {
@@ -168,11 +156,11 @@ func (ob *OrdersBackend) pathSecretsConfigCreate(ctx context.Context, req *logic
 	}
 
 	var ca *CAUserConfig
-	ca, err = NewCAAccountConfig(name, directoryUrl, caCert, email, agreed, privateKeyPEM)
+	ca, err = NewCAAccountConfig(name, directoryUrl, caCert, privateKeyPEM)
 	if err != nil {
 		return nil, err
 	}
-	err = ca.createCAAccount(privateKeyPEM)
+	err = ca.initCAAccount()
 	if err != nil {
 		return nil, err
 	}
@@ -182,12 +170,12 @@ func (ob *OrdersBackend) pathSecretsConfigCreate(ctx context.Context, req *logic
 	}
 	config.CaConfigs = append(config.CaConfigs, configToStore)
 
-	putRootConfig(ctx, req, config)
+	err = putRootConfig(ctx, req, config)
 	// Get the storage entry
 	if err != nil {
 		common.Logger().Error("Failed to save root configuration to storage.", "error", err)
 		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
-		return nil, errwrap.Wrapf("failed to persist configuration to storage: {{err}}", err)
+		return nil, fmt.Errorf("failed to persist configuration to storage: %s", err.Error())
 	}
 
 	resp := &logical.Response{}
@@ -216,20 +204,30 @@ func (ob *OrdersBackend) pathSecretsConfigUpdate(ctx context.Context, req *logic
 	directoryUrl := d.Get(FieldDirectoryUrl).(string)
 	privateKeyPEM := d.Get(FieldPrivateKey).(string)
 	caCert := d.Get(FieldCaCert).(string)
-	email := d.Get(FieldEmail).(string)
-	agreed := d.Get(FieldTermsOfServiceAgreed).(bool)
 
 	if directoryUrl == "" {
 		return nil, fmt.Errorf("directory_url field is empty")
 	}
 
-	if privateKeyPEM == "" && email == "" {
-		return nil, fmt.Errorf("email field is empty")
+	if privateKeyPEM == "" {
+		return nil, fmt.Errorf("private_key field is empty")
 	}
 
-	if agreed == false {
-		return nil, fmt.Errorf("terms of service not agreed")
+	var ca *CAUserConfig
+	ca, err := NewCAAccountConfig(name, directoryUrl, caCert, privateKeyPEM)
+
+	if err != nil {
+		return nil, err
 	}
+	err = ca.initCAAccount()
+	if err != nil {
+		return nil, err
+	}
+	configToStore, err := ca.getConfigToStore()
+	if err != nil {
+		return nil, err
+	}
+
 	// lock for writing
 	secretsConfigLock.Lock()
 	defer secretsConfigLock.Unlock()
@@ -238,14 +236,7 @@ func (ob *OrdersBackend) pathSecretsConfigUpdate(ctx context.Context, req *logic
 	if err != nil {
 		common.Logger().Error("Failed to get root configuration from storage.", "error", err)
 		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
-		return nil, errwrap.Wrapf("failed to get configuration from the storage: {{err}}", err)
-	}
-
-	var ca *CAUserConfig
-	ca, err = NewCAAccountConfig(name, directoryUrl, caCert, email, agreed, privateKeyPEM)
-
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
 	}
 
 	//check if config with this name already exists
@@ -253,7 +244,6 @@ func (ob *OrdersBackend) pathSecretsConfigUpdate(ctx context.Context, req *logic
 	for i, caConfig := range config.CaConfigs {
 		if caConfig.Name == name {
 			found = true
-			configToStore, _ := ca.getConfigToStore()
 			config.CaConfigs[i] = configToStore
 		}
 	}
@@ -264,12 +254,12 @@ func (ob *OrdersBackend) pathSecretsConfigUpdate(ctx context.Context, req *logic
 		return nil, errors.New("CA configuration with this name was not found")
 	}
 
-	putRootConfig(ctx, req, config)
+	err = putRootConfig(ctx, req, config)
 	// Get the storage entry
 	if err != nil {
 		common.Logger().Error("Failed to save root configuration to storage.", "error", err)
 		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
-		return nil, errwrap.Wrapf("failed to persist configuration to storage: {{err}}", err)
+		return nil, fmt.Errorf("failed to persist configuration to storage: %s", err.Error())
 	}
 
 	resp := &logical.Response{}
@@ -300,7 +290,7 @@ func (ob *OrdersBackend) pathSecretsConfigRead(ctx context.Context, req *logical
 	if err != nil {
 		common.Logger().Error("Failed to get root configuration from storage.", "error", err)
 		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
-		return nil, errwrap.Wrapf("failed to get configuration from the storage: {{err}}", err)
+		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
 	}
 	//check if config with this name already exists
 	var foundConfig *CAUserConfigToStore
@@ -315,17 +305,13 @@ func (ob *OrdersBackend) pathSecretsConfigRead(ctx context.Context, req *logical
 		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
 		return nil, errors.New("CA configuration with this name was not found")
 	}
-	//block, _ := pem.Decode([]byte(foundConfig.PrivateKey))
-	//privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	//if err != nil {
-	//	return nil, err
-	//}
 	respData := make(map[string]interface{})
 
 	respData[FieldName] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Name, d.GetDefaultOrZero(FieldName).(string))
 	respData[FieldDirectoryUrl] = common.GetNonEmptyStringFirstOrSecond(foundConfig.DirectoryURL, d.GetDefaultOrZero(FieldDirectoryUrl).(string))
 	respData[FieldPrivateKey] = common.GetNonEmptyStringFirstOrSecond(foundConfig.PrivateKey, d.GetDefaultOrZero(FieldPrivateKey).(string))
 	respData[FieldRegistrationUrl] = common.GetNonEmptyStringFirstOrSecond(foundConfig.RegistrationURL, d.GetDefaultOrZero(FieldRegistrationUrl).(string))
+	respData[FieldEmail] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Email, d.GetDefaultOrZero(FieldEmail).(string))
 
 	resp := &logical.Response{
 		Data: respData,

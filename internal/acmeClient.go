@@ -103,47 +103,6 @@ func (client *Client) setDNSProvider(providerName string, providerConfiguration 
 	}
 }
 
-//
-//func (client *Client) SetChallengeProviders(role *Role) error {
-//	//TODO: discuss with secrets manager team as to whether we want to support http/alpn validation
-//
-//	switch role.ProviderType {
-//	case "dns":
-//		{
-//			challengeOption := GetDNSChallengeOption(role.IgnoreDNSPropogation)
-//			err := client.setDNSProvider(role.ProviderName, role.ProviderConfiguration, challengeOption)
-//			return err
-//		}
-//
-//	//case "http":
-//	//	{
-//	//		err := client.LegoClient.Challenge.SetHTTP01Provider(http01.NewProviderServer("", "80"))
-//	//		return err
-//	//	}
-//	//
-//	//case "alpn":
-//	//	{
-//	//		err := client.LegoClient.Challenge.SetTLSALPN01Provider(tlsalpn01.NewProviderServer("", "443"))
-//	//		return err
-//	//	}
-//
-//	default:
-//		return fmt.Errorf("provider type %s is not recognized", role.ProviderType)
-//	}
-//
-//}
-
-func (client *Client) RegisterUser(userConfig *CAUserConfig) error {
-	// New users will need to register
-	reg, err := client.LegoClient.Registration.Register(registration.RegisterOptions{
-		TermsOfServiceAgreed: userConfig.TermsOfServiceAgreed})
-	if err != nil {
-		return err
-	}
-	userConfig.Registration = reg
-	return nil
-}
-
 // RegisterUserWithKey This will retrieve the account information using the private key (passed through user config) registered with the
 //  ACME server and then set the registration resource and email to the user config
 // https://tools.ietf.org/html/rfc8555#section-7.3
