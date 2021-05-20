@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/vault/sdk/framework"
-	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/logical"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	at "github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
@@ -12,9 +11,7 @@ import (
 	"net/http"
 )
 
-var secretsConfigLock locksutil.LockEntry
-
-func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
+func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
 	//todo move const to secretentry
 	atSecretConfigUpdate := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: "secrets-manager/secret-engine-config",
 		Description: "Set secret engine configuration", Action: "secrets-manager.secret-engine-config.set", SecretType: SecretTypePublicCert}
@@ -24,79 +21,61 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 	fields := map[string]*framework.FieldSchema{
 		FieldName: {
 			Type:        framework.TypeString,
-			Description: "Specifies the ACME CA name.",
+			Description: "Specifies the dns provider name.",
 			Required:    true,
 		},
-		FieldDirectoryUrl: {
-			Type:        framework.TypeString,
-			Description: "Specifies the directory url of the ACME server.",
-			Required:    true,
-		},
-		FieldCaCert: {
-			Type:        framework.TypeString,
-			Description: "Path to the root certificate of the ACME CA server.",
-			Required:    false,
-		},
-		FieldEmail: {
-			Type:        framework.TypeString,
-			Description: "Email to be used for registering the user. If a user account is being retrieved, then the retrieved email will override this field",
-			Required:    false,
-		},
-		FieldPrivateKey: {
-			Type:        framework.TypeString,
-			Description: "Private key in PKCS8 PEM encoded format to retrieve an existing account",
-			Required:    true,
-		},
-		FieldRegistrationUrl: {
-			Type:        framework.TypeString,
-			Description: "Registration URL of an existing account",
+		FieldConfig: {
+			Type:        framework.TypeKVPairs,
+			Description: "Specifies the set of dns provider properties.",
 			Required:    true,
 		},
 	}
 	operationsWithoutPathParam := map[logical.Operation]framework.OperationHandler{
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathCAConfigCreate, atSecretConfigUpdate),
+			Callback: ob.secretBackend.PathCallback(ob.pathDnsConfigCreate, atSecretConfigUpdate),
 			Summary:  "Create the configuration value",
 		},
 		logical.ReadOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathCAConfigList, atSecretConfigUpdate),
+			Callback: ob.secretBackend.PathCallback(ob.pathDnsConfigList, atSecretConfigUpdate),
 			Summary:  "Get all the configuration values",
 		},
 	}
 
 	operationsWithPathParam := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathCAConfigRead, atSecretConfigRead),
+			Callback: ob.secretBackend.PathCallback(ob.pathDnsConfigRead, atSecretConfigRead),
 			Summary:  "Read the configuration value",
 		},
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathCAConfigUpdate, atSecretConfigUpdate),
+			Callback: ob.secretBackend.PathCallback(ob.pathDnsConfigUpdate, atSecretConfigUpdate),
+			Summary:  "Update the configuration value",
 		},
 		logical.DeleteOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathCAConfigDelete, atSecretConfigUpdate),
+			Callback: ob.secretBackend.PathCallback(ob.pathDnsConfigDelete, atSecretConfigUpdate),
+			Summary:  "Delete the configuration value",
 		},
 	}
 
 	return []*framework.Path{
 		{
-			Pattern:         ConfigCAPath,
+			Pattern:         ConfigDNSPath,
 			Fields:          fields,
 			Operations:      operationsWithoutPathParam,
-			HelpSynopsis:    caConfigSyn,
-			HelpDescription: caConfigDesc,
+			HelpSynopsis:    dnsConfigSyn,
+			HelpDescription: dnsConfigDesc,
 		},
 		{
-			Pattern:         ConfigCAPath + "/" + framework.GenericNameRegex(FieldName),
+			Pattern:         ConfigDNSPath + "/" + framework.GenericNameRegex(FieldName),
 			Fields:          fields,
 			Operations:      operationsWithPathParam,
-			HelpSynopsis:    caConfigSyn,
-			HelpDescription: caConfigDesc,
+			HelpSynopsis:    dnsConfigSyn,
+			HelpDescription: dnsConfigDesc,
 		},
 	}
 }
 
 // Create or update the IBM Cloud Auth backend configuration
-func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
 	//TODO check action to authorize
 	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, ""); err != nil {
@@ -124,17 +103,20 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
 	}
 	name := d.Get(FieldName).(string)
+	if name == "" {
+		return nil, fmt.Errorf("name field is empty")
+	}
 	//check if config with this name already exists
-	for _, caConfig := range config.CaConfigs {
+	for _, caConfig := range config.ProviderConfigs {
 		if caConfig.Name == name {
-			common.Logger().Error("CA configuration with this name already exists.", "name", name, "error", err)
+			common.Logger().Error("DNS provider configuration with this name already exists.", "name", name, "error", err)
 			//TODO What is errorcode??
 			common.ErrorLogForCustomer("Bad Request", logdna.Error03087, logdna.BadRequestErrorMessage)
-			return nil, fmt.Errorf("CA configuration with name %s already exists", name)
+			return nil, fmt.Errorf("DNS provider configuration with name %s already exists", name)
 		}
 	}
 
-	configToStore, err := createCAConfigToStore(d)
+	configToStore, err := createProviderConfigToStore(d)
 	if err != nil {
 		common.Logger().Error("Parameters validation error.", "error", err)
 		//TODO What is errorcode??
@@ -142,7 +124,7 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 		return nil, fmt.Errorf("parameters validation error: %s", err.Error())
 
 	}
-	config.CaConfigs = append(config.CaConfigs, configToStore)
+	config.ProviderConfigs = append(config.ProviderConfigs, configToStore)
 
 	err = putRootConfig(ctx, req, config)
 	// Get the storage entry
@@ -157,7 +139,7 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 }
 
 // Create or update the IBM Cloud Auth backend configuration
-func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
 	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, ""); err != nil {
 		if _, ok := err.(logical.HTTPCodedError); ok {
@@ -174,7 +156,7 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 
-	configToStore, err := createCAConfigToStore(d)
+	configToStore, err := createProviderConfigToStore(d)
 	if err != nil {
 		common.Logger().Error("Parameters validation error.", "error", err)
 		//TODO What is errorcode??
@@ -195,18 +177,18 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 	name := d.Get(FieldName).(string)
 	//check if config with this name already exists
 	found := false
-	for i, caConfig := range config.CaConfigs {
+	for i, caConfig := range config.ProviderConfigs {
 		if caConfig.Name == name {
 			found = true
-			config.CaConfigs[i] = configToStore
+			config.ProviderConfigs[i] = configToStore
 			break
 		}
 	}
 	if !found {
-		common.Logger().Error("CA configuration with this name was not found.", "name", name, "error", err)
+		common.Logger().Error("DNS provider configuration with this name was not found.", "name", name, "error", err)
 		//TODO What is errorcode??
 		common.ErrorLogForCustomer("Not Found", logdna.Error03087, logdna.NotFoundErrorMessage)
-		return nil, fmt.Errorf("CA configuration with name '%s' was not found", name)
+		return nil, fmt.Errorf("DNS provider configuration with name '%s' was not found", name)
 	}
 
 	err = putRootConfig(ctx, req, config)
@@ -222,7 +204,7 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 }
 
 // Read the IBM Cloud Auth backend configuration from storage
-func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	//validate that the user is authorised to perform this action
 	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, ""); err != nil {
 		if _, ok := err.(logical.HTTPCodedError); ok {
@@ -247,26 +229,23 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
 		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
 	}
-	//check if config with this name already exists
-	var foundConfig *CAUserConfigToStore
-	for _, caConfig := range config.CaConfigs {
+	//check if config with this name  exists
+	var foundConfig *DnsProviderConfig
+	for _, caConfig := range config.ProviderConfigs {
 		if caConfig.Name == name {
 			foundConfig = caConfig
 		}
 	}
 	if foundConfig == nil {
-		common.Logger().Error("CA configuration with this name was not found.", "name", name, "error", err)
+		common.Logger().Error("DNS provider configuration with this name was not found.", "name", name, "error", err)
 		//TODO What is errorcode??
 		common.ErrorLogForCustomer("Not Found", logdna.Error03087, logdna.NotFoundErrorMessage)
-		return nil, fmt.Errorf("CA configuration with name '%s' was not found", name)
+		return nil, fmt.Errorf("DNS provider configuration with name '%s' was not found", name)
 	}
 	respData := make(map[string]interface{})
 
 	respData[FieldName] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Name, d.GetDefaultOrZero(FieldName).(string))
-	respData[FieldDirectoryUrl] = common.GetNonEmptyStringFirstOrSecond(foundConfig.DirectoryURL, d.GetDefaultOrZero(FieldDirectoryUrl).(string))
-	respData[FieldPrivateKey] = common.GetNonEmptyStringFirstOrSecond(foundConfig.PrivateKey, d.GetDefaultOrZero(FieldPrivateKey).(string))
-	respData[FieldRegistrationUrl] = common.GetNonEmptyStringFirstOrSecond(foundConfig.RegistrationURL, d.GetDefaultOrZero(FieldRegistrationUrl).(string))
-	respData[FieldEmail] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Email, d.GetDefaultOrZero(FieldEmail).(string))
+	respData[FieldConfig] = foundConfig.Config
 
 	resp := &logical.Response{
 		Data: respData,
@@ -274,7 +253,7 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 	return resp, nil
 }
 
-func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	//validate that the user is authorised to perform this action
 	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, ""); err != nil {
 		if _, ok := err.(logical.HTTPCodedError); ok {
@@ -301,14 +280,14 @@ func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Requ
 	}
 
 	respData := make(map[string]interface{})
-	respData["certificate_authorities"] = config.CaConfigs
+	respData["dns_providers"] = config.ProviderConfigs
 	resp := &logical.Response{
 		Data: respData,
 	}
 	return resp, nil
 }
 
-func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	//validate that the user is authorised to perform this action
 	//TODO what is action??
 	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, ""); err != nil {
@@ -336,18 +315,18 @@ func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Re
 	}
 	//check if config with this name already exists
 	foundConfig := -1
-	for i, caConfig := range config.CaConfigs {
+	for i, caConfig := range config.ProviderConfigs {
 		if caConfig.Name == name {
 			foundConfig = i
 		}
 	}
 	if foundConfig == -1 {
-		common.Logger().Error("CA configuration with this name was not found.", "name", name, "error", err)
+		common.Logger().Error("DNS provider configuration with this name was not found.", "name", name, "error", err)
 		//TODO What is errorcode??
 		common.ErrorLogForCustomer("Not Found", logdna.Error03087, logdna.NotFoundErrorMessage)
-		return nil, fmt.Errorf("CA configuration with name '%s' was not found", name)
+		return nil, fmt.Errorf("DNS provider configuration with name '%s' was not found", name)
 	}
-	config.CaConfigs = append(config.CaConfigs[:foundConfig], config.CaConfigs[foundConfig+1:]...)
+	config.ProviderConfigs = append(config.ProviderConfigs[:foundConfig], config.ProviderConfigs[foundConfig+1:]...)
 
 	err = putRootConfig(ctx, req, config)
 	// Get the storage entry
@@ -361,39 +340,18 @@ func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Re
 	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
 }
 
-func createCAConfigToStore(d *framework.FieldData) (*CAUserConfigToStore, error) {
+func createProviderConfigToStore(d *framework.FieldData) (*DnsProviderConfig, error) {
 	name := d.Get(FieldName).(string)
-	directoryUrl := d.Get(FieldDirectoryUrl).(string)
-	privateKeyPEM := d.Get(FieldPrivateKey).(string)
-	caCert := d.Get(FieldCaCert).(string)
-
-	if directoryUrl == "" {
-		return nil, fmt.Errorf("directory_url field is empty")
+	config := d.Get(FieldConfig).(map[string]string)
+	if config == nil {
+		return nil, fmt.Errorf("config field is empty")
 	}
-
-	if privateKeyPEM == "" {
-		return nil, fmt.Errorf("private_key field is empty")
-	}
-
-	var ca *CAUserConfig
-	ca, err := NewCAAccountConfig(name, directoryUrl, caCert, privateKeyPEM)
-
-	if err != nil {
-		return nil, err
-	}
-	err = ca.initCAAccount()
-	if err != nil {
-		return nil, err
-	}
-	configToStore, err := ca.getConfigToStore()
-	if err != nil {
-		return nil, err
-	}
-	return configToStore, nil
+	p := NewDnsProviderConfig(name, config)
+	return p, nil
 }
 
 //TODO update this text
-const caConfigSyn = "Read and Update the root configuration containing the IAM API key that is used to generate IAM credentials."
-const caConfigDesc = `Read and update the IAM API key that will be used to generate IAM credentials.
+const dnsConfigSyn = "Read and Update the root configuration containing the IAM API key that is used to generate IAM credentials."
+const dnsConfigDesc = `Read and update the IAM API key that will be used to generate IAM credentials.
 To allow the secret engine to generate IAM credentials for you,
 this IAM API key should have Editor role (IAM role) on both the IAM Identity Service and the IAM Access Groups Service.`

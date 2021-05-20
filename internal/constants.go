@@ -9,8 +9,11 @@ const (
 	FieldCaCert                  = "ca-cert"
 	FieldEmail                   = "email"
 	FieldPrivateKey              = "private_key"
+	FieldConfig                  = "config"
 	scopePrefixForAccountIdInCRN = "a/"
 	ConfigStoragePath            = "config/root"
 	SecretTypePublicCert         = "public_cert"
-	ConfigPath                   = "config/certificate_authorities"
+	ConfigCAPath                 = "config/certificate_authorities"
+	ConfigDNSPath                = "config/dns_providers"
+	ConfigRootPath               = "config/root"
 )
