@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
 )
@@ -80,7 +79,7 @@ func (oh *OrdersHandler) UpdateSecretEntryMetadata(secretEntry *secretentry.Secr
 	newNameRaw, ok := data.GetOk(secretentry.FieldName)
 	if !ok {
 		msg := fmt.Sprintf("Invalid %s parameter", secretentry.FieldName)
-		common.ErrorLogForCustomer(msg, logdna.Error01035, "Retry with a valid name parameter")
+		common.ErrorLogForCustomer(msg, Error07008, "Retry with a valid name parameter")
 		return nil, logical.CodedError(http.StatusBadRequest, msg)
 	}
 

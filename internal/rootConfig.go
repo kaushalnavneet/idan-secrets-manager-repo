@@ -14,7 +14,7 @@ type RootConfig struct {
 }
 
 func getRootConfig(ctx context.Context, req *logical.Request) (*RootConfig, error) {
-	entry, err := req.Storage.Get(ctx, ConfigStoragePath)
+	entry, err := req.Storage.Get(ctx, ConfigRootPath)
 	if err != nil {
 		return nil, err
 	}
@@ -31,16 +31,16 @@ func getRootConfig(ctx context.Context, req *logical.Request) (*RootConfig, erro
 func putRootConfig(ctx context.Context, req *logical.Request, config *RootConfig) error {
 	// Store the configuration to the backend storage
 	// Generate a new storage entry
-	entry, err := logical.StorageEntryJSON(ConfigStoragePath, config)
+	entry, err := logical.StorageEntryJSON(ConfigRootPath, config)
 	if err != nil {
 		common.Logger().Error("Failed to create storage entry for root configuration.", "error", err)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error03086, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07009, logdna.InternalErrorMessage)
 		return errwrap.Wrapf("failed to generate JSON configuration: {{err}}", err)
 	}
 	// Save the storage entry
 	if err := req.Storage.Put(ctx, entry); err != nil {
 		common.Logger().Error("Failed to save root configuration to storage.", "error", err)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07010, logdna.InternalErrorMessage)
 		return errwrap.Wrapf("failed to persist configuration to storage: {{err}}", err)
 	}
 	return nil

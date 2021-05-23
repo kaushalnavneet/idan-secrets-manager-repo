@@ -12,9 +12,8 @@ import (
 )
 
 func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
-	//todo move const to secretentry
 	atSecretConfigUpdate := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: "secrets-manager/secret-engine-config",
-		Description: "Set secret engine configuration", Action: "secrets-manager.secret-engine-config.set", SecretType: SecretTypePublicCert}
+		Description: "Set secret engine configuration", Action: common.SetEngineConfigAction, SecretType: SecretTypePublicCert}
 	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: "secrets-manager/secret-engine-config",
 		Description: "Get secret engine configuration", Action: common.GetEngineConfigAction, SecretType: SecretTypePublicCert}
 
@@ -77,19 +76,18 @@ func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
 // Create or update the IBM Cloud Auth backend configuration
 func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	//TODO check action to authorize
 	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, ""); err != nil {
 		if _, ok := err.(logical.HTTPCodedError); ok {
-			common.ErrorLogForCustomer("Internal server error", logdna.Error03078, logdna.InternalErrorMessage)
+			common.ErrorLogForCustomer("Internal server error", Error07011, logdna.InternalErrorMessage)
 			return nil, err
 		}
-		common.ErrorLogForCustomer(err.Error(), logdna.Error03079, logdna.PermissionErrorMessage)
+		common.ErrorLogForCustomer(err.Error(), Error07012, logdna.PermissionErrorMessage)
 		return nil, err
 	}
 
 	// Validate user input
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), logdna.Error03080, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), Error07013, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 	// lock for writing
@@ -99,7 +97,7 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 	config, err := getRootConfig(ctx, req)
 	if err != nil {
 		common.Logger().Error("Failed to get root configuration from storage.", "error", err)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07014, logdna.InternalErrorMessage)
 		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
 	}
 	name := d.Get(FieldName).(string)
@@ -109,9 +107,7 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 	//check if config with this name already exists
 	for _, caConfig := range config.ProviderConfigs {
 		if caConfig.Name == name {
-			common.Logger().Error("DNS provider configuration with this name already exists.", "name", name, "error", err)
-			//TODO What is errorcode??
-			common.ErrorLogForCustomer("Bad Request", logdna.Error03087, logdna.BadRequestErrorMessage)
+			common.ErrorLogForCustomer("DNS provider configuration with this name already exists.", Error07041, logdna.BadRequestErrorMessage)
 			return nil, fmt.Errorf("DNS provider configuration with name %s already exists", name)
 		}
 	}
@@ -119,8 +115,7 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 	configToStore, err := createProviderConfigToStore(d)
 	if err != nil {
 		common.Logger().Error("Parameters validation error.", "error", err)
-		//TODO What is errorcode??
-		common.ErrorLogForCustomer("Bad Request", logdna.Error03087, logdna.BadRequestErrorMessage)
+		common.ErrorLogForCustomer("Bad Request", Error07042, logdna.BadRequestErrorMessage)
 		return nil, fmt.Errorf("parameters validation error: %s", err.Error())
 
 	}
@@ -130,7 +125,7 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 	// Get the storage entry
 	if err != nil {
 		common.Logger().Error("Failed to save root configuration to storage.", "error", err)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07043, logdna.InternalErrorMessage)
 		return nil, fmt.Errorf("failed to persist configuration to storage: %s", err.Error())
 	}
 
@@ -143,24 +138,23 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	// validate that the user is authorised to perform this action
 	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, ""); err != nil {
 		if _, ok := err.(logical.HTTPCodedError); ok {
-			common.ErrorLogForCustomer("Internal server error", logdna.Error03078, logdna.InternalErrorMessage)
+			common.ErrorLogForCustomer("Internal server error", Error07044, logdna.InternalErrorMessage)
 			return nil, err
 		}
-		common.ErrorLogForCustomer(err.Error(), logdna.Error03079, logdna.PermissionErrorMessage)
+		common.ErrorLogForCustomer(err.Error(), Error07045, logdna.PermissionErrorMessage)
 		return nil, err
 	}
 
 	// Validate user input
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), logdna.Error03080, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), Error07046, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 
 	configToStore, err := createProviderConfigToStore(d)
 	if err != nil {
 		common.Logger().Error("Parameters validation error.", "error", err)
-		//TODO What is errorcode??
-		common.ErrorLogForCustomer("Bad Request", logdna.Error03087, logdna.BadRequestErrorMessage)
+		common.ErrorLogForCustomer("Bad Request", Error07047, logdna.BadRequestErrorMessage)
 		return nil, fmt.Errorf("parameters validation error: %s", err.Error())
 	}
 
@@ -171,7 +165,7 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	config, err := getRootConfig(ctx, req)
 	if err != nil {
 		common.Logger().Error("Failed to get root configuration from storage.", "error", err)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07048, logdna.InternalErrorMessage)
 		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
 	}
 	name := d.Get(FieldName).(string)
@@ -186,8 +180,8 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	}
 	if !found {
 		common.Logger().Error("DNS provider configuration with this name was not found.", "name", name, "error", err)
-		//TODO What is errorcode??
-		common.ErrorLogForCustomer("Not Found", logdna.Error03087, logdna.NotFoundErrorMessage)
+
+		common.ErrorLogForCustomer("Not Found", Error07049, logdna.NotFoundErrorMessage)
 		return nil, fmt.Errorf("DNS provider configuration with name '%s' was not found", name)
 	}
 
@@ -195,7 +189,7 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	// Get the storage entry
 	if err != nil {
 		common.Logger().Error("Failed to save root configuration to storage.", "error", err)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07050, logdna.InternalErrorMessage)
 		return nil, fmt.Errorf("failed to persist configuration to storage: %s", err.Error())
 	}
 
@@ -208,14 +202,14 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 	//validate that the user is authorised to perform this action
 	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, ""); err != nil {
 		if _, ok := err.(logical.HTTPCodedError); ok {
-			common.ErrorLogForCustomer("Internal server error", logdna.Error03088, logdna.InternalErrorMessage)
+			common.ErrorLogForCustomer("Internal server error", Error07051, logdna.InternalErrorMessage)
 			return nil, err
 		}
-		common.ErrorLogForCustomer(err.Error(), logdna.Error03089, logdna.PermissionErrorMessage)
+		common.ErrorLogForCustomer(err.Error(), Error07052, logdna.PermissionErrorMessage)
 		return nil, err
 	}
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), logdna.Error03090, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), Error07053, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 	name := d.Get(FieldName).(string)
@@ -226,7 +220,7 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 	config, err := getRootConfig(ctx, req)
 	if err != nil {
 		common.Logger().Error("Failed to get root configuration from storage.", "error", err)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07054, logdna.InternalErrorMessage)
 		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
 	}
 	//check if config with this name  exists
@@ -238,8 +232,7 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 	}
 	if foundConfig == nil {
 		common.Logger().Error("DNS provider configuration with this name was not found.", "name", name, "error", err)
-		//TODO What is errorcode??
-		common.ErrorLogForCustomer("Not Found", logdna.Error03087, logdna.NotFoundErrorMessage)
+		common.ErrorLogForCustomer("Not Found", Error07055, logdna.NotFoundErrorMessage)
 		return nil, fmt.Errorf("DNS provider configuration with name '%s' was not found", name)
 	}
 	respData := make(map[string]interface{})
@@ -257,14 +250,14 @@ func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Req
 	//validate that the user is authorised to perform this action
 	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, ""); err != nil {
 		if _, ok := err.(logical.HTTPCodedError); ok {
-			common.ErrorLogForCustomer("Internal server error", logdna.Error03088, logdna.InternalErrorMessage)
+			common.ErrorLogForCustomer("Internal server error", Error07056, logdna.InternalErrorMessage)
 			return nil, err
 		}
-		common.ErrorLogForCustomer(err.Error(), logdna.Error03089, logdna.PermissionErrorMessage)
+		common.ErrorLogForCustomer(err.Error(), Error07057, logdna.PermissionErrorMessage)
 		return nil, err
 	}
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), logdna.Error03090, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), Error07058, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 
@@ -275,7 +268,7 @@ func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Req
 	config, err := getRootConfig(ctx, req)
 	if err != nil {
 		common.Logger().Error("Failed to get root configuration from storage.", "error", err)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07059, logdna.InternalErrorMessage)
 		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
 	}
 
@@ -289,17 +282,16 @@ func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Req
 
 func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	//validate that the user is authorised to perform this action
-	//TODO what is action??
 	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, ""); err != nil {
 		if _, ok := err.(logical.HTTPCodedError); ok {
-			common.ErrorLogForCustomer("Internal server error", logdna.Error03088, logdna.InternalErrorMessage)
+			common.ErrorLogForCustomer("Internal server error", Error07060, logdna.InternalErrorMessage)
 			return nil, err
 		}
-		common.ErrorLogForCustomer(err.Error(), logdna.Error03089, logdna.PermissionErrorMessage)
+		common.ErrorLogForCustomer(err.Error(), Error07061, logdna.PermissionErrorMessage)
 		return nil, err
 	}
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), logdna.Error03090, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), Error07062, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 	name := d.Get(FieldName).(string)
@@ -310,7 +302,7 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 	config, err := getRootConfig(ctx, req)
 	if err != nil {
 		common.Logger().Error("Failed to get root configuration from storage.", "error", err)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07063, logdna.InternalErrorMessage)
 		return nil, fmt.Errorf("failed to get configuration from the storage: %s", err.Error())
 	}
 	//check if config with this name already exists
@@ -322,8 +314,8 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 	}
 	if foundConfig == -1 {
 		common.Logger().Error("DNS provider configuration with this name was not found.", "name", name, "error", err)
-		//TODO What is errorcode??
-		common.ErrorLogForCustomer("Not Found", logdna.Error03087, logdna.NotFoundErrorMessage)
+
+		common.ErrorLogForCustomer("Not Found", Error07064, logdna.NotFoundErrorMessage)
 		return nil, fmt.Errorf("DNS provider configuration with name '%s' was not found", name)
 	}
 	config.ProviderConfigs = append(config.ProviderConfigs[:foundConfig], config.ProviderConfigs[foundConfig+1:]...)
@@ -332,7 +324,7 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 	// Get the storage entry
 	if err != nil {
 		common.Logger().Error("Failed to save root configuration to storage.", "error", err)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error03087, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07065, logdna.InternalErrorMessage)
 		return nil, fmt.Errorf("failed to persist configuration to storage: %s", err.Error())
 	}
 
