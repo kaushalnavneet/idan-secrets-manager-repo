@@ -2,6 +2,9 @@ package publiccerts
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
 	"github.com/go-acme/lego/v4/certcrypto"
@@ -15,6 +18,7 @@ type CAUserConfig struct {
 	Email        string `json:"email"`
 	Registration *registration.Resource
 	key          crypto.PrivateKey
+	byoa         bool
 }
 
 type CAUserConfigToStore struct {
@@ -38,16 +42,27 @@ func (u *CAUserConfig) GetPrivateKey() crypto.PrivateKey {
 	return u.key
 }
 
-func NewCAAccountConfig(name, directoryUrl, caRootCertPath, privateKeyPEM string) (*CAUserConfig, error) {
-	privateKey, err := DecodePrivateKey(privateKeyPEM)
+func NewCAAccountConfig(name, directoryUrl, caRootCertPath, privateKeyPEM, email string) (*CAUserConfig, error) {
+	var privateKey crypto.PrivateKey
+	var err error
+	byoa := privateKeyPEM != ""
+	if byoa {
+		privateKey, err = DecodePrivateKey(privateKeyPEM)
+	} else {
+		// Create a user. New accounts need an email and private key to start.
+		// Note - Always use a secp256r1 curve for registering a user to the ACME server
+		privateKey, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	}
 	if err != nil {
 		return nil, err
 	}
 	userConfig := &CAUserConfig{
 		Name:         name,
+		Email:        email,
 		key:          privateKey,
 		DirectoryURL: directoryUrl,
 		CARootCert:   caRootCertPath,
+		byoa:         byoa,
 	}
 	return userConfig, nil
 }
@@ -60,7 +75,12 @@ func (u *CAUserConfig) initCAAccount() error {
 	if err != nil {
 		return err
 	}
-	err = client.RegisterUserWithKey(u)
+
+	if u.byoa {
+		err = client.RegisterUserWithKey(u)
+	} else {
+		err = client.RegisterUser(u)
+	}
 	if err != nil {
 		return err
 	}

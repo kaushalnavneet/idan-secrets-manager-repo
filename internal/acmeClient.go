@@ -103,6 +103,17 @@ func (client *Client) setDNSProvider(providerName string, providerConfiguration 
 	}
 }
 
+func (client *Client) RegisterUser(userConfig *CAUserConfig) error {
+	// New users will need to register
+	reg, err := client.LegoClient.Registration.Register(registration.RegisterOptions{
+		TermsOfServiceAgreed: true})
+	if err != nil {
+		return err
+	}
+	userConfig.Registration = reg
+	return nil
+}
+
 // RegisterUserWithKey This will retrieve the account information using the private key (passed through user config) registered with the
 //  ACME server and then set the registration resource and email to the user config
 // https://tools.ietf.org/html/rfc8555#section-7.3

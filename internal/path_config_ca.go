@@ -142,7 +142,7 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 			return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 		}
 	}
-	configToStore, err := ob.createCAConfigToStore(req, d, name)
+	configToStore, err := ob.createCAConfigToStore(d, name)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
 		common.ErrorLogForCustomer(errorMessage, Error07014, logdna.BadRequestErrorMessage)
@@ -185,7 +185,7 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 		common.ErrorLogForCustomer(err.Error(), Error07017, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
-	configToStore, err := ob.createCAConfigToStore(req, d, name)
+	configToStore, err := ob.createCAConfigToStore(d, name)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
 		common.ErrorLogForCustomer(errorMessage, Error07018, logdna.BadRequestErrorMessage)
@@ -381,7 +381,7 @@ func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Re
 	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
 }
 
-func (ob *OrdersBackend) createCAConfigToStore(req *logical.Request, d *framework.FieldData, name string) (*CAUserConfigToStore, error) {
+func (ob *OrdersBackend) createCAConfigToStore(d *framework.FieldData, name string) (*CAUserConfigToStore, error) {
 	directoryUrl, err := ob.validateStringField(d, FieldDirectoryUrl, "url", "not valid url")
 	if err != nil {
 		return nil, err
@@ -390,8 +390,9 @@ func (ob *OrdersBackend) createCAConfigToStore(req *logical.Request, d *framewor
 	if privateKeyPEM == "" {
 		return nil, errors.New("private key is missing")
 	}
+	email := d.Get(FieldEmail).(string)
 	caCert := d.Get(FieldCaCert).(string)
-	ca, err := NewCAAccountConfig(name, directoryUrl, caCert, privateKeyPEM)
+	ca, err := NewCAAccountConfig(name, directoryUrl, caCert, privateKeyPEM, email)
 	if err != nil {
 		return nil, err
 	}
