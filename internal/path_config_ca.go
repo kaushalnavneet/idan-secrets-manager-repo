@@ -142,7 +142,6 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 			return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 		}
 	}
-
 	configToStore, err := ob.createCAConfigToStore(req, d, name)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())

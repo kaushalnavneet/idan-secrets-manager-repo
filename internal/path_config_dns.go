@@ -115,17 +115,16 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 	//check if config with this name already exists
 	for _, caConfig := range config.ProviderConfigs {
 		if caConfig.Name == name {
-			common.ErrorLogForCustomer(fmt.Sprintf("DNS provider configuration with name '%s' already exists.", name), Error07041, logdna.BadRequestErrorMessage)
-			return nil, fmt.Errorf("DNS provider configuration with name %s already exists", name)
+			errorMessage := fmt.Sprintf("DNS provider configuration with name '%s' already exists", name)
+			common.ErrorLogForCustomer(errorMessage, Error07043, logdna.BadRequestErrorMessage)
+			return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 		}
 	}
-
-	configToStore, err := createProviderConfigToStore(d)
+	configToStore, err := createProviderConfigToStore(name, d)
 	if err != nil {
-		common.Logger().Error("Parameters validation error.", "error", err)
-		common.ErrorLogForCustomer("Bad Request", Error07043, logdna.BadRequestErrorMessage)
-		return nil, fmt.Errorf("parameters validation error: %s", err.Error())
-
+		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
+		common.ErrorLogForCustomer(errorMessage, Error07044, logdna.BadRequestErrorMessage)
+		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 	config.ProviderConfigs = append(config.ProviderConfigs, configToStore)
 
@@ -133,7 +132,7 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to save configuration to the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07044, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07045, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 
@@ -152,7 +151,7 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, Error07045, logdna.BadRequestErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, Error07046, logdna.BadRequestErrorMessage)
 		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 
@@ -161,15 +160,15 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	atContext.ResourceName = name
 	// Validate user input
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), Error07046, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), Error07047, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 
-	configToStore, err := createProviderConfigToStore(d)
+	configToStore, err := createProviderConfigToStore(name, d)
 	if err != nil {
-		common.Logger().Error("Parameters validation error.", "error", err)
-		common.ErrorLogForCustomer("Bad Request", Error07047, logdna.BadRequestErrorMessage)
-		return nil, fmt.Errorf("parameters validation error: %s", err.Error())
+		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
+		common.ErrorLogForCustomer(errorMessage, Error07048, logdna.BadRequestErrorMessage)
+		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 
 	// lock for writing
@@ -180,7 +179,7 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07048, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07049, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 	//check if config with this name exists
@@ -194,7 +193,7 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	}
 	if !found {
 		errorMessage := fmt.Sprintf("DNS provider configuration with name '%s' was not found", name)
-		common.ErrorLogForCustomer(errorMessage, Error07049, logdna.NotFoundErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, Error07050, logdna.NotFoundErrorMessage)
 		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
 	}
 
@@ -202,7 +201,7 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to save configuration to the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07050, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07051, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 
@@ -221,7 +220,7 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, Error07051, logdna.BadRequestErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, Error07052, logdna.BadRequestErrorMessage)
 		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 
@@ -229,7 +228,7 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
 	atContext.ResourceName = name
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), Error07052, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), Error07053, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 	// lock for reading
@@ -240,7 +239,7 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07053, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07054, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 	//check if config with this name  exists
@@ -248,11 +247,12 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 	for _, caConfig := range config.ProviderConfigs {
 		if caConfig.Name == name {
 			foundConfig = caConfig
+			break
 		}
 	}
 	if foundConfig == nil {
 		errorMessage := fmt.Sprintf("DNS provider configuration with name '%s' was not found", name)
-		common.ErrorLogForCustomer(errorMessage, Error07054, logdna.NotFoundErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, Error07055, logdna.NotFoundErrorMessage)
 		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
 	}
 	respData := make(map[string]interface{})
@@ -276,7 +276,7 @@ func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Req
 	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, Error07055, logdna.BadRequestErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, Error07056, logdna.BadRequestErrorMessage)
 		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 
@@ -285,7 +285,7 @@ func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Req
 	atContext.ResourceName = name
 
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), Error07056, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), Error07057, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 
@@ -297,7 +297,7 @@ func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Req
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07057, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07058, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 
@@ -319,7 +319,7 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, Error07058, logdna.BadRequestErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, Error07059, logdna.BadRequestErrorMessage)
 		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 	//prepare AT context
@@ -327,7 +327,7 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 	atContext.ResourceName = name
 
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), Error07059, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), Error07060, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 	// lock for writing
@@ -338,7 +338,7 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07060, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07061, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 	//check if config with this name already exists
@@ -346,11 +346,12 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 	for i, caConfig := range config.ProviderConfigs {
 		if caConfig.Name == name {
 			foundConfig = i
+			break
 		}
 	}
 	if foundConfig == -1 {
 		errorMessage := fmt.Sprintf("DNS provider configuration with name '%s' was not found", name)
-		common.ErrorLogForCustomer(errorMessage, Error07061, logdna.NotFoundErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, Error07062, logdna.NotFoundErrorMessage)
 		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
 	}
 	config.ProviderConfigs = append(config.ProviderConfigs[:foundConfig], config.ProviderConfigs[foundConfig+1:]...)
@@ -359,7 +360,7 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to save configuration to the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07062, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07063, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 
@@ -367,8 +368,7 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
 }
 
-func createProviderConfigToStore(d *framework.FieldData) (*DnsProviderConfig, error) {
-	name := d.Get(FieldName).(string)
+func createProviderConfigToStore(name string, d *framework.FieldData) (*DnsProviderConfig, error) {
 	config := d.Get(FieldConfig).(map[string]string)
 	if config == nil {
 		return nil, fmt.Errorf("config field is empty")
