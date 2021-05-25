@@ -2,6 +2,12 @@ module github.ibm.com/security-services/secrets-manager-vault-plugin-public-cert
 
 go 1.14
 
+replace github.com/pkg/sftp => github.com/pkg/sftp v1.11.0
+
+replace github.com/labstack/echo/v4 => github.com/labstack/echo/v4 v4.2.0
+
+//replace github.com/dgrijalva/jwt-go => github.com/dgrijalva/jwt-go v4.0.0-preview1
+
 require (
 	github.com/go-acme/lego/v4 v4.3.1
 	github.com/go-playground/validator/v10 v10.6.1
