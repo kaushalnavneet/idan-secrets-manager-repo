@@ -40,7 +40,7 @@ builds:
 archives:
   - id: plugin
     format: binary
-    name_template: "vault-plugin-user-credentials-secret-{{.Os}}-{{.Arch}}-{{.Version}}"
+    name_template: "vault-plugin-public-cert-secret-{{.Os}}-{{.Arch}}-{{.Version}}"
     files:
       - none*
 
