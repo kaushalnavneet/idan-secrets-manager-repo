@@ -272,17 +272,6 @@ func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Req
 	if err != nil {
 		return nil, err
 	}
-	//get config name
-	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
-	if err != nil {
-		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, Error07056, logdna.BadRequestErrorMessage)
-		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
-	}
-
-	//prepare AT context
-	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
-	atContext.ResourceName = name
 
 	if err := common.ValidateUnknownFields(req, d); err != nil {
 		common.ErrorLogForCustomer(err.Error(), Error07057, "There are unexpected fields. Verify that the request parameters are valid")
