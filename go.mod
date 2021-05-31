@@ -15,6 +15,6 @@ require (
 	github.com/hashicorp/vault/sdk v0.2.0
 	github.ibm.com/project-fortress/vault-client-golang v0.0.4
 	github.ibm.com/security-services/secrets-manager-common-utils v0.0.6297
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.6210
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.6211-0.20210531071430-92820ddba338
 	golang.org/x/net abc453219eb5
 )
