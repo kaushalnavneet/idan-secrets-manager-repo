@@ -254,30 +254,11 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 		common.ErrorLogForCustomer(err.Error(), Error07023, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
-	// lock for reading
-	secretsConfigLock.RLock()
-	defer secretsConfigLock.RUnlock()
-	// Get the storage entry
-	config, err := getRootConfig(ctx, req)
+	foundConfig, err := ob.getCAConfigByName(ctx, req, name)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
-		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07024, logdna.InternalErrorMessage)
-		return nil, errors.New(errorMessage)
+		return nil, err
 	}
-	//check if config with this name already exists
-	var foundConfig *CAUserConfigToStore
-	for _, caConfig := range config.CaConfigs {
-		if caConfig.Name == name {
-			foundConfig = caConfig
-			break
-		}
-	}
-	if foundConfig == nil {
-		errorMessage := fmt.Sprintf("CA configuration with name '%s' was not found", name)
-		common.ErrorLogForCustomer(errorMessage, Error07025, logdna.NotFoundErrorMessage)
-		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
-	}
+
 	respData := make(map[string]interface{})
 
 	respData[FieldName] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Name, d.GetDefaultOrZero(FieldName).(string))
@@ -290,6 +271,35 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 		Data: respData,
 	}
 	return resp, nil
+}
+
+func (ob *OrdersBackend) getCAConfigByName(ctx context.Context, req *logical.Request, name string) (*CAUserConfigToStore, error) {
+	// lock for reading
+	secretsConfigLock.RLock()
+	defer secretsConfigLock.RUnlock()
+	// Get the storage entry
+	config, err := getRootConfig(ctx, req)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
+		common.Logger().Error(errorMessage)
+		common.ErrorLogForCustomer("Internal server error", Error07024, logdna.InternalErrorMessage)
+		return nil, errors.New(errorMessage)
+	}
+	//check if config with this name  exists
+	var foundConfig *CAUserConfigToStore
+	for _, caConfig := range config.CaConfigs {
+		if caConfig.Name == name {
+			foundConfig = caConfig
+			break
+		}
+	}
+	if foundConfig == nil {
+		errorMessage := fmt.Sprintf("CA configuration with name '%s' was not found", name)
+		common.ErrorLogForCustomer(errorMessage, Error07025, logdna.NotFoundErrorMessage)
+		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
+	}
+
+	return foundConfig, nil
 }
 
 func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
@@ -317,6 +327,7 @@ func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Requ
 
 	respData := make(map[string]interface{})
 	respData[CA] = config.CaConfigs
+	//TODO remove private keys
 	resp := &logical.Response{
 		Data: respData,
 	}

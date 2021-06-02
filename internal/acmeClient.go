@@ -47,10 +47,10 @@ func NewACMEClientWithCustomHttpClient(CAUserConfig *CAUserConfig, keyType certc
 	return &Client{LegoClient: legoClient}, nil
 }
 
-func (client *Client) setDNSProvider(providerName string, providerConfiguration map[string]string,
+func (client *Client) setDNSProvider(providerType string, providerConfiguration map[string]string,
 	challengeOption dns01.ChallengeOption) error {
 
-	if providerName == "pebble" {
+	if providerType == "pebble" {
 
 		host, found := providerConfiguration["host"]
 		if !found {
@@ -65,7 +65,7 @@ func (client *Client) setDNSProvider(providerName string, providerConfiguration 
 			challengeOption)
 		return err
 
-	} else if providerName == "cis" {
+	} else if providerType == "cis" {
 
 		crn, found := providerConfiguration["crn"]
 		if !found {
@@ -93,7 +93,7 @@ func (client *Client) setDNSProvider(providerName string, providerConfiguration 
 			return err
 		}
 
-		provider, err := dns.NewDNSChallengeProviderByName(providerName)
+		provider, err := dns.NewDNSChallengeProviderByName(providerType)
 		if err != nil {
 			return err
 		}
@@ -101,6 +101,34 @@ func (client *Client) setDNSProvider(providerName string, providerConfiguration 
 		return err
 
 	}
+}
+func (client *Client) SetChallengeProviders(dnsProvider *DnsProviderConfig) error {
+	//TODO: discuss with secrets manager team as to whether we want to support http/alpn validation
+
+	//switch role.ProviderType {
+	//case "dns":
+	//	{
+	challengeOption := dns01.DisableCompletePropagationRequirement()
+	err := client.setDNSProvider(dnsProvider.Type, dnsProvider.Config, challengeOption)
+	return err
+	//}
+
+	//case "http":
+	//	{
+	//		err := client.LegoClient.Challenge.SetHTTP01Provider(http01.NewProviderServer("", "80"))
+	//		return err
+	//	}
+	//
+	//case "alpn":
+	//	{
+	//		err := client.LegoClient.Challenge.SetTLSALPN01Provider(tlsalpn01.NewProviderServer("", "443"))
+	//		return err
+	//	}
+
+	//default:
+	//	return fmt.Errorf("provider type %s is not recognized", "dns")
+	//}
+
 }
 
 func (client *Client) RegisterUser(userConfig *CAUserConfig) error {
