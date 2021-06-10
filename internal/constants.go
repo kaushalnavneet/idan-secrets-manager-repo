@@ -1,6 +1,9 @@
 package publiccerts
 
-import "github.ibm.com/security-services/secrets-manager-common-utils/logging/logdna"
+import (
+	"github.ibm.com/security-services/secrets-manager-common-utils/logging/logdna"
+	"time"
+)
 
 //todo move to common
 const (
@@ -12,6 +15,11 @@ const (
 	FieldEmail               = "email"
 	FieldPrivateKey          = "private_key"
 	FieldConfig              = "config"
+	FieldType                = "type"
+	FieldCAConfig            = "ca"
+	FieldDNSConfig           = "dns"
+	FieldBundleCert          = "bundle_certs"
+	FieldRotation            = "rotation"
 	SecretTypePublicCert     = "public_cert"
 	CA                       = "certificate_authorities"
 	DNS                      = "dns_providers"
@@ -19,7 +27,16 @@ const (
 	ConfigCAPath             = "config/" + CA
 	ConfigDNSPath            = "config/" + DNS
 	ConfigRootPath           = "config/" + Root
+	IssuePath                = "secrets"
 	DeleteEngineConfigAction = "secrets-manager.secret-engine-config.delete"
+)
+
+const (
+	MaxWorkers                           = 1
+	MaxCertRequest                       = 50
+	CertRequestTimeout     time.Duration = 600
+	RenewalExecutionPeriod time.Duration = 3
+	RenewalThreshold       time.Duration = 30 * 24 //((365 * 24 * 5) + 24) to always renew every renewal period
 )
 const (
 	Error07001 = logdna.ServiceNamePrefix + ".Error07001" //public_certs common/root
