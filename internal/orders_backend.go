@@ -7,14 +7,17 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"strings"
+	"time"
 )
 
 type OrdersBackend struct {
 	secretBackend secret_backend.SecretBackend
 	Auth          common.AuthValidator
+	storage       logical.Storage
 }
 
 func (ob *OrdersBackend) SetSecretBackend(secretBackend secret_backend.SecretBackend) {
@@ -28,13 +31,22 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 		ob.pathConfigCA(),
 		ob.pathConfigDNS(),
 		ob.pathConfigRoot(),
+		ob.pathIssueCert(),
+		ob.pathCertificateMetadata(),
+		ob.pathCertificate(),
 		[]*framework.Path{
 			//// Make sure this stays at the end so that the valid paths are processed first.
 			//common.PathInvalid(backendHelp),
 		})
 }
+
 func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendHandler {
-	return &OrdersHandler{}
+	oh := &OrdersHandler{currentOrders: make(map[string]WorkItem), parser: &certificate.CertificateParserImpl{}}
+	oh.workerPool = NewWorkerPool(oh,
+		GetEnv("MAX_WORKERS", MaxWorkers).(int),
+		GetEnv("MAX_CERT_REQUEST", MaxCertRequest).(int),
+		GetEnv("CERT_REQUEST_TIMEOUT_SECS", CertRequestTimeout).(time.Duration)*time.Second)
+	return oh
 }
 
 func existenceCheck(ctx context.Context, request *logical.Request, data *framework.FieldData) (bool, error) {

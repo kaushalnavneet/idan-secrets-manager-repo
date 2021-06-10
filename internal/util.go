@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -203,4 +204,59 @@ func ExtractFirstEmailFromAccount(retrievedAccount *registration.Resource) (stri
 
 func IsTimeExpired(timeNow time.Time, timeExpiry time.Time) bool {
 	return timeNow.After(timeExpiry)
+}
+
+func validateNames(names []string) error {
+	//regex copied from here - https://github.com/hashicorp/vault/blob/abfc7a844517c87d5dcd32069e6baf682dfa580d/builtin/logical/pki/cert_util.go#L44
+	// A note on hostnameRegex: although we set the StrictDomainName option
+	// when doing the idna conversion, this appears to only affect output, not
+	// input, so it will allow e.g. host^123.example.com straight through. So
+	// we still need to use this to check the output.
+	var hostnameRegex = regexp.MustCompile(`^(\*\.)?(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])\.?$`)
+
+	//TODO check domains duplication
+	for _, name := range names {
+		sanitizedName := name
+		//isWildcard := false
+
+		// If we have an asterisk as the first part of the domain name, mark it
+		// as wildcard and set the sanitized name to the remainder of the
+		// domain
+		if strings.HasPrefix(name, "*.") {
+			sanitizedName = sanitizedName[2:]
+			//isWildcard = true
+		}
+
+		// EnforceHostnames still applies when allowing any name.
+		// Also, we check the sanitized name to ensure that we are
+		// not checking a wildcard prefix.
+		p := idna.New(
+			idna.StrictDomainName(true),
+			idna.VerifyDNSLength(true),
+		)
+		converted, err := p.ToASCII(sanitizedName)
+		if err != nil {
+			return err
+		}
+		if !hostnameRegex.MatchString(converted) {
+			return errors.New(name + " failed check with enforce host names")
+		}
+
+		return errors.New(name + " not in the allowed domains")
+	}
+	return nil
+}
+
+var keyTypes = map[string]certcrypto.KeyType{
+	"rsaEncryption 2048 bit": certcrypto.RSA2048,
+	"rsaEncryption 4096 bit": certcrypto.RSA4096,
+	"rsaEncryption 8192 bit": certcrypto.RSA8192,
+}
+
+func getKeyType(keyAlgorithm string) (certcrypto.KeyType, error) {
+	keyType, ok := keyTypes[keyAlgorithm]
+	if !ok {
+		return "", errors.New("key algorithm is not valid ")
+	}
+	return keyType, nil
 }

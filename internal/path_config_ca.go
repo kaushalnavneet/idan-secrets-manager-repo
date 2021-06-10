@@ -254,7 +254,7 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 		common.ErrorLogForCustomer(err.Error(), Error07023, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
-	foundConfig, err := ob.getCAConfigByName(ctx, req, name)
+	foundConfig, err := getCAConfigByName(ctx, req, name)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 	return resp, nil
 }
 
-func (ob *OrdersBackend) getCAConfigByName(ctx context.Context, req *logical.Request, name string) (*CAUserConfigToStore, error) {
+func getCAConfigByName(ctx context.Context, req *logical.Request, name string) (*CAUserConfigToStore, error) {
 	// lock for reading
 	secretsConfigLock.RLock()
 	defer secretsConfigLock.RUnlock()

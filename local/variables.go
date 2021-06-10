@@ -9,8 +9,8 @@ var (
 	vaultUrl  = "https://vserv-us.sos.ibm.com:8200"
 	vaultPath = "v1/generic/crn/v1/dev/public/secret-manager/us-south/default/YS1/-/-/-"
 
-	vault_role_id   = ""
-	vault_secret_id = ""
+	vault_role_id   = "60a31e50-e4d8-bf9f-6bfa-43510f12bb74"
+	vault_secret_id = "42c4e9a0-0114-44df-17ef-9bed14fcc313"
 
 	// Defaults
 	vault_debug             = "false"

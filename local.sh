@@ -54,3 +54,13 @@ vault write ibmcloud/$PLUGIN_NAME/config/iam \
   vault_endpoint="$VAULT_ENDPOINT" \
   usage_token="$USAGE_TOKEN"
 
+
+MANAGER_ACCESS_TOKEN=`curl -s -X POST \
+   "https://iam.test.cloud.ibm.com/identity/token" \
+   -H "Content-Type: application/x-www-form-urlencoded" \
+   -H "Accept: application/json" \
+   -d "grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey&apikey=J-yq1YGgCoyqYOTcFMRnTjJVj1TdL5kKTguGUwAnIyXl" | jq -j ".access_token"`; echo $MANAGER_ACCESS_TOKEN
+
+vault write auth/ibmcloud/login token=$MANAGER_ACCESS_TOKEN
+
+

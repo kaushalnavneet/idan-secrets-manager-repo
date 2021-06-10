@@ -237,7 +237,7 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 
-	foundConfig, err := ob.getDNSConfigByName(ctx, req, name)
+	foundConfig, err := getDNSConfigByName(ctx, req, name)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +252,7 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 	return resp, nil
 }
 
-func (ob *OrdersBackend) getDNSConfigByName(ctx context.Context, req *logical.Request, name string) (*DnsProviderConfig, error) {
+func getDNSConfigByName(ctx context.Context, req *logical.Request, name string) (*DnsProviderConfig, error) {
 	// lock for reading
 	secretsConfigLock.RLock()
 	defer secretsConfigLock.RUnlock()
