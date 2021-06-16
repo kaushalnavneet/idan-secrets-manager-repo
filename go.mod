@@ -15,7 +15,7 @@ require (
 	github.com/hashicorp/go-hclog v0.16.1
 	github.com/hashicorp/vault/sdk v0.2.0
 	github.ibm.com/project-fortress/vault-client-golang v0.0.4
-	github.ibm.com/security-services/secrets-manager-common-utils v0.0.6487
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.6567
+	github.ibm.com/security-services/secrets-manager-common-utils v0.0.6579
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.6584
 	golang.org/x/net 84b48f89b13b
 )
