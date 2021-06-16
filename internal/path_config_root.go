@@ -55,7 +55,9 @@ func (ob *OrdersBackend) pathRootConfigRead(ctx context.Context, req *logical.Re
 	}
 
 	respData := make(map[string]interface{})
+	//TODO remove private keys
 	respData[CA] = config.CaConfigs
+	//TODO remove configs
 	respData[DNS] = config.ProviderConfigs
 	resp := &logical.Response{
 		Data: respData,

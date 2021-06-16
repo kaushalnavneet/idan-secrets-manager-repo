@@ -26,6 +26,11 @@ func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
 			Description: "Specifies the dns provider name.",
 			Required:    true,
 		},
+		FieldType: {
+			Type:        framework.TypeString,
+			Description: "Specifies the dns provider type.",
+			Required:    true,
+		},
 		FieldConfig: {
 			Type:        framework.TypeKVPairs,
 			Description: "Specifies the set of dns provider properties.",
@@ -231,6 +236,23 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 		common.ErrorLogForCustomer(err.Error(), Error07053, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
+
+	foundConfig, err := getDNSConfigByName(ctx, req, name)
+	if err != nil {
+		return nil, err
+	}
+	respData := make(map[string]interface{})
+
+	respData[FieldName] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Name, d.GetDefaultOrZero(FieldName).(string))
+	respData[FieldConfig] = foundConfig.Config
+
+	resp := &logical.Response{
+		Data: respData,
+	}
+	return resp, nil
+}
+
+func getDNSConfigByName(ctx context.Context, req *logical.Request, name string) (*DnsProviderConfig, error) {
 	// lock for reading
 	secretsConfigLock.RLock()
 	defer secretsConfigLock.RUnlock()
@@ -255,15 +277,7 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 		common.ErrorLogForCustomer(errorMessage, Error07055, logdna.NotFoundErrorMessage)
 		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
 	}
-	respData := make(map[string]interface{})
-
-	respData[FieldName] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Name, d.GetDefaultOrZero(FieldName).(string))
-	respData[FieldConfig] = foundConfig.Config
-
-	resp := &logical.Response{
-		Data: respData,
-	}
-	return resp, nil
+	return foundConfig, nil
 }
 
 func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
@@ -291,6 +305,7 @@ func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Req
 	}
 
 	respData := make(map[string]interface{})
+	//TODO remove configs
 	respData[DNS] = config.ProviderConfigs
 	resp := &logical.Response{
 		Data: respData,
@@ -358,11 +373,20 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 }
 
 func createProviderConfigToStore(name string, d *framework.FieldData) (*DnsProviderConfig, error) {
+	providerType := d.Get(FieldType).(string)
+	if providerType == "" {
+		return nil, fmt.Errorf("type field is empty")
+	}
+	//TODO think about validation. this is not recognise cis
+	//_, err := dns.NewDNSChallengeProviderByName(providerType)
+	//if err != nil {
+	//	return nil, err
+	//}
 	config := d.Get(FieldConfig).(map[string]string)
 	if config == nil {
 		return nil, fmt.Errorf("config field is empty")
 	}
-	p := NewDnsProviderConfig(name, config)
+	p := NewDnsProviderConfig(name, providerType, config)
 	return p, nil
 }
 
