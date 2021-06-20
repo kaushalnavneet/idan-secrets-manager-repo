@@ -111,18 +111,32 @@ func (c *CISDNSConfig) Present(domain, token, keyAuth string) error {
 	currentDomain.txtRecordId = recordId
 	c.Domains[domain] = currentDomain
 	return nil
-
 }
 
 // CleanUp Implements dns provider interface
 func (c *CISDNSConfig) CleanUp(domain, token, keyAuth string) error {
 	currentDomain, ok := c.Domains[domain]
 	if !ok {
-		return fmt.Errorf("no record ID exists for the domain " + domain)
+		//for some reason it was not kept during set challenge
+		currentDomain = &Domain{name: domain}
+		currentDomain.txtRecordName, currentDomain.txtRecordValue = dns01.GetRecord(domain, keyAuth)
+		zoneId, err := c.getZoneIdByDomain(domain)
+		if err != nil {
+			return err
+		}
+		currentDomain.zoneId = zoneId
+		recordId, err := c.getChallengeRecordId(currentDomain)
+		if err != nil {
+			return err
+		}
+		currentDomain.txtRecordId = recordId
 	}
 	err := c.removeChallenge(currentDomain)
+	if err != nil {
+		return err
+	}
 	delete(c.Domains, domain)
-	return err
+	return nil
 }
 
 func createTxtRecordBody(key, value string, ttl int) (*bytes.Buffer, error) {
@@ -203,14 +217,6 @@ func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 	return "", errors.New(getCISErrors(response.Errors))
 }
 
-func getCISErrors(errors []CISError) string {
-	result := "CIS error/s: "
-	for i, cisError := range errors {
-		result += strconv.Itoa(i) + ". Code:" + strconv.Itoa(cisError.Code) + " Message:" + cisError.Message + ". "
-	}
-	return result
-}
-
 func (c *CISDNSConfig) removeChallenge(domain *Domain) error {
 	//todo if domain.txtRecordId is nil, try to get it
 	url := fmt.Sprintf(`%s/%s/zones/%s/dns_records/%s`, c.Endpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordId))
@@ -249,6 +255,14 @@ func (c *CISDNSConfig) getChallengeRecordId(domain *Domain) (string, error) {
 	} else {
 		return "", errors.New(getCISErrors(response.Errors))
 	}
+}
+
+func getCISErrors(errors []CISError) string {
+	result := "CIS error/s: "
+	for i, cisError := range errors {
+		result += strconv.Itoa(i) + ". Code:" + strconv.Itoa(cisError.Code) + " Message:" + cisError.Message + ". "
+	}
+	return result
 }
 
 //TODO: Enable timeout!
