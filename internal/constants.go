@@ -29,6 +29,13 @@ const (
 	ConfigRootPath           = "config/" + Root
 	IssuePath                = "secrets"
 	DeleteEngineConfigAction = "secrets-manager.secret-engine-config.delete"
+	FieldOrderedOn           = "ordered_on"
+	FieldStatus              = "status"
+	FieldErrorCode           = "error_code"
+	FieldErrorMessage        = "error_message"
+	FieldAutoRenewed         = "auto_renewed"
+	FieldIssuanceInfo        = "issuance_info"
+	endCertificate           = "-----END CERTIFICATE-----"
 )
 
 const (
