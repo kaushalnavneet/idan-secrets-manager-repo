@@ -139,20 +139,6 @@ func (c *CISDNSConfig) CleanUp(domain, token, keyAuth string) error {
 	return nil
 }
 
-func createTxtRecordBody(key, value string, ttl int) (*bytes.Buffer, error) {
-	postBody := CISRequest{
-		Name:    key,
-		Content: value,
-		Type:    "TXT",
-		TTL:     ttl,
-	}
-	marshalledPostBody, err := json.Marshal(postBody)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(marshalledPostBody), nil
-}
-
 func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 	url := fmt.Sprintf(`%s/%s/zones?name=%s&status=active`, c.Endpoint, url.QueryEscape(c.CRN), domain)
 	headers, _ := c.buildRequestHeader()
@@ -255,6 +241,20 @@ func (c *CISDNSConfig) getChallengeRecordId(domain *Domain) (string, error) {
 	} else {
 		return "", errors.New(getCISErrors(response.Errors))
 	}
+}
+
+func createTxtRecordBody(key, value string, ttl int) (*bytes.Buffer, error) {
+	postBody := CISRequest{
+		Name:    key,
+		Content: value,
+		Type:    "TXT",
+		TTL:     ttl,
+	}
+	marshalledPostBody, err := json.Marshal(postBody)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(marshalledPostBody), nil
 }
 
 func getCISErrors(errors []CISError) string {
