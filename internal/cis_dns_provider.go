@@ -9,20 +9,21 @@ import (
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
 	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
 type CISDNSConfig struct {
-	Endpoint   string
-	CRN        string
-	IAM        *Credential
-	TTL        int
-	Domains    map[string]*Domain
-	restClient rest_client.RestClientFactory
+	CRN         string
+	CISEndpoint string
+	IAMEndpoint string
+	APIKey      string
+	TTL         int
+	Domains     map[string]*Domain
+	restClient  rest_client.RestClientFactory
 }
 
 type Domain struct {
@@ -60,12 +61,6 @@ type CISRequest struct {
 	TTL     int    `json:"ttl"`
 }
 
-type Credential struct {
-	AccessToken string // Required if APIKey nor Endpoint are specified - IBM Cloud IAM access token
-	APIKey      string // Required if AccessToken is not specified - IBM Cloud API key
-	Endpoint    string // Required if AccessToken is not specified - IBM Cloud IAM endpoint
-}
-
 func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
 	crn := providerConfig["crn"]
 	apikey := providerConfig["apikey"]
@@ -80,30 +75,22 @@ func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
 	})
 	//TODO if crn in prod - endpoints of prod, otherwise - staging
 	return &CISDNSConfig{
-		Endpoint: "https://api.cis.cloud.ibm.com/v1",
-		CRN:      crn,
-		IAM: &Credential{
-			APIKey:   apikey,
-			Endpoint: "https://IAM.cloud.ibm.com",
-		},
-		TTL:        120,
-		Domains:    make(map[string]*Domain),
-		restClient: cf,
+		CRN:         crn,
+		CISEndpoint: "https://api.cis.cloud.ibm.com/v1",
+		IAMEndpoint: "https://IAM.cloud.ibm.com",
+		APIKey:      apikey,
+		TTL:         120,
+		Domains:     make(map[string]*Domain),
+		restClient:  cf,
 	}
 }
 
 // Present Implements dns provider interface
 func (c *CISDNSConfig) Present(domain, token, keyAuth string) error {
-	// Compute the challenge response FQDN and TXT value for the domain based  on the keyAuth.
-	currentDomain := &Domain{name: domain}
-	currentDomain.txtRecordName, currentDomain.txtRecordValue = dns01.GetRecord(domain, keyAuth)
-	log.Printf("txtRecord Name: %s, Value: %s \n", currentDomain.txtRecordName, currentDomain.txtRecordValue)
-
-	zoneId, err := c.getZoneIdByDomain(domain)
+	currentDomain, err := c.getDomainData(domain, domain, keyAuth)
 	if err != nil {
 		return err
 	}
-	currentDomain.zoneId = zoneId
 	recordId, err := c.setChallenge(currentDomain)
 	if err != nil {
 		return err
@@ -117,14 +104,11 @@ func (c *CISDNSConfig) Present(domain, token, keyAuth string) error {
 func (c *CISDNSConfig) CleanUp(domain, token, keyAuth string) error {
 	currentDomain, ok := c.Domains[domain]
 	if !ok {
-		//for some reason it was not kept during set challenge
-		currentDomain = &Domain{name: domain}
-		currentDomain.txtRecordName, currentDomain.txtRecordValue = dns01.GetRecord(domain, keyAuth)
-		zoneId, err := c.getZoneIdByDomain(domain)
+		var err error
+		currentDomain, err = c.getDomainData(domain, domain, keyAuth)
 		if err != nil {
 			return err
 		}
-		currentDomain.zoneId = zoneId
 		recordId, err := c.getChallengeRecordId(currentDomain)
 		if err != nil {
 			return err
@@ -140,7 +124,7 @@ func (c *CISDNSConfig) CleanUp(domain, token, keyAuth string) error {
 }
 
 func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
-	url := fmt.Sprintf(`%s/%s/zones?name=%s&status=active`, c.Endpoint, url.QueryEscape(c.CRN), domain)
+	url := fmt.Sprintf(`%s/%s/zones?name=%s&status=active`, c.CISEndpoint, url.QueryEscape(c.CRN), domain)
 	headers, _ := c.buildRequestHeader()
 	response := &CISResponseList{}
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, response)
@@ -161,17 +145,25 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 	return "", err
 }
 
-func (c *CISDNSConfig) buildRequestHeader() (*map[string]string, error) {
-	err := iam.CheckConfigured()
-	headers := make(map[string]string)
-	iamToken, _, err := iam.ObtainCachedToken(c.IAM.Endpoint, c.IAM.APIKey, "", "", "")
+func (c *CISDNSConfig) getDomainData(originalDomain, domainToSetChallenge, keyAuth string) (*Domain, error) {
+	zoneId, err := c.getZoneIdByDomain(domainToSetChallenge)
 	if err != nil {
-		return &headers, err
+		if strings.Contains(err.Error(), "found") {
+			domainParts := strings.Split(domainToSetChallenge, ".")
+			if len(domainParts) == 2 {
+				return nil, errors.New("domain " + originalDomain + " is not found in the IBM Cloud Internet Services instance")
+			}
+			parentDomain := strings.Join(domainParts[1:], ".")
+			return c.getDomainData(originalDomain, parentDomain, keyAuth)
+		}
+		return nil, err
 	}
-	headers["x-auth-user-token"] = iamToken
-	headers["Content-Type"] = "application/json"
-	return &headers, nil
-
+	// Compute the challenge response FQDN and TXT value for the domainToSetChallenge based  on the keyAuth.
+	currentDomain := &Domain{name: domainToSetChallenge}
+	currentDomain.zoneId = zoneId
+	currentDomain.txtRecordName, currentDomain.txtRecordValue = dns01.GetRecord(originalDomain, keyAuth)
+	//log.Printf("txtRecord Name: %s, Value: %s \n", currentDomain.txtRecordName, currentDomain.txtRecordValue)
+	return currentDomain, nil
 }
 
 func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
@@ -180,7 +172,7 @@ func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 		return "", err
 	}
 
-	url := fmt.Sprintf(`%s/%s/zones/%s/dns_records`, c.Endpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId))
+	url := fmt.Sprintf(`%s/%s/zones/%s/dns_records`, c.CISEndpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId))
 	headers, _ := c.buildRequestHeader()
 	response := &CISResponseResult{}
 	resp, err := c.restClient.SendRequest(url, http.MethodPost, *headers, requestBody, response)
@@ -190,7 +182,7 @@ func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 	if resp.StatusCode() == http.StatusOK && response.Success {
 		return response.Result.ID, nil
 	} else if resp.StatusCode() == http.StatusBadRequest {
-		//	print	 response.Errors[0].Message,"Record already exists."
+		//	print	 response.Errors[0].Message
 		id, err := c.getChallengeRecordId(domain)
 		if err != nil {
 			return "", err
@@ -205,7 +197,7 @@ func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 
 func (c *CISDNSConfig) removeChallenge(domain *Domain) error {
 	//todo if domain.txtRecordId is nil, try to get it
-	url := fmt.Sprintf(`%s/%s/zones/%s/dns_records/%s`, c.Endpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordId))
+	url := fmt.Sprintf(`%s/%s/zones/%s/dns_records/%s`, c.CISEndpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordId))
 	headers, _ := c.buildRequestHeader()
 	response := &CISResponseResult{}
 	resp, err := c.restClient.SendRequest(url, http.MethodDelete, *headers, nil, response)
@@ -221,7 +213,7 @@ func (c *CISDNSConfig) removeChallenge(domain *Domain) error {
 }
 
 func (c *CISDNSConfig) getChallengeRecordId(domain *Domain) (string, error) {
-	url := fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&content=%s`, c.Endpoint, url.QueryEscape(c.CRN),
+	url := fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&content=%s`, c.CISEndpoint, url.QueryEscape(c.CRN),
 		url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordName), url.QueryEscape(domain.txtRecordValue))
 	headers, _ := c.buildRequestHeader()
 	response := &CISResponseList{}
@@ -241,6 +233,19 @@ func (c *CISDNSConfig) getChallengeRecordId(domain *Domain) (string, error) {
 	} else {
 		return "", errors.New(getCISErrors(response.Errors))
 	}
+}
+
+func (c *CISDNSConfig) buildRequestHeader() (*map[string]string, error) {
+	err := iam.CheckConfigured()
+	headers := make(map[string]string)
+	iamToken, _, err := iam.ObtainCachedToken(c.IAMEndpoint, c.APIKey, "", "", "")
+	if err != nil {
+		return &headers, err
+	}
+	headers["x-auth-user-token"] = iamToken
+	headers["Content-Type"] = "application/json"
+	return &headers, nil
+
 }
 
 func createTxtRecordBody(key, value string, ttl int) (*bytes.Buffer, error) {
@@ -263,6 +268,10 @@ func getCISErrors(errors []CISError) string {
 		result += strconv.Itoa(i) + ". Code:" + strconv.Itoa(cisError.Code) + " Message:" + cisError.Message + ". "
 	}
 	return result
+}
+
+func buildError(code, message string) error {
+	return fmt.Errorf(`{"error_code":"%s","error_message":"%s"}`, code, message)
 }
 
 //TODO: Enable timeout!
