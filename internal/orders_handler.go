@@ -335,7 +335,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 }
 
 func getOrderError(res Result) *OrderError {
-	pat := regexp.MustCompile(`{\"error_code\":\"(.*?)\",\"error_message\":\"(.*?)"}`)
+	pat := regexp.MustCompile(fmt.Sprintf(errorPattern, "(.*?)", "(.*?)"))
 	errorJson := pat.FindString(res.Error.Error())
 	errorObj := &OrderError{}
 	if errorJson != "" {

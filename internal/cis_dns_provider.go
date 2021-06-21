@@ -227,14 +227,20 @@ func (c *CISDNSConfig) removeChallenge(domain *Domain) error {
 	response := &CISResponseResult{}
 	resp, err := c.restClient.SendRequest(url, http.MethodDelete, *headers, nil, response)
 	if err != nil {
-		return err
+		logger.Error("Couldn't remove txt record for domain " + domain.name + ": " + err.Error())
+		return buildError(Error07079, "Could not call IBM Cloud Internet Services API. Try again later")
 	}
+	//success
 	if resp.StatusCode() == http.StatusOK && response.Success {
 		return nil
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-		return errors.New("authorization error when trying to delete txt record from the IBM Cloud Internet Services instance")
+		logger.Error("Couldn't remove txt record for domain " + domain.name + ": Authorization error ")
+		return buildError(Error07080, "Authorization error when trying to delete txt record from the IBM Cloud Internet Services instance")
 	}
-	return errors.New(getCISErrors(response.Errors))
+	cisError := getCISErrors(response.Errors)
+	logger.Error("Couldn't remove txt record for domain " + domain.name + ": " + cisError)
+	return buildError(Error07081, "IBM Cloud Internet Services responded with an error")
+
 }
 
 func (c *CISDNSConfig) getChallengeRecordId(domain *Domain) (string, error) {
@@ -294,7 +300,7 @@ func getCISErrors(errors []CISError) string {
 }
 
 func buildError(code, message string) error {
-	return fmt.Errorf(`{"error_code":"%s","error_message":"%s"}`, code, message)
+	return fmt.Errorf(errorPattern, code, message)
 }
 
 //TODO: Enable timeout!
