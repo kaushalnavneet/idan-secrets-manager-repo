@@ -198,6 +198,7 @@ func getOrderID(names []string) string {
 	return hex.EncodeToString(nameHash[:])
 }
 
+//builds work item (with validation) and save it in memory
 func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.Request, d *framework.FieldData) error {
 	commonName := d.Get(secretentry.FieldCommonName).(string)
 	alternativeNames := d.Get(secretentry.FieldAltNames).([]string)
@@ -205,6 +206,7 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	caConfigName := d.Get(FieldCAConfig).(string)
 	dnsConfigName := d.Get(FieldDNSConfig).(string)
 	keyAlgorithm := d.Get(secretentry.FieldKeyAlgorithm).(string)
+	//TODO check why we don't set algorithm
 	//algorithm := d.Get(secretentry.FieldAlgorithm).(string)
 	caConfig, err := getCAConfigByName(ctx, req, caConfigName)
 	if err != nil {
@@ -215,6 +217,7 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 		return err
 	}
 	domains := getNames(commonName, alternativeNames)
+	//TODO add domain validation
 	//err = validateNames(domains)
 	//if err != nil {
 	//	return nil, err
@@ -294,15 +297,15 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		secretEntry.ExtraData = metadata
 		secretEntry.State = secretentry.StateDeactivated
 	} else {
-		//certificate in result contains itself + intermediate
-		certString := string(res.certificate.Certificate)
-		//find the end of the first cert
-		certEnd := strings.Index(certString, endCertificate)
-		//get only the first cert
-		cert := certString[:certEnd+len(endCertificate)] + "\n"
+		cert := string(res.certificate.Certificate)
 		inter := string(res.certificate.IssuerCertificate)
 		priv := string(res.certificate.PrivateKey)
-
+		if !res.workItem.isBundle {
+			//certificate in result contains itself + intermediate, find the end of the first cert
+			certEnd := strings.Index(cert, endCertificate)
+			//get only the first cert
+			cert = cert[:certEnd+len(endCertificate)] + "\n"
+		}
 		certData, err := oh.parser.ParseCertificate(cert, inter, priv)
 		if err != nil {
 			return
