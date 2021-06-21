@@ -217,11 +217,10 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 		return err
 	}
 	domains := getNames(commonName, alternativeNames)
-	//TODO add domain validation
-	//err = validateNames(domains)
-	//if err != nil {
-	//	return nil, err
-	//}
+	err = validateNames(domains)
+	if err != nil {
+		return err
+	}
 
 	block, _ := pem.Decode([]byte(caConfig.PrivateKey))
 	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
