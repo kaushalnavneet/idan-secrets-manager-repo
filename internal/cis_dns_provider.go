@@ -9,6 +9,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
 	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
+	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -37,6 +38,7 @@ type Domain struct {
 type CISResult struct {
 	ID string `json:"id"`
 }
+
 type CISError struct {
 	Code    int    `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`
@@ -61,6 +63,10 @@ type CISRequest struct {
 	TTL     int    `json:"ttl"`
 }
 
+var (
+	logger = common.Logger()
+)
+
 func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
 	crn := providerConfig["crn"]
 	apikey := providerConfig["apikey"]
@@ -77,9 +83,9 @@ func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
 	return &CISDNSConfig{
 		CRN:         crn,
 		CISEndpoint: "https://api.cis.cloud.ibm.com/v1",
-		IAMEndpoint: "https://IAM.cloud.ibm.com",
+		IAMEndpoint: "https://iam.cloud.ibm.com",
 		APIKey:      apikey,
-		TTL:         120,
+		TTL:         120, //for TXT records
 		Domains:     make(map[string]*Domain),
 		restClient:  cf,
 	}
@@ -123,35 +129,16 @@ func (c *CISDNSConfig) CleanUp(domain, token, keyAuth string) error {
 	return nil
 }
 
-func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
-	url := fmt.Sprintf(`%s/%s/zones?name=%s&status=active`, c.CISEndpoint, url.QueryEscape(c.CRN), domain)
-	headers, _ := c.buildRequestHeader()
-	response := &CISResponseList{}
-	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, response)
-	if err != nil {
-		return "", err
-	}
-	if resp.StatusCode() == http.StatusOK && response.Success && response.Result != nil {
-		if len(response.Result) > 0 {
-			return response.Result[0].ID, nil
-		} else {
-			return "", errors.New("domain " + domain + " is not found in the IBM Cloud Internet Services instance")
-		}
-	} else {
-		if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-			return "", errors.New("authorization error when trying to get zones from the IBM Cloud Internet Services instance")
-		}
-	}
-	return "", err
-}
-
 func (c *CISDNSConfig) getDomainData(originalDomain, domainToSetChallenge, keyAuth string) (*Domain, error) {
 	zoneId, err := c.getZoneIdByDomain(domainToSetChallenge)
 	if err != nil {
-		if strings.Contains(err.Error(), "found") {
+		//if domain was not found in CIS
+		if strings.Contains(err.Error(), Error07072) {
+			//try to look for its parent domain
 			domainParts := strings.Split(domainToSetChallenge, ".")
 			if len(domainParts) == 2 {
-				return nil, errors.New("domain " + originalDomain + " is not found in the IBM Cloud Internet Services instance")
+				//we can't dive anymore, return error
+				return nil, buildError(Error07072, "Domain "+originalDomain+" is not found in the IBM Cloud Internet Services instance")
 			}
 			parentDomain := strings.Join(domainParts[1:], ".")
 			return c.getDomainData(originalDomain, parentDomain, keyAuth)
@@ -166,10 +153,43 @@ func (c *CISDNSConfig) getDomainData(originalDomain, domainToSetChallenge, keyAu
 	return currentDomain, nil
 }
 
+func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
+	url := fmt.Sprintf(`%s/%s/zones?name=%s&status=active`, c.CISEndpoint, url.QueryEscape(c.CRN), domain)
+	headers, err := c.buildRequestHeader()
+	if err != nil {
+		logger.Error("Couldn't build headers for CIS request: " + err.Error())
+		return "", buildError(Error07070, "Internal server Error")
+	}
+	response := &CISResponseList{}
+	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, response)
+	if err != nil {
+		logger.Error("Couldn't get zone by domain name: " + err.Error())
+		return "", buildError(Error07071, "Could not call IBM Cloud Internet Services API. Try again later")
+	}
+	//success
+	if resp.StatusCode() == http.StatusOK && response.Success && response.Result != nil {
+		if len(response.Result) > 0 {
+			return response.Result[0].ID, nil
+		} else {
+			//it can happen for subdomains
+			//logger.Error("Couldn't get zone by domain name: Domain "+domain+" is not found" )
+			return "", buildError(Error07072, "Domain "+domain+" is not found")
+		}
+	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
+		logger.Error("Couldn't get zone by domain name: Authorization error ")
+		return "", buildError(Error07073, "Authorization error when trying to get zones from the IBM Cloud Internet Services instance")
+	}
+	cisError := getCISErrors(response.Errors)
+	logger.Error("Couldn't get zone by domain " + domain + ": " + cisError)
+	return "", buildError(Error07074, "IBM Cloud Internet Services responded with an error")
+
+}
+
 func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 	requestBody, err := createTxtRecordBody(domain.txtRecordName, domain.txtRecordValue, c.TTL)
 	if err != nil {
-		return "", err
+		logger.Error("Couldn't build txt record body: " + err.Error())
+		return "", buildError(Error07075, "Internal Server error")
 	}
 
 	url := fmt.Sprintf(`%s/%s/zones/%s/dns_records`, c.CISEndpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId))
@@ -177,8 +197,10 @@ func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 	response := &CISResponseResult{}
 	resp, err := c.restClient.SendRequest(url, http.MethodPost, *headers, requestBody, response)
 	if err != nil {
-		return "", err
+		logger.Error("Couldn't set challenge for domain " + domain.name + ": " + err.Error())
+		return "", buildError(Error07076, "Could not call IBM Cloud Internet Services API. Try again later")
 	}
+	//success
 	if resp.StatusCode() == http.StatusOK && response.Success {
 		return response.Result.ID, nil
 	} else if resp.StatusCode() == http.StatusBadRequest {
@@ -190,9 +212,12 @@ func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 			return id, nil
 		}
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-		return "", errors.New("authorization error when trying to get txt record from the IBM Cloud Internet Services instance")
+		logger.Error("Couldn't set txt record for domain " + domain.name + ": Authorization error ")
+		return "", buildError(Error07077, "Authorization error when trying to set txt record in the IBM Cloud Internet Services instance")
 	}
-	return "", errors.New(getCISErrors(response.Errors))
+	cisError := getCISErrors(response.Errors)
+	logger.Error("Couldn't set txt record for domain " + domain.name + ": " + cisError)
+	return "", buildError(Error07078, "IBM Cloud Internet Services responded with an error")
 }
 
 func (c *CISDNSConfig) removeChallenge(domain *Domain) error {
@@ -236,7 +261,6 @@ func (c *CISDNSConfig) getChallengeRecordId(domain *Domain) (string, error) {
 }
 
 func (c *CISDNSConfig) buildRequestHeader() (*map[string]string, error) {
-	err := iam.CheckConfigured()
 	headers := make(map[string]string)
 	iamToken, _, err := iam.ObtainCachedToken(c.IAMEndpoint, c.APIKey, "", "", "")
 	if err != nil {
@@ -245,7 +269,6 @@ func (c *CISDNSConfig) buildRequestHeader() (*map[string]string, error) {
 	headers["x-auth-user-token"] = iamToken
 	headers["Content-Type"] = "application/json"
 	return &headers, nil
-
 }
 
 func createTxtRecordBody(key, value string, ttl int) (*bytes.Buffer, error) {

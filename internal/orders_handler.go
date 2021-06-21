@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -30,6 +32,11 @@ type OrdersHandler struct {
 	runningOrders map[string]WorkItem
 	parser        certificate.CertificateParser
 	iam           *iam.Config
+}
+
+type OrderError struct {
+	Code    string `json:"error_code"`
+	Message string `json:"error_message"`
 }
 
 func (oh *OrdersHandler) UpdateSecretEntrySecretData(secretEntry *secretentry.SecretEntry, data *framework.FieldData, userID string) (*logical.Response, error) {
@@ -268,12 +275,13 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	var data interface{}
 	var extraData map[string]interface{}
 	if res.Error != nil {
-		common.Logger().Error("Order Error ", "error", res.Error)
+		common.Logger().Error("Order failed with error: " + res.Error.Error())
+		errorObj := getOrderError(res)
 		metadata.IssuanceInfo[FieldOrderedOn] = time.Now()
 		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
 		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
-		metadata.IssuanceInfo[FieldErrorCode] = "someError"
-		metadata.IssuanceInfo[FieldErrorMessage] = res.Error.Error()
+		metadata.IssuanceInfo[FieldErrorCode] = errorObj.Code
+		metadata.IssuanceInfo[FieldErrorMessage] = errorObj.Message
 		metadata.IssuanceInfo[FieldAutoRenewed] = false
 
 		extraData = map[string]interface{}{
@@ -324,6 +332,19 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	}
 	common.StoreSecretWithoutLocking(secretEntry, storage, context.Background())
 
+}
+
+func getOrderError(res Result) *OrderError {
+	pat := regexp.MustCompile(`{\"error_code\":\"(.*?)\",\"error_message\":\"(.*?)"}`)
+	errorJson := pat.FindString(res.Error.Error())
+	errorObj := &OrderError{}
+	if errorJson != "" {
+		json.Unmarshal([]byte(errorJson), errorObj)
+	} else {
+		errorObj.Code = "ACME_Error"
+		errorObj.Message = res.Error.Error()
+	}
+	return errorObj
 }
 
 func (oh *OrdersHandler) getOrderDetails(entry *secretentry.SecretEntry) map[string]interface{} {

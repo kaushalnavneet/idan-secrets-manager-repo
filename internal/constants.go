@@ -115,5 +115,14 @@ const (
 	Error07068 = logdna.ServiceNamePrefix + ".Error07068" //public_certs
 	Error07069 = logdna.ServiceNamePrefix + ".Error07069" //public_certs
 	Error07070 = logdna.ServiceNamePrefix + ".Error07070" //public_certs
+	Error07071 = logdna.ServiceNamePrefix + ".Error07071" //public_certs
+	Error07072 = logdna.ServiceNamePrefix + ".Error07072" //public_certs
+	Error07073 = logdna.ServiceNamePrefix + ".Error07073" //public_certs
+	Error07074 = logdna.ServiceNamePrefix + ".Error07074" //public_certs
+	Error07075 = logdna.ServiceNamePrefix + ".Error07075" //public_certs
+	Error07076 = logdna.ServiceNamePrefix + ".Error07076" //public_certs
+	Error07077 = logdna.ServiceNamePrefix + ".Error07077" //public_certs
+	Error07078 = logdna.ServiceNamePrefix + ".Error07078" //public_certs
+	Error07079 = logdna.ServiceNamePrefix + ".Error07079" //public_certs
 
 )
