@@ -55,8 +55,17 @@ func (oh *OrdersHandler) BuildSecretParams(csp secret_backend.CommonSecretParams
 		return nil, nil, err
 	}
 
+	issuanceInfo := make(map[string]interface{})
+	issuanceInfo[FieldOrderedOn] = time.Now()
+	issuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
+	issuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
+	issuanceInfo[FieldAutoRenewed] = false
+	issuanceInfo[FieldCAConfig] = d.Get(FieldCAConfig).(string)
+	issuanceInfo[FieldDNSConfig] = d.Get(FieldDNSConfig).(string)
+
 	certMetadata := &certificate.CertificateMetadata{
-		CommonName: d.Get(secretentry.FieldCommonName).(string),
+		CommonName:   d.Get(secretentry.FieldCommonName).(string),
+		IssuanceInfo: issuanceInfo,
 	}
 	altNames := d.Get(secretentry.FieldAltNames).([]string)
 	if len(altNames) != 0 {
@@ -273,7 +282,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	storage := res.workItem.storage
 
 	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
-	metadata.IssuanceInfo = make(map[string]interface{})
+	//metadata.IssuanceInfo = make(map[string]interface{})
 	var data interface{}
 	var extraData map[string]interface{}
 	if res.Error != nil {
@@ -357,13 +366,6 @@ func (oh *OrdersHandler) getOrderResponse(entry *secretentry.SecretEntry) map[st
 	if metadata.AltName != nil {
 		e[secretentry.FieldAltNames] = metadata.AltName
 	}
-	issuanceInfo := make(map[string]interface{})
-	issuanceInfo[FieldOrderedOn] = time.Now()
-	issuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
-	issuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
-	issuanceInfo[FieldAutoRenewed] = false
-
-	e[FieldIssuanceInfo] = issuanceInfo
 	return e
 }
 
