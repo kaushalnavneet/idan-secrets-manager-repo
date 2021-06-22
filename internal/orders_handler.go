@@ -107,7 +107,7 @@ func (oh *OrdersHandler) MakeActionsAfterStore(secretEntry *secretentry.SecretEn
 // MapSecretEntry Map secret entry to
 func (oh *OrdersHandler) MapSecretEntry(entry *secretentry.SecretEntry, operation logical.Operation, includeSecretData bool) map[string]interface{} {
 	if operation == logical.CreateOperation {
-		return oh.getOrderDetails(entry)
+		return oh.getOrderResponse(entry)
 	} else {
 
 		return oh.getCertMetadata(entry, includeSecretData)
@@ -349,7 +349,7 @@ func getOrderError(res Result) *OrderError {
 	return errorObj
 }
 
-func (oh *OrdersHandler) getOrderDetails(entry *secretentry.SecretEntry) map[string]interface{} {
+func (oh *OrdersHandler) getOrderResponse(entry *secretentry.SecretEntry) map[string]interface{} {
 	e := entry.ToMapMeta()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
 	e[secretentry.FieldCommonName] = metadata.CommonName
@@ -357,7 +357,13 @@ func (oh *OrdersHandler) getOrderDetails(entry *secretentry.SecretEntry) map[str
 	if metadata.AltName != nil {
 		e[secretentry.FieldAltNames] = metadata.AltName
 	}
+	issuanceInfo := make(map[string]interface{})
+	issuanceInfo[FieldOrderedOn] = time.Now()
+	issuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
+	issuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
+	issuanceInfo[FieldAutoRenewed] = false
 
+	e[FieldIssuanceInfo] = issuanceInfo
 	return e
 }
 
