@@ -3,17 +3,23 @@ package publiccerts
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
+	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/go-acme/lego/v4/registration"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -22,8 +28,15 @@ type OrdersHandler struct {
 	workerPool *WorkerPool
 	//certRenewer *CertRenewer
 	storage       logical.Storage
-	currentOrders map[string]WorkItem
+	beforeOrders  map[string]WorkItem
+	runningOrders map[string]WorkItem
 	parser        certificate.CertificateParser
+	iam           *iam.Config
+}
+
+type OrderError struct {
+	Code    string `json:"error_code"`
+	Message string `json:"error_message"`
 }
 
 func (oh *OrdersHandler) UpdateSecretEntrySecretData(secretEntry *secretentry.SecretEntry, data *framework.FieldData, userID string) (*logical.Response, error) {
@@ -79,9 +92,13 @@ func (oh *OrdersHandler) MakeActionsAfterStore(secretEntry *secretentry.SecretEn
 	domains := getNames(metadata.CommonName, metadata.AltName)
 	orderKey := getOrderID(domains)
 	//get work item from cache
-	workItem := oh.currentOrders[orderKey]
+	workItem := oh.beforeOrders[orderKey]
 	//update it with secret id
 	workItem.secretEntry = secretEntry
+	oh.runningOrders[orderKey] = workItem
+	//empty beforeOrders, current workItem is moved to runningOrders
+	//some previous order requests could fail on validations so their beforeOrders should be removed too
+	oh.beforeOrders = make(map[string]WorkItem)
 	//start an order
 	_, _ = oh.workerPool.ScheduleCertificateRequest(workItem)
 	return nil, nil
@@ -90,7 +107,7 @@ func (oh *OrdersHandler) MakeActionsAfterStore(secretEntry *secretentry.SecretEn
 // MapSecretEntry Map secret entry to
 func (oh *OrdersHandler) MapSecretEntry(entry *secretentry.SecretEntry, operation logical.Operation, includeSecretData bool) map[string]interface{} {
 	if operation == logical.CreateOperation {
-		return oh.getOrderDetails(entry)
+		return oh.getOrderResponse(entry)
 	} else {
 
 		return oh.getCertMetadata(entry, includeSecretData)
@@ -135,6 +152,7 @@ func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, include
 	e[secretentry.FieldIntermediateIncluded] = metadata.IntermediateIncluded
 	e[secretentry.FieldExpirationDate] = metadata.NotAfter
 	e[secretentry.FieldSerialNumber] = metadata.SerialNumber
+	e[FieldIssuanceInfo] = metadata.IssuanceInfo
 
 	//Add only if alt names exists.
 	if metadata.AltName != nil {
@@ -180,15 +198,7 @@ func getOrderID(names []string) string {
 	return hex.EncodeToString(nameHash[:])
 }
 
-//
-//func (oh *OrdersHandler) GetCertEntryPath(names []string, requestID string) string {
-//	return certEntryPathPrefix + "/" + getOrderID(names) + "/" + requestID
-//}
-//
-//func (oh *OrdersHandler) GetCertEntryPathByCertID(certID string, requestID string) string {
-//	return certEntryPathPrefix + "/" + certID + "/" + requestID
-//}
-
+//builds work item (with validation) and save it in memory
 func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.Request, d *framework.FieldData) error {
 	commonName := d.Get(secretentry.FieldCommonName).(string)
 	alternativeNames := d.Get(secretentry.FieldAltNames).([]string)
@@ -196,6 +206,7 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	caConfigName := d.Get(FieldCAConfig).(string)
 	dnsConfigName := d.Get(FieldDNSConfig).(string)
 	keyAlgorithm := d.Get(secretentry.FieldKeyAlgorithm).(string)
+	//TODO check why we don't set algorithm
 	//algorithm := d.Get(secretentry.FieldAlgorithm).(string)
 	caConfig, err := getCAConfigByName(ctx, req, caConfigName)
 	if err != nil {
@@ -206,31 +217,38 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 		return err
 	}
 	domains := getNames(commonName, alternativeNames)
-	//err = validateNames(domains)
-	//if err != nil {
-	//	return nil, err
-	//}
-	ca, err := NewCAAccountConfig(caConfig.Name, caConfig.DirectoryURL, caConfig.CARootCert, caConfig.PrivateKey, caConfig.Email)
-	ca.initCAAccount()
-	//ca := &CAUserConfig{
-	//	Name:         caConfig.Name,
-	//	CARootCert:   caConfig.CARootCert,
-	//	DirectoryURL: caConfig.DirectoryURL,
-	//	Email:        caConfig.Email,
-	//	Registration: &registration.Resource{
-	//		URI: caConfig.RegistrationURL,
-	//	},
-	//	key: caConfig.PrivateKey,
-	//}
+	err = validateNames(domains)
+	if err != nil {
+		return err
+	}
+
+	block, _ := pem.Decode([]byte(caConfig.PrivateKey))
+	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return err
+	}
+
+	ca := &CAUserConfig{
+		Name:         caConfig.Name,
+		CARootCert:   caConfig.CARootCert,
+		DirectoryURL: caConfig.DirectoryURL,
+		Email:        caConfig.Email,
+		Registration: &registration.Resource{
+			URI: caConfig.RegistrationURL,
+		},
+		key: privateKey,
+	}
 
 	//Get keyType and keyBits
 	keyType, err := getKeyType(keyAlgorithm)
 	if err != nil {
 		return err
 	}
-
+	//TODO maybe add iam to dnsConfig	dnsConfig.Config["iam"] but it should be string
+	iamConfig, err := oh.configureIamIfNeeded(ctx, req.Storage)
 	workItem := WorkItem{
 		storage:    req.Storage,
+		iamConfig:  iamConfig,
 		userConfig: ca,
 		keyType:    keyType,
 		dnsConfig:  dnsConfig,
@@ -239,45 +257,73 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	}
 
 	orderKey := getOrderID(domains)
-
-	if _, ok := oh.currentOrders[orderKey]; ok {
+	if _, ok := oh.runningOrders[orderKey]; ok {
 		return errors.New("order for these domains is in process")
 	}
-	oh.currentOrders[orderKey] = workItem
+	oh.beforeOrders[orderKey] = workItem
 	return nil
 }
 
 func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	//delete the order from cache of orders in process
 	orderKey := getOrderID(res.workItem.domains)
-	delete(oh.currentOrders, orderKey)
+	delete(oh.runningOrders, orderKey)
 	//update secret entry
 	secretEntry := res.workItem.secretEntry
 	storage := res.workItem.storage
+
+	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
+	metadata.IssuanceInfo = make(map[string]interface{})
+	var data interface{}
+	var extraData map[string]interface{}
 	if res.Error != nil {
-		common.Logger().Error("Order Error ", "error", res.Error)
+		common.Logger().Error("Order failed with error: " + res.Error.Error())
+		errorObj := getOrderError(res)
+		metadata.IssuanceInfo[FieldOrderedOn] = time.Now()
+		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
+		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
+		metadata.IssuanceInfo[FieldErrorCode] = errorObj.Code
+		metadata.IssuanceInfo[FieldErrorMessage] = errorObj.Message
+		metadata.IssuanceInfo[FieldAutoRenewed] = false
+
+		extraData = map[string]interface{}{
+			FieldIssuanceInfo: metadata.IssuanceInfo,
+		}
+		err := secretEntry.UpdateSecretDataV2(data, secretEntry.CreatedBy, extraData)
+		if err != nil {
+			return
+		}
+		secretEntry.ExtraData = metadata
+		secretEntry.State = secretentry.StateDeactivated
 	} else {
 		cert := string(res.certificate.Certificate)
 		inter := string(res.certificate.IssuerCertificate)
 		priv := string(res.certificate.PrivateKey)
-
+		if !res.workItem.isBundle {
+			//certificate in result contains itself + intermediate, find the end of the first cert
+			certEnd := strings.Index(cert, endCertificate)
+			//get only the first cert
+			cert = cert[:certEnd+len(endCertificate)] + "\n"
+		}
 		certData, err := oh.parser.ParseCertificate(cert, inter, priv)
 		if err != nil {
 			return
 		}
+		metadata.IssuanceInfo[FieldOrderedOn] = time.Now()
+		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateActive
+		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateActive)
+		metadata.IssuanceInfo[FieldAutoRenewed] = false
 
-		metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
+		certData.Metadata.IssuanceInfo = metadata.IssuanceInfo
+		data = certData.RawData
 
-		metadata.IntermediateIncluded = true
-		metadata.PrivateKeyIncluded = true
-
-		extraData := map[string]interface{}{
+		extraData = map[string]interface{}{
 			secretentry.FieldNotBefore:    certData.Metadata.NotBefore,
 			secretentry.FieldNotAfter:     certData.Metadata.NotAfter,
 			secretentry.FieldSerialNumber: certData.Metadata.SerialNumber,
+			FieldIssuanceInfo:             certData.Metadata.IssuanceInfo,
 		}
-
-		err = secretEntry.UpdateSecretDataV2(certData.RawData, secretEntry.CreatedBy, extraData)
+		err = secretEntry.UpdateSecretDataV2(data, secretEntry.CreatedBy, extraData)
 		if err != nil {
 			return
 		}
@@ -290,7 +336,20 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 
 }
 
-func (oh *OrdersHandler) getOrderDetails(entry *secretentry.SecretEntry) map[string]interface{} {
+func getOrderError(res Result) *OrderError {
+	pat := regexp.MustCompile(fmt.Sprintf(errorPattern, "(.*?)", "(.*?)"))
+	errorJson := pat.FindString(res.Error.Error())
+	errorObj := &OrderError{}
+	if errorJson != "" {
+		json.Unmarshal([]byte(errorJson), errorObj)
+	} else {
+		errorObj.Code = "ACME_Error"
+		errorObj.Message = res.Error.Error()
+	}
+	return errorObj
+}
+
+func (oh *OrdersHandler) getOrderResponse(entry *secretentry.SecretEntry) map[string]interface{} {
 	e := entry.ToMapMeta()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
 	e[secretentry.FieldCommonName] = metadata.CommonName
@@ -298,6 +357,34 @@ func (oh *OrdersHandler) getOrderDetails(entry *secretentry.SecretEntry) map[str
 	if metadata.AltName != nil {
 		e[secretentry.FieldAltNames] = metadata.AltName
 	}
+	issuanceInfo := make(map[string]interface{})
+	issuanceInfo[FieldOrderedOn] = time.Now()
+	issuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
+	issuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
+	issuanceInfo[FieldAutoRenewed] = false
 
+	e[FieldIssuanceInfo] = issuanceInfo
 	return e
+}
+
+func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, s logical.Storage) (*iam.Config, error) {
+	if oh.iam == nil {
+		authConfig, err := common.ObtainAuthConfigFromStorage(ctx, s)
+		if err != nil {
+			return nil, err
+		}
+		conf := &iam.Config{
+			IamEndpoint:  authConfig.IAMEndpoint,
+			ApiKey:       authConfig.Service.APIKey,
+			ClientID:     authConfig.Service.ClientID,
+			ClientSecret: authConfig.Service.ClientSecret,
+			DisableCache: false,
+		}
+		oh.iam = conf
+		err = iam.Configure(conf)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return oh.iam, nil
 }

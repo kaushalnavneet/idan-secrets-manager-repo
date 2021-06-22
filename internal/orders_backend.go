@@ -16,13 +16,11 @@ import (
 
 type OrdersBackend struct {
 	secretBackend secret_backend.SecretBackend
-	Auth          common.AuthValidator
 	storage       logical.Storage
 }
 
 func (ob *OrdersBackend) SetSecretBackend(secretBackend secret_backend.SecretBackend) {
 	ob.secretBackend = secretBackend
-	ob.Auth = &common.AuthValidatorImpl{}
 }
 
 func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
@@ -41,7 +39,11 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 }
 
 func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendHandler {
-	oh := &OrdersHandler{currentOrders: make(map[string]WorkItem), parser: &certificate.CertificateParserImpl{}}
+	oh := &OrdersHandler{
+		runningOrders: make(map[string]WorkItem),
+		beforeOrders:  make(map[string]WorkItem),
+		parser:        &certificate.CertificateParserImpl{},
+	}
 	oh.workerPool = NewWorkerPool(oh,
 		GetEnv("MAX_WORKERS", MaxWorkers).(int),
 		GetEnv("MAX_CERT_REQUEST", MaxCertRequest).(int),
@@ -55,7 +57,7 @@ func existenceCheck(ctx context.Context, request *logical.Request, data *framewo
 
 func (ob *OrdersBackend) checkAuthorization(ctx context.Context, req *logical.Request, action string) error {
 	//validate that the user is authorised to perform this action
-	if err := ob.Auth.ValidateRequestIsAuthorised(ctx, req, action, ""); err != nil {
+	if err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, action, ""); err != nil {
 		if _, ok := err.(logical.HTTPCodedError); ok {
 			common.ErrorLogForCustomer("Internal server error", Error07001, logdna.InternalErrorMessage)
 			return err
