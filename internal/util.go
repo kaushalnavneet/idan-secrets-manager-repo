@@ -21,6 +21,13 @@ import (
 	"time"
 )
 
+var (
+	idnaValidator = idna.New(
+		idna.StrictDomainName(true),
+		idna.VerifyDNSLength(true),
+	)
+)
+
 //func (b *backend) handleExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
 //	out, err := req.Storage.Get(ctx, req.Path)
 //	if err != nil {
@@ -213,36 +220,25 @@ func validateNames(names []string) error {
 	// input, so it will allow e.g. host^123.example.com straight through. So
 	// we still need to use this to check the output.
 	var hostnameRegex = regexp.MustCompile(`^(\*\.)?(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])\.?$`)
-
-	//TODO check domains duplication
+	uniqueDomains := make(map[string]bool)
 	for _, name := range names {
 		sanitizedName := name
-		//isWildcard := false
-
 		// If we have an asterisk as the first part of the domain name, mark it
-		// as wildcard and set the sanitized name to the remainder of the
-		// domain
+		// as wildcard and set the sanitized name to the remainder of the  domain
 		if strings.HasPrefix(name, "*.") {
 			sanitizedName = sanitizedName[2:]
-			//isWildcard = true
 		}
-
-		// EnforceHostnames still applies when allowing any name.
-		// Also, we check the sanitized name to ensure that we are
-		// not checking a wildcard prefix.
-		p := idna.New(
-			idna.StrictDomainName(true),
-			idna.VerifyDNSLength(true),
-		)
-		converted, err := p.ToASCII(sanitizedName)
+		converted, err := idnaValidator.ToASCII(sanitizedName)
 		if err != nil {
 			return err
 		}
 		if !hostnameRegex.MatchString(converted) {
-			return errors.New(name + " failed check with enforce host names")
+			return errors.New(" Domain " + name + " is not valid")
 		}
-
-		return errors.New(name + " not in the allowed domains")
+		if uniqueDomains[converted] {
+			return errors.New(" Domain " + name + " is duplicated")
+		}
+		uniqueDomains[converted] = true
 	}
 	return nil
 }

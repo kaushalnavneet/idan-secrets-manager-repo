@@ -9,10 +9,10 @@ import (
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/google/uuid"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 )
@@ -35,6 +35,7 @@ type HttpClientWrapper struct {
 
 type WorkItem struct {
 	storage    logical.Storage
+	iamConfig  *iam.Config
 	requestID  uuid.UUID
 	userConfig *CAUserConfig
 	dnsConfig  *DnsProviderConfig
@@ -77,7 +78,7 @@ func NewWorkerPool(handler *OrdersHandler, numWorkers, maxWorkItems int, timeout
 				select {
 				case workItem := <-pool.workChan:
 					pool.execFunction(pool.cancelChan, workItem, timeout)
-					pool.deleteCertificateRequest(workItem.domains)
+					//pool.deleteCertificateRequest(workItem.domains)
 				case <-pool.cancelChan:
 					common.Logger().Debug("[Waiting to receive work] Received Cancellation signal")
 					pool.wg.Done()
@@ -112,7 +113,6 @@ func (w *WorkerPool) getOrCreateHttpClient(userConfig *CAUserConfig) (*http.Clie
 
 func (w *WorkerPool) startCertificateRequest(cancelChan chan struct{}, workItem WorkItem, timeout time.Duration) {
 	select {
-
 	case result := <-w.getCertificate(workItem):
 		result.workItem = workItem
 		//update storage with the order result
@@ -177,13 +177,12 @@ func (w *WorkerPool) issueCertificate(workItem WorkItem) (*Result, error) {
 	}
 
 	client, err := NewACMEClientWithCustomHttpClient(workItem.userConfig, workItem.keyType, httpClient)
-	//client, err := NewACMEClient(workItem.userConfig, workItem.keyType)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = client.SetChallengeProviders(workItem.dnsConfig)
+	err = client.SetChallengeProviders(workItem.dnsConfig, workItem.domains)
 	if err != nil {
 		return nil, err
 	}
@@ -207,49 +206,12 @@ func (w *WorkerPool) issueCertificate(workItem WorkItem) (*Result, error) {
 
 func (w *WorkerPool) ScheduleCertificateRequest(workItem WorkItem) (string, error) {
 
-	//if len(workItem.domains) == 0 {
-	//	return "", fmt.Errorf("no domain provided for certificate request")
-	//}
-	//
-	//_, err := w.createAndStorePendingCertIfNotExists(&workItem)
-	//if err != nil {
-	//	return "", err
-	//}
-
 	select {
-
 	case w.workChan <- workItem:
 		return workItem.requestID.String(), nil
-
 	default:
-		w.deleteCertificateRequest(workItem.domains)
-		//err := w.handler.certStore.DeleteFromVault(context.TODO(), workItem.storage, w.handler.GetCertEntryPath(workItem.domains, workItem.requestID.String()))
-		//if err != nil {
-		//	return "", err
-		//}
 		return "", fmt.Errorf("too many pending requests! Try again later")
-
 	}
-}
-
-func (w *WorkerPool) addCertificateRequestToPending(key []string, value string) {
-	w.cache.Store(strings.Join(key, ","), value)
-}
-
-// returns the key, value pair and the status as to whether the key value pair was inserted
-// Success (true) means that there was no entry with the key existing in the map. In this case the input key, value pair is returned
-// Failure (false) means that there already exists an entry with this key. In this case the existing key, value pair is returned
-func (w *WorkerPool) addCertificateRequestToPendingIfNotExists(key []string, value string) (KeyValue, bool) {
-	return w.cache.StoreIfNotExists(strings.Join(key, ","), value)
-}
-
-func (w *WorkerPool) isCertificateRequestPending(key []string) (string, bool) {
-	response, ok := w.cache.Fetch(strings.Join(key, ","))
-	return response.Value, ok
-}
-
-func (w *WorkerPool) deleteCertificateRequest(key []string) {
-	w.cache.Delete(strings.Join(key, ","))
 }
 
 func (w *WorkerPool) CancelAll() {

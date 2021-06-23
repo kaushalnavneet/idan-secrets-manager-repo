@@ -373,15 +373,11 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 }
 
 func createProviderConfigToStore(name string, d *framework.FieldData) (*DnsProviderConfig, error) {
+	//TODO add config validation according to provider type
 	providerType := d.Get(FieldType).(string)
 	if providerType == "" {
 		return nil, fmt.Errorf("type field is empty")
 	}
-	//TODO think about validation. this is not recognise cis
-	//_, err := dns.NewDNSChallengeProviderByName(providerType)
-	//if err != nil {
-	//	return nil, err
-	//}
 	config := d.Get(FieldConfig).(map[string]string)
 	if config == nil {
 		return nil, fmt.Errorf("config field is empty")

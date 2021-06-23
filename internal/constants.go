@@ -29,6 +29,13 @@ const (
 	ConfigRootPath           = "config/" + Root
 	IssuePath                = "secrets"
 	DeleteEngineConfigAction = "secrets-manager.secret-engine-config.delete"
+	FieldOrderedOn           = "ordered_on"
+	FieldErrorCode           = "error_code"
+	FieldErrorMessage        = "error_message"
+	FieldAutoRenewed         = "auto_renewed"
+	FieldIssuanceInfo        = "issuance_info"
+	endCertificate           = "-----END CERTIFICATE-----"
+	errorPattern             = `{"error_code":"%s","error_message":"%s"}`
 )
 
 const (
@@ -109,5 +116,24 @@ const (
 	Error07068 = logdna.ServiceNamePrefix + ".Error07068" //public_certs
 	Error07069 = logdna.ServiceNamePrefix + ".Error07069" //public_certs
 	Error07070 = logdna.ServiceNamePrefix + ".Error07070" //public_certs
-
+	Error07071 = logdna.ServiceNamePrefix + ".Error07071" //public_certs
+	Error07072 = logdna.ServiceNamePrefix + ".Error07072" //public_certs
+	Error07073 = logdna.ServiceNamePrefix + ".Error07073" //public_certs
+	Error07074 = logdna.ServiceNamePrefix + ".Error07074" //public_certs
+	Error07075 = logdna.ServiceNamePrefix + ".Error07075" //public_certs
+	Error07076 = logdna.ServiceNamePrefix + ".Error07076" //public_certs
+	Error07077 = logdna.ServiceNamePrefix + ".Error07077" //public_certs
+	Error07078 = logdna.ServiceNamePrefix + ".Error07078" //public_certs
+	Error07079 = logdna.ServiceNamePrefix + ".Error07079" //public_certs
+	Error07080 = logdna.ServiceNamePrefix + ".Error07080" //public_certs
+	Error07081 = logdna.ServiceNamePrefix + ".Error07081" //public_certs
+	Error07082 = logdna.ServiceNamePrefix + ".Error07082" //public_certs
+	Error07083 = logdna.ServiceNamePrefix + ".Error07083" //public_certs
+	Error07084 = logdna.ServiceNamePrefix + ".Error07084" //public_certs
+	Error07085 = logdna.ServiceNamePrefix + ".Error07085" //public_certs
+	Error07086 = logdna.ServiceNamePrefix + ".Error07086" //public_certs
+	Error07087 = logdna.ServiceNamePrefix + ".Error07087" //public_certs
+	Error07088 = logdna.ServiceNamePrefix + ".Error07088" //public_certs
+	Error07089 = logdna.ServiceNamePrefix + ".Error07089" //public_certs
+	Error07090 = logdna.ServiceNamePrefix + ".Error07090" //public_certs
 )

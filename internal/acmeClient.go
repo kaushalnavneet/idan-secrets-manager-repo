@@ -18,19 +18,15 @@ type Client struct {
 }
 
 func NewACMEClient(CAUserConfig *CAUserConfig, keyType certcrypto.KeyType) (*Client, error) {
-
 	// Get an HTTPS client configured to trust our root certificate.
 	httpClient, err := GetHTTPSClient(CAUserConfig.CARootCert)
 	if err != nil {
 		return nil, err
 	}
-
 	return NewACMEClientWithCustomHttpClient(CAUserConfig, keyType, httpClient)
-
 }
 
 func NewACMEClientWithCustomHttpClient(CAUserConfig *CAUserConfig, keyType certcrypto.KeyType, httpClient *http.Client) (*Client, error) {
-
 	legoConfig := &lego.Config{
 		CADirURL:   CAUserConfig.DirectoryURL,
 		User:       CAUserConfig,
@@ -47,9 +43,9 @@ func NewACMEClientWithCustomHttpClient(CAUserConfig *CAUserConfig, keyType certc
 	return &Client{LegoClient: legoClient}, nil
 }
 
-func (client *Client) setDNSProvider(providerType string, providerConfiguration map[string]string,
-	challengeOption dns01.ChallengeOption) error {
-
+func (client *Client) setDNSProvider(dnsProvider *DnsProviderConfig, domains []string, challengeOption dns01.ChallengeOption) error {
+	providerType := dnsProvider.Type
+	providerConfiguration := dnsProvider.Config
 	if providerType == "pebble" {
 
 		host, found := providerConfiguration["host"]
@@ -61,29 +57,11 @@ func (client *Client) setDNSProvider(providerType string, providerConfiguration 
 			return fmt.Errorf("port for pebble DNS challenge is not provided")
 		}
 
-		err := client.LegoClient.Challenge.SetDNS01Provider(NewPebbleDNSClient(host, port),
-			challengeOption)
+		err := client.LegoClient.Challenge.SetDNS01Provider(NewPebbleDNSClient(host, port), challengeOption)
 		return err
 
 	} else if providerType == "cis" {
-
-		crn, found := providerConfiguration["crn"]
-		if !found {
-			return fmt.Errorf("CRN for CIS DNS challenge is not provided")
-		}
-		zoneID, found := providerConfiguration["zoneid"]
-		if !found {
-			return fmt.Errorf("zoneid for CIS DNS challenge is not provided")
-		}
-
-		apikey, found := providerConfiguration["apikey"]
-		if !found {
-			return fmt.Errorf("apikey for CIS DNS challenge not provided")
-		}
-
-		err := client.LegoClient.Challenge.SetDNS01Provider(
-			NewCISDNSProvider(crn, zoneID, apikey),
-			challengeOption)
+		err := client.LegoClient.Challenge.SetDNS01Provider(NewCISDNSProvider(providerConfiguration), challengeOption)
 		return err
 
 	} else {
@@ -99,36 +77,13 @@ func (client *Client) setDNSProvider(providerType string, providerConfiguration 
 		}
 		err = client.LegoClient.Challenge.SetDNS01Provider(provider, challengeOption)
 		return err
-
 	}
 }
-func (client *Client) SetChallengeProviders(dnsProvider *DnsProviderConfig) error {
-	//TODO: discuss with secrets manager team as to whether we want to support http/alpn validation
 
-	//switch role.ProviderType {
-	//case "dns":
-	//	{
+func (client *Client) SetChallengeProviders(dnsProvider *DnsProviderConfig, domains []string) error {
 	challengeOption := dns01.DisableCompletePropagationRequirement()
-	err := client.setDNSProvider(dnsProvider.Type, dnsProvider.Config, challengeOption)
+	err := client.setDNSProvider(dnsProvider, domains, challengeOption)
 	return err
-	//}
-
-	//case "http":
-	//	{
-	//		err := client.LegoClient.Challenge.SetHTTP01Provider(http01.NewProviderServer("", "80"))
-	//		return err
-	//	}
-	//
-	//case "alpn":
-	//	{
-	//		err := client.LegoClient.Challenge.SetTLSALPN01Provider(tlsalpn01.NewProviderServer("", "443"))
-	//		return err
-	//	}
-
-	//default:
-	//	return fmt.Errorf("provider type %s is not recognized", "dns")
-	//}
-
 }
 
 func (client *Client) RegisterUser(userConfig *CAUserConfig) error {

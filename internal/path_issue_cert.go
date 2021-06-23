@@ -42,7 +42,7 @@ func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 		FieldBundleCert: {
 			Type:        framework.TypeBool,
 			Description: "Set to `true` to bundle the issuer certificate with the public certificate (fullchain cert file)..",
-			Default:     false,
+			Default:     true,
 		},
 		secretentry.FieldAlgorithm: {
 			Type:        framework.TypeString,
