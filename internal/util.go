@@ -3,13 +3,15 @@ package publiccerts
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
-	"github.com/go-acme/lego/v4/log"
 	"github.com/go-acme/lego/v4/registration"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/idna"
@@ -125,31 +127,15 @@ func GetHTTPSClient(rootCert string) (*http.Client, error) {
 	}, nil
 }
 
-// https://tools.ietf.org/html/rfc8555#section-7.1.4
-// The domain name MUST be encoded in the form in which it would appear in a certificate.
-// That is, it MUST be encoded according to the rules in Section 7 of [RFC5280].
-//
-// https://tools.ietf.org/html/rfc5280#section-7
-func sanitizeDomain(domains []string) []string {
-	var sanitizedDomains []string
-	for _, domain := range domains {
-		sanitizedDomain, err := idna.ToASCII(domain)
-		if err != nil {
-			log.Infof("skip domain %q: unable to sanitize: %v", domain, err)
-		} else {
-			sanitizedDomains = append(sanitizedDomains, sanitizedDomain)
+func getNames(cn string, altNames []string) []string {
+	//altNames contains common name too, we want to remove it to prevent domains duplication
+	names := make([]string, 0)
+	names = append(names, cn)
+	for _, n := range altNames {
+		if n != cn {
+			names = append(names, n)
 		}
 	}
-	return sanitizedDomains
-}
-
-func getNames(cn string, altNames []string) []string {
-	names := make([]string, len(altNames)+1)
-	names[0] = cn
-	for i, n := range altNames {
-		names[i+1] = n
-	}
-
 	return names
 }
 
@@ -228,6 +214,9 @@ func validateNames(names []string) error {
 		if strings.HasPrefix(name, "*.") {
 			sanitizedName = sanitizedName[2:]
 		}
+		// The domain name MUST be encoded in the form in which it would appear in a certificate.
+		// That is, it MUST be encoded according to the rules in Section 7 of [RFC5280].
+		// https://tools.ietf.org/html/rfc5280#section-7
 		converted, err := idnaValidator.ToASCII(sanitizedName)
 		if err != nil {
 			return err
@@ -247,6 +236,7 @@ var keyTypes = map[string]certcrypto.KeyType{
 	"rsaEncryption 2048 bit": certcrypto.RSA2048,
 	"rsaEncryption 4096 bit": certcrypto.RSA4096,
 	"rsaEncryption 8192 bit": certcrypto.RSA8192,
+	"SHA256-RSA":             certcrypto.RSA2048,
 }
 
 func getKeyType(keyAlgorithm string) (certcrypto.KeyType, error) {
@@ -255,4 +245,21 @@ func getKeyType(keyAlgorithm string) (certcrypto.KeyType, error) {
 		return "", errors.New("key algorithm is not valid ")
 	}
 	return keyType, nil
+}
+
+func getOrderID(names []string) string {
+	nameHash := sha256.Sum256([]byte(strings.Join(names, "")))
+	return hex.EncodeToString(nameHash[:])
+}
+
+func getOrderError(res Result) *OrderError {
+	pat := regexp.MustCompile(fmt.Sprintf(errorPattern, "(.*?)", "(.*?)"))
+	errorJson := pat.FindString(res.Error.Error())
+	errorObj := &OrderError{}
+	err := json.Unmarshal([]byte(errorJson), errorObj)
+	if err != nil {
+		errorObj.Code = "ACME_Error"
+		errorObj.Message = res.Error.Error()
+	}
+	return errorObj
 }

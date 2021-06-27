@@ -34,6 +34,7 @@ const (
 	FieldErrorMessage        = "error_message"
 	FieldAutoRenewed         = "auto_renewed"
 	FieldIssuanceInfo        = "issuance_info"
+	FieldRotateKeys          = "rotate_keys"
 	endCertificate           = "-----END CERTIFICATE-----"
 	errorPattern             = `{"error_code":"%s","error_message":"%s"}`
 )

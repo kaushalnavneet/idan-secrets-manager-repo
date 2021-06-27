@@ -6,10 +6,11 @@ import (
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	at "github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
+	"net/http"
 )
 
 func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
-	atSecretConfigCreate := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: "secrets-manager/secret",
+	atSecretConfigCreate := &at.ActivityTrackerVault{DataEvent: true, TargetTypeURI: "secrets-manager/secret",
 		Description: "Issue a new certificate", Action: common.CreateSecretAction, SecretType: SecretTypePublicCert, TargetResourceType: "secret"}
 
 	fields := map[string]*framework.FieldSchema{
@@ -77,6 +78,50 @@ func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 	}
 }
 
+func (ob *OrdersBackend) pathRotateCertificate() []*framework.Path {
+	atRotateCertificate := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: "secret",
+		TargetTypeURI: "secrets-manager/secret", Description: "Rotate a certificate",
+		Action: common.RotateSecretAction, Method: http.MethodPost, SecretType: SecretTypePublicCert}
+
+	fields := map[string]*framework.FieldSchema{
+		secretentry.FieldId:      common.Fields[secretentry.FieldId],
+		secretentry.FieldGroupId: common.Fields[secretentry.FieldGroupId],
+		FieldRotateKeys: {
+			Type:        framework.TypeBool,
+			Description: "Specify if a private key should be rotated.",
+			Required:    true,
+			Default:     false,
+		},
+	}
+
+	operations := map[logical.Operation]framework.OperationHandler{
+		logical.UpdateOperation: &framework.PathOperation{
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Rotate, atRotateCertificate),
+			Summary:     "Rotate a secrets.",
+			Description: "Renew a certificate",
+		},
+	}
+
+	return []*framework.Path{
+		{
+			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId) + "/rotate",
+			Fields:          fields,
+			Operations:      operations,
+			HelpSynopsis:    RotateHelpSyn,
+			HelpDescription: RotateHelpDesc,
+		},
+		{
+			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/rotate",
+			Fields:          fields,
+			Operations:      operations,
+			HelpSynopsis:    RotateHelpSyn,
+			HelpDescription: RotateHelpDesc,
+		},
+	}
+}
+
 //TODO update this text
 const issueConfigSyn = "Issue certificate."
 const issueConfigDesc = "Issue certificate."
+const RotateHelpSyn = "Renew certificate"
+const RotateHelpDesc = "Renew certificate"

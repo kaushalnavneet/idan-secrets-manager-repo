@@ -1,7 +1,6 @@
 package publiccerts
 
 import (
-	"context"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -47,8 +46,6 @@ type WorkItem struct {
 	isBundle   bool
 
 	secretEntry *secretentry.SecretEntry
-	req         *logical.Request
-	ctx         context.Context
 }
 
 type Result struct {
