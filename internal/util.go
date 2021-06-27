@@ -144,12 +144,14 @@ func sanitizeDomain(domains []string) []string {
 }
 
 func getNames(cn string, altNames []string) []string {
-	names := make([]string, len(altNames)+1)
-	names[0] = cn
-	for i, n := range altNames {
-		names[i+1] = n
+	//altNames contains common name too, we want to remove it to prevent domains duplication
+	names := make([]string, 0)
+	names = append(names, cn)
+	for _, n := range altNames {
+		if n != cn {
+			names = append(names, n)
+		}
 	}
-
 	return names
 }
 
@@ -247,6 +249,7 @@ var keyTypes = map[string]certcrypto.KeyType{
 	"rsaEncryption 2048 bit": certcrypto.RSA2048,
 	"rsaEncryption 4096 bit": certcrypto.RSA4096,
 	"rsaEncryption 8192 bit": certcrypto.RSA8192,
+	"SHA256-RSA":             certcrypto.RSA2048,
 }
 
 func getKeyType(keyAlgorithm string) (certcrypto.KeyType, error) {
