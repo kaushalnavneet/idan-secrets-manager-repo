@@ -2,10 +2,7 @@ package publiccerts
 
 import (
 	"context"
-	"crypto/sha256"
 	"crypto/x509"
-	"encoding/hex"
-	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -19,7 +16,6 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -62,12 +58,12 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 	}
 	//TODO check state ? it must be Active?
 	err := oh.prepareOrderWorkItem(ctx, req, orderData)
-	metadata.IssuanceInfo[FieldOrderedOn] = time.Now()
+	metadata.IssuanceInfo[FieldOrderedOn] = time.Now().Format(time.RFC3339)
+	metadata.IssuanceInfo[FieldAutoRenewed] = false
 	if err != nil {
 		//TODO do we need to update issuance info in this case?
 		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
 		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
-		metadata.IssuanceInfo[FieldAutoRenewed] = false
 		metadata.IssuanceInfo[FieldErrorCode] = "RenewError"
 		metadata.IssuanceInfo[FieldErrorMessage] = err.Error()
 		entry.ExtraData = metadata
@@ -75,9 +71,8 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 	}
 	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
 	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
-	metadata.IssuanceInfo[FieldAutoRenewed] = false
-	metadata.IssuanceInfo[FieldErrorCode] = ""
-	metadata.IssuanceInfo[FieldErrorMessage] = ""
+	delete(metadata.IssuanceInfo, FieldErrorCode)
+	delete(metadata.IssuanceInfo, FieldErrorMessage)
 	entry.ExtraData = metadata
 	return nil, nil
 }
@@ -91,10 +86,10 @@ func (oh *OrdersHandler) ExtraValidation(ctx context.Context, req *logical.Reque
 func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Request, data *framework.FieldData, csp secret_backend.CommonSecretParams) (*secretentry.SecretParameters, *logical.Response, error) {
 	//build order data for a new order from input params
 	issuanceInfo := make(map[string]interface{})
-	issuanceInfo[FieldOrderedOn] = time.Now()
+	issuanceInfo[FieldOrderedOn] = time.Now().Format(time.RFC3339)
+	issuanceInfo[FieldAutoRenewed] = false
 	issuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
 	issuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
-	issuanceInfo[FieldAutoRenewed] = false
 	issuanceInfo[FieldCAConfig] = data.Get(FieldCAConfig).(string)
 	issuanceInfo[FieldDNSConfig] = data.Get(FieldDNSConfig).(string)
 	issuanceInfo[FieldBundleCert] = data.Get(FieldBundleCert).(bool)
@@ -121,17 +116,20 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 
 	expiration := time.Now().Add(time.Hour * time.Duration(24))
 	secretParams := secretentry.SecretParameters{
-		Name:             csp.Name,
-		Description:      csp.Description,
-		Labels:           csp.Labels,
-		Type:             SecretTypePublicCert,
-		ExtraData:        certMetadata,
-		VersionData:      nil, //we don't have cert.Data
-		VersionExtraData: nil, //we don't have serialNumber, expirations
-		ExpirationDate:   &expiration,
-		CreatedBy:        csp.UserId,
-		InstanceCRN:      csp.CRN,
-		GroupID:          csp.GroupId, //state
+		Name:        csp.Name,
+		Description: csp.Description,
+		Labels:      csp.Labels,
+		Type:        SecretTypePublicCert,
+		ExtraData:   certMetadata,
+		VersionData: certMetadata,
+		VersionExtraData: map[string]interface{}{
+			secretentry.FieldCommonName: orderData.CommonName,
+			secretentry.FieldAltNames:   orderData.AltName,
+		},
+		ExpirationDate: &expiration,
+		CreatedBy:      csp.UserId,
+		InstanceCRN:    csp.CRN,
+		GroupID:        csp.GroupId, //state
 	}
 
 	return &secretParams, nil, nil
@@ -162,10 +160,10 @@ func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical
 
 // MapSecretEntry Map secret entry to
 func (oh *OrdersHandler) MapSecretEntry(entry *secretentry.SecretEntry, operation logical.Operation, includeSecretData bool) map[string]interface{} {
+	//for order and renew
 	if operation == logical.CreateOperation || operation == logical.UpdateOperation {
 		return oh.getOrderResponse(entry)
-	} else {
-
+	} else { //for all other cases
 		return oh.getCertMetadata(entry, includeSecretData)
 	}
 }
@@ -194,7 +192,25 @@ func (oh *OrdersHandler) UpdateSecretEntryMetadata(ctx context.Context, req *log
 }
 
 func (oh *OrdersHandler) MapSecretVersion(version *secretentry.SecretVersion, secretId string, crn string, operation logical.Operation, includeSecretData bool) map[string]interface{} {
-	return nil
+	extraData := version.ExtraData.(map[string]interface{})
+	res := map[string]interface{}{
+		secretentry.FieldId:               secretId,
+		secretentry.FieldCrn:              crn,
+		secretentry.FieldVersionId:        version.ID,
+		secretentry.FieldCreatedBy:        version.CreatedBy,
+		secretentry.FieldCreatedAt:        version.CreationDate,
+		secretentry.FieldSerialNumber:     extraData[secretentry.FieldSerialNumber],
+		secretentry.FieldExpirationDate:   extraData[secretentry.FieldNotAfter],
+		secretentry.FieldPayloadAvailable: version.VersionData != nil,
+		secretentry.FieldValidity: map[string]interface{}{
+			secretentry.FieldNotAfter:  extraData[secretentry.FieldNotAfter],
+			secretentry.FieldNotBefore: extraData[secretentry.FieldNotBefore],
+		},
+	}
+	if includeSecretData {
+		res[secretentry.FieldSecretData] = version.VersionData
+	}
+	return res
 }
 
 func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, includeSecretData bool) map[string]interface{} {
@@ -224,28 +240,27 @@ func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, include
 	if !includeSecretData {
 		delete(e, secretentry.FieldSecretData)
 	}
-	delete(e, secretentry.FieldVersions)
 	return e
 }
 
 func (oh *OrdersHandler) mapSecretVersionForVersionsList(version *secretentry.SecretVersion, secretId string, crn string, operation logical.Operation, includeSecretData bool) map[string]interface{} {
 
-	//extraData := version.ExtraData.(map[string]interface{})
+	extraData := version.ExtraData.(map[string]interface{})
 	res := map[string]interface{}{
-		//secretentry.FieldId:             version.ID,
-		//secretentry.FieldCreatedBy:      version.CreatedBy,
-		//secretentry.FieldCreatedAt:      version.CreationDate,
-		//secretentry.FieldSerialNumber:   extraData[secretentry.FieldSerialNumber],
-		//secretentry.FieldExpirationDate: extraData[secretentry.FieldNotAfter],
-		//secretentry.FieldValidity: map[string]interface{}{
-		//	secretentry.FieldNotAfter:  extraData[secretentry.FieldNotAfter],
-		//	secretentry.FieldNotBefore: extraData[secretentry.FieldNotBefore],
-		//},
+		secretentry.FieldId:               version.ID,
+		secretentry.FieldCreatedBy:        version.CreatedBy,
+		secretentry.FieldCreatedAt:        version.CreationDate,
+		secretentry.FieldSerialNumber:     extraData[secretentry.FieldSerialNumber],
+		secretentry.FieldExpirationDate:   extraData[secretentry.FieldNotAfter],
+		secretentry.FieldPayloadAvailable: version.VersionData != nil,
+		secretentry.FieldValidity: map[string]interface{}{
+			secretentry.FieldNotAfter:  extraData[secretentry.FieldNotAfter],
+			secretentry.FieldNotBefore: extraData[secretentry.FieldNotBefore],
+		},
 	}
-	//
-	//if includeSecretData {
-	//	res[secretentry.FieldSecretData] = version.VersionData
-	//}
+	if includeSecretData {
+		res[secretentry.FieldSecretData] = version.VersionData
+	}
 	return res
 }
 
@@ -320,19 +335,20 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	//update secret entry
 	secretEntry := res.workItem.secretEntry
 	storage := res.workItem.storage
-
+	//if entry state is PreActivation,it's the first order, remove empty version
+	if secretEntry.State == secretentry.StatePreActivation {
+		secretEntry.Versions = make([]secretentry.SecretVersion, 0)
+	}
 	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
 	var data interface{}
 	var extraData map[string]interface{}
 	if res.Error != nil {
 		common.Logger().Error("Order failed with error: " + res.Error.Error())
 		errorObj := getOrderError(res)
-		metadata.IssuanceInfo[FieldOrderedOn] = time.Now()
 		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
 		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
 		metadata.IssuanceInfo[FieldErrorCode] = errorObj.Code
 		metadata.IssuanceInfo[FieldErrorMessage] = errorObj.Message
-		metadata.IssuanceInfo[FieldAutoRenewed] = false
 
 		extraData = map[string]interface{}{
 			FieldIssuanceInfo: metadata.IssuanceInfo,
@@ -357,10 +373,11 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		if err != nil {
 			return
 		}
-		metadata.IssuanceInfo[FieldOrderedOn] = time.Now()
+
 		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateActive
 		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateActive)
-		metadata.IssuanceInfo[FieldAutoRenewed] = false
+		delete(metadata.IssuanceInfo, FieldErrorCode)
+		delete(metadata.IssuanceInfo, FieldErrorMessage)
 
 		certData.Metadata.IssuanceInfo = metadata.IssuanceInfo
 		data = certData.RawData
@@ -392,6 +409,7 @@ func (oh *OrdersHandler) getOrderResponse(entry *secretentry.SecretEntry) map[st
 	if metadata.AltName != nil {
 		e[secretentry.FieldAltNames] = metadata.AltName
 	}
+	e[FieldIssuanceInfo] = metadata.IssuanceInfo
 	return e
 }
 
@@ -415,21 +433,4 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, storage logic
 		}
 	}
 	return oh.iam, nil
-}
-
-func getOrderID(names []string) string {
-	nameHash := sha256.Sum256([]byte(strings.Join(names, "")))
-	return hex.EncodeToString(nameHash[:])
-}
-
-func getOrderError(res Result) *OrderError {
-	pat := regexp.MustCompile(fmt.Sprintf(errorPattern, "(.*?)", "(.*?)"))
-	errorJson := pat.FindString(res.Error.Error())
-	errorObj := &OrderError{}
-	err := json.Unmarshal([]byte(errorJson), errorObj)
-	if err != nil {
-		errorObj.Code = "ACME_Error"
-		errorObj.Message = res.Error.Error()
-	}
-	return errorObj
 }
