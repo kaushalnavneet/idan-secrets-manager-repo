@@ -110,7 +110,7 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, Error07010, logdna.BadRequestErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07010, logdna.BadRequestErrorMessage)
 		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 
@@ -120,7 +120,7 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 
 	// Validate user input
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), Error07011, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), logdna.Error07011, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 	// lock for writing
@@ -131,21 +131,21 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07012, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error07012, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 	//check if config with this name already exists
 	for _, caConfig := range config.CaConfigs {
 		if caConfig.Name == name {
 			errorMessage := fmt.Sprintf("CA configuration with name '%s' already exists", name)
-			common.ErrorLogForCustomer(errorMessage, Error07013, logdna.BadRequestErrorMessage)
+			common.ErrorLogForCustomer(errorMessage, logdna.Error07013, logdna.BadRequestErrorMessage)
 			return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 		}
 	}
 	configToStore, err := ob.createCAConfigToStore(d, name)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, Error07014, logdna.BadRequestErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07014, logdna.BadRequestErrorMessage)
 		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 	config.CaConfigs = append(config.CaConfigs, configToStore)
@@ -155,7 +155,7 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to save configuration to the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07015, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error07015, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 
@@ -174,7 +174,7 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, Error07016, logdna.BadRequestErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07016, logdna.BadRequestErrorMessage)
 		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 	//prepare AT context
@@ -182,13 +182,13 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 	atContext.ResourceName = name
 	// Validate user input
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), Error07017, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), logdna.Error07017, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 	configToStore, err := ob.createCAConfigToStore(d, name)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, Error07018, logdna.BadRequestErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07018, logdna.BadRequestErrorMessage)
 		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 
@@ -200,7 +200,7 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07019, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error07019, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 	//check if config with this name already exists
@@ -214,7 +214,7 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 	}
 	if !found {
 		errorMessage := fmt.Sprintf("CA configuration with name '%s' was not found", name)
-		common.ErrorLogForCustomer(errorMessage, Error07020, logdna.NotFoundErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07020, logdna.NotFoundErrorMessage)
 		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
 	}
 
@@ -223,7 +223,7 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to save configuration to the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07021, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error07021, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 
@@ -242,7 +242,7 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, Error07022, logdna.BadRequestErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07022, logdna.BadRequestErrorMessage)
 		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 
@@ -251,7 +251,7 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 	atContext.ResourceName = name
 
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), Error07023, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), logdna.Error07023, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 	foundConfig, err := getCAConfigByName(ctx, req, name)
@@ -282,7 +282,7 @@ func getCAConfigByName(ctx context.Context, req *logical.Request, name string) (
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07024, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error07024, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 	//check if config with this name  exists
@@ -295,7 +295,7 @@ func getCAConfigByName(ctx context.Context, req *logical.Request, name string) (
 	}
 	if foundConfig == nil {
 		errorMessage := fmt.Sprintf("CA configuration with name '%s' was not found", name)
-		common.ErrorLogForCustomer(errorMessage, Error07025, logdna.NotFoundErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07025, logdna.NotFoundErrorMessage)
 		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
 	}
 
@@ -309,7 +309,7 @@ func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Requ
 		return nil, err
 	}
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), Error07026, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), logdna.Error07026, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 
@@ -321,7 +321,7 @@ func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Requ
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07027, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error07027, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 
@@ -344,14 +344,14 @@ func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Re
 	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, Error07028, logdna.BadRequestErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07028, logdna.BadRequestErrorMessage)
 		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 	//prepare AT context
 	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
 	atContext.ResourceName = name
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), Error07029, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), logdna.Error07029, "There are unexpected fields. Verify that the request parameters are valid")
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 	// lock for writing
@@ -362,7 +362,7 @@ func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Re
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07030, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error07030, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 	//check if config with this name already exists
@@ -375,7 +375,7 @@ func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Re
 	}
 	if foundConfig == -1 {
 		errorMessage := fmt.Sprintf("CA configuration with name '%s' was not found", name)
-		common.ErrorLogForCustomer(errorMessage, Error07031, logdna.NotFoundErrorMessage)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07031, logdna.NotFoundErrorMessage)
 		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
 	}
 	config.CaConfigs = append(config.CaConfigs[:foundConfig], config.CaConfigs[foundConfig+1:]...)
@@ -384,7 +384,7 @@ func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Re
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to save configuration to the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", Error07032, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error07032, logdna.InternalErrorMessage)
 		return nil, errors.New(errorMessage)
 	}
 
