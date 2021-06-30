@@ -10,6 +10,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
 	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -133,12 +134,12 @@ func (c *CISDNSConfig) getDomainData(originalDomain, domainToSetChallenge, keyAu
 	zoneId, err := c.getZoneIdByDomain(domainToSetChallenge)
 	if err != nil {
 		//if domain was not found in CIS
-		if strings.Contains(err.Error(), Error07072) {
+		if strings.Contains(err.Error(), logdna.Error07072) {
 			//try to look for its parent domain
 			domainParts := strings.Split(domainToSetChallenge, ".")
 			if len(domainParts) == 2 {
 				//we can't dive anymore, return error
-				return nil, buildError(Error07072, "Domain "+originalDomain+" is not found in the IBM Cloud Internet Services instance")
+				return nil, buildError(logdna.Error07072, "Domain "+originalDomain+" is not found in the IBM Cloud Internet Services instance")
 			}
 			parentDomain := strings.Join(domainParts[1:], ".")
 			return c.getDomainData(originalDomain, parentDomain, keyAuth)
@@ -158,13 +159,13 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 	headers, err := c.buildRequestHeader()
 	if err != nil {
 		logger.Error("Couldn't build headers for CIS request: " + err.Error())
-		return "", buildError(Error07070, "Internal server Error")
+		return "", buildError(logdna.Error07070, "Internal server Error")
 	}
 	response := &CISResponseList{}
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, response)
 	if err != nil {
 		logger.Error("Couldn't get zone by domain name: " + err.Error())
-		return "", buildError(Error07071, "Could not call IBM Cloud Internet Services API. Try again later")
+		return "", buildError(logdna.Error07071, "Could not call IBM Cloud Internet Services API. Try again later")
 	}
 	//success
 	if resp.StatusCode() == http.StatusOK && response.Success && response.Result != nil {
@@ -173,15 +174,15 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 		} else {
 			//it can happen for subdomains
 			//logger.Error("Couldn't get zone by domain name: Domain "+domain+" is not found" )
-			return "", buildError(Error07072, "Domain "+domain+" is not found")
+			return "", buildError(logdna.Error07072, "Domain "+domain+" is not found")
 		}
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
 		logger.Error("Couldn't get zone by domain name: Authorization error ")
-		return "", buildError(Error07073, "Authorization error when trying to get zones from the IBM Cloud Internet Services instance")
+		return "", buildError(logdna.Error07073, "Authorization error when trying to get zones from the IBM Cloud Internet Services instance")
 	}
 	cisError := getCISErrors(response.Errors)
 	logger.Error("Couldn't get zone by domain " + domain + ": " + cisError)
-	return "", buildError(Error07074, "IBM Cloud Internet Services responded with an error")
+	return "", buildError(logdna.Error07074, "IBM Cloud Internet Services responded with an error")
 
 }
 
@@ -189,7 +190,7 @@ func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 	requestBody, err := createTxtRecordBody(domain.txtRecordName, domain.txtRecordValue, c.TTL)
 	if err != nil {
 		logger.Error("Couldn't build txt record body: " + err.Error())
-		return "", buildError(Error07075, "Internal Server error")
+		return "", buildError(logdna.Error07075, "Internal Server error")
 	}
 
 	url := fmt.Sprintf(`%s/%s/zones/%s/dns_records`, c.CISEndpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId))
@@ -198,7 +199,7 @@ func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 	resp, err := c.restClient.SendRequest(url, http.MethodPost, *headers, requestBody, response)
 	if err != nil {
 		logger.Error("Couldn't set challenge for domain " + domain.name + ": " + err.Error())
-		return "", buildError(Error07076, "Could not call IBM Cloud Internet Services API. Try again later")
+		return "", buildError(logdna.Error07076, "Could not call IBM Cloud Internet Services API. Try again later")
 	}
 	//success
 	if resp.StatusCode() == http.StatusOK && response.Success {
@@ -213,11 +214,11 @@ func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 		}
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
 		logger.Error("Couldn't set txt record for domain " + domain.name + ": Authorization error ")
-		return "", buildError(Error07077, "Authorization error when trying to set txt record in the IBM Cloud Internet Services instance")
+		return "", buildError(logdna.Error07077, "Authorization error when trying to set txt record in the IBM Cloud Internet Services instance")
 	}
 	cisError := getCISErrors(response.Errors)
 	logger.Error("Couldn't set txt record for domain " + domain.name + ": " + cisError)
-	return "", buildError(Error07078, "IBM Cloud Internet Services responded with an error")
+	return "", buildError(logdna.Error07078, "IBM Cloud Internet Services responded with an error")
 }
 
 func (c *CISDNSConfig) removeChallenge(domain *Domain) error {
@@ -228,18 +229,18 @@ func (c *CISDNSConfig) removeChallenge(domain *Domain) error {
 	resp, err := c.restClient.SendRequest(url, http.MethodDelete, *headers, nil, response)
 	if err != nil {
 		logger.Error("Couldn't remove txt record for domain " + domain.name + ": " + err.Error())
-		return buildError(Error07079, "Could not call IBM Cloud Internet Services API. Try again later")
+		return buildError(logdna.Error07079, "Could not call IBM Cloud Internet Services API. Try again later")
 	}
 	//success
 	if resp.StatusCode() == http.StatusOK && response.Success {
 		return nil
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
 		logger.Error("Couldn't remove txt record for domain " + domain.name + ": Authorization error ")
-		return buildError(Error07080, "Authorization error when trying to delete txt record from the IBM Cloud Internet Services instance")
+		return buildError(logdna.Error07080, "Authorization error when trying to delete txt record from the IBM Cloud Internet Services instance")
 	}
 	cisError := getCISErrors(response.Errors)
 	logger.Error("Couldn't remove txt record for domain " + domain.name + ": " + cisError)
-	return buildError(Error07081, "IBM Cloud Internet Services responded with an error")
+	return buildError(logdna.Error07081, "IBM Cloud Internet Services responded with an error")
 
 }
 
