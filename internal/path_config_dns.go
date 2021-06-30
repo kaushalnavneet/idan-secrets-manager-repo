@@ -141,8 +141,14 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 		return nil, errors.New(errorMessage)
 	}
 
-	resp := &logical.Response{}
-	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
+	respData := make(map[string]interface{})
+	respData[FieldName] = configToStore.Name
+	respData[FieldType] = configToStore.Type
+	respData[FieldConfig] = configToStore.Config
+	resp := &logical.Response{
+		Data: respData,
+	}
+	return logical.RespondWithStatusCode(resp, req, http.StatusCreated)
 }
 
 // Create or update the IBM Cloud Auth backend configuration
@@ -210,8 +216,15 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 		return nil, errors.New(errorMessage)
 	}
 
-	resp := &logical.Response{}
+	respData := make(map[string]interface{})
+	respData[FieldName] = configToStore.Name
+	respData[FieldType] = configToStore.Type
+	respData[FieldConfig] = configToStore.Config
+	resp := &logical.Response{
+		Data: respData,
+	}
 	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
+
 }
 
 // Read the IBM Cloud Auth backend configuration from storage
@@ -241,43 +254,15 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 	if err != nil {
 		return nil, err
 	}
+
 	respData := make(map[string]interface{})
-
-	respData[FieldName] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Name, d.GetDefaultOrZero(FieldName).(string))
+	respData[FieldName] = foundConfig.Name
+	respData[FieldType] = foundConfig.Type
 	respData[FieldConfig] = foundConfig.Config
-
 	resp := &logical.Response{
 		Data: respData,
 	}
-	return resp, nil
-}
-
-func getDNSConfigByName(ctx context.Context, req *logical.Request, name string) (*DnsProviderConfig, error) {
-	// lock for reading
-	secretsConfigLock.RLock()
-	defer secretsConfigLock.RUnlock()
-	// Get the storage entry
-	config, err := getRootConfig(ctx, req)
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
-		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error07054, logdna.InternalErrorMessage)
-		return nil, errors.New(errorMessage)
-	}
-	//check if config with this name  exists
-	var foundConfig *DnsProviderConfig
-	for _, caConfig := range config.ProviderConfigs {
-		if caConfig.Name == name {
-			foundConfig = caConfig
-			break
-		}
-	}
-	if foundConfig == nil {
-		errorMessage := fmt.Sprintf("DNS provider configuration with name '%s' was not found", name)
-		common.ErrorLogForCustomer(errorMessage, logdna.Error07055, logdna.NotFoundErrorMessage)
-		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
-	}
-	return foundConfig, nil
+	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
 }
 
 func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
@@ -310,7 +295,7 @@ func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Req
 	resp := &logical.Response{
 		Data: respData,
 	}
-	return resp, nil
+	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
 }
 
 func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
@@ -369,7 +354,7 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 	}
 
 	resp := &logical.Response{}
-	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
+	return logical.RespondWithStatusCode(resp, req, http.StatusNoContent)
 }
 
 func createProviderConfigToStore(name string, d *framework.FieldData) (*DnsProviderConfig, error) {
@@ -384,6 +369,34 @@ func createProviderConfigToStore(name string, d *framework.FieldData) (*DnsProvi
 	}
 	p := NewDnsProviderConfig(name, providerType, config)
 	return p, nil
+}
+
+func getDNSConfigByName(ctx context.Context, req *logical.Request, name string) (*DnsProviderConfig, error) {
+	// lock for reading
+	secretsConfigLock.RLock()
+	defer secretsConfigLock.RUnlock()
+	// Get the storage entry
+	config, err := getRootConfig(ctx, req)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
+		common.Logger().Error(errorMessage)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error07054, logdna.InternalErrorMessage)
+		return nil, errors.New(errorMessage)
+	}
+	//check if config with this name  exists
+	var foundConfig *DnsProviderConfig
+	for _, caConfig := range config.ProviderConfigs {
+		if caConfig.Name == name {
+			foundConfig = caConfig
+			break
+		}
+	}
+	if foundConfig == nil {
+		errorMessage := fmt.Sprintf("DNS provider configuration with name '%s' was not found", name)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07055, logdna.NotFoundErrorMessage)
+		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
+	}
+	return foundConfig, nil
 }
 
 //TODO update this text

@@ -159,8 +159,14 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 		return nil, errors.New(errorMessage)
 	}
 
-	resp := &logical.Response{}
-	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
+	respData := make(map[string]interface{})
+	respData[FieldName] = configToStore.Name
+	respData[FieldDirectoryUrl] = configToStore.DirectoryURL
+	respData[FieldPrivateKey] = configToStore.PrivateKey
+	resp := &logical.Response{
+		Data: respData,
+	}
+	return logical.RespondWithStatusCode(resp, req, http.StatusCreated)
 }
 
 // Create or update the IBM Cloud Auth backend configuration
@@ -227,8 +233,15 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 		return nil, errors.New(errorMessage)
 	}
 
-	resp := &logical.Response{}
+	respData := make(map[string]interface{})
+	respData[FieldName] = configToStore.Name
+	respData[FieldDirectoryUrl] = configToStore.DirectoryURL
+	respData[FieldPrivateKey] = configToStore.PrivateKey
+	resp := &logical.Response{
+		Data: respData,
+	}
 	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
+
 }
 
 // Read the IBM Cloud Auth backend configuration from storage
@@ -260,46 +273,15 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 	}
 
 	respData := make(map[string]interface{})
-
 	respData[FieldName] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Name, d.GetDefaultOrZero(FieldName).(string))
 	respData[FieldDirectoryUrl] = common.GetNonEmptyStringFirstOrSecond(foundConfig.DirectoryURL, d.GetDefaultOrZero(FieldDirectoryUrl).(string))
 	respData[FieldPrivateKey] = common.GetNonEmptyStringFirstOrSecond(foundConfig.PrivateKey, d.GetDefaultOrZero(FieldPrivateKey).(string))
 	respData[FieldRegistrationUrl] = common.GetNonEmptyStringFirstOrSecond(foundConfig.RegistrationURL, d.GetDefaultOrZero(FieldRegistrationUrl).(string))
 	respData[FieldEmail] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Email, d.GetDefaultOrZero(FieldEmail).(string))
-
 	resp := &logical.Response{
 		Data: respData,
 	}
-	return resp, nil
-}
-
-func getCAConfigByName(ctx context.Context, req *logical.Request, name string) (*CAUserConfigToStore, error) {
-	// lock for reading
-	secretsConfigLock.RLock()
-	defer secretsConfigLock.RUnlock()
-	// Get the storage entry
-	config, err := getRootConfig(ctx, req)
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
-		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error07024, logdna.InternalErrorMessage)
-		return nil, errors.New(errorMessage)
-	}
-	//check if config with this name  exists
-	var foundConfig *CAUserConfigToStore
-	for _, caConfig := range config.CaConfigs {
-		if caConfig.Name == name {
-			foundConfig = caConfig
-			break
-		}
-	}
-	if foundConfig == nil {
-		errorMessage := fmt.Sprintf("CA configuration with name '%s' was not found", name)
-		common.ErrorLogForCustomer(errorMessage, logdna.Error07025, logdna.NotFoundErrorMessage)
-		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
-	}
-
-	return foundConfig, nil
+	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
 }
 
 func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
@@ -331,7 +313,7 @@ func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Requ
 	resp := &logical.Response{
 		Data: respData,
 	}
-	return resp, nil
+	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
 }
 
 func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
@@ -389,7 +371,7 @@ func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Re
 	}
 
 	resp := &logical.Response{}
-	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
+	return logical.RespondWithStatusCode(resp, req, http.StatusNoContent)
 }
 
 func (ob *OrdersBackend) createCAConfigToStore(d *framework.FieldData, name string) (*CAUserConfigToStore, error) {
@@ -416,6 +398,35 @@ func (ob *OrdersBackend) createCAConfigToStore(d *framework.FieldData, name stri
 		return nil, err
 	}
 	return configToStore, nil
+}
+
+func getCAConfigByName(ctx context.Context, req *logical.Request, name string) (*CAUserConfigToStore, error) {
+	// lock for reading
+	secretsConfigLock.RLock()
+	defer secretsConfigLock.RUnlock()
+	// Get the storage entry
+	config, err := getRootConfig(ctx, req)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
+		common.Logger().Error(errorMessage)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error07024, logdna.InternalErrorMessage)
+		return nil, errors.New(errorMessage)
+	}
+	//check if config with this name  exists
+	var foundConfig *CAUserConfigToStore
+	for _, caConfig := range config.CaConfigs {
+		if caConfig.Name == name {
+			foundConfig = caConfig
+			break
+		}
+	}
+	if foundConfig == nil {
+		errorMessage := fmt.Sprintf("CA configuration with name '%s' was not found", name)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07025, logdna.NotFoundErrorMessage)
+		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
+	}
+
+	return foundConfig, nil
 }
 
 //TODO update this text
