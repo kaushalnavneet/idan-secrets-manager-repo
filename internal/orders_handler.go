@@ -46,6 +46,9 @@ type OrderData struct {
 }
 
 func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *logical.Request, data *framework.FieldData, entry *secretentry.SecretEntry, userID string) (*logical.Response, error) {
+	if entry.State != secretentry.StateActive {
+		return nil, errors.New("secret should be in Active state")
+	}
 	rotateKey := data.Get(FieldRotateKeys).(bool)
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
 	//TODO check state ? it must be Active?
@@ -59,16 +62,14 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 	}
 
 	if !rotateKey {
-		//TODO always version[0] ??
-		rawdata, _ := certificate.DecodeRawData(entry.Versions[0].VersionData)
+		rawdata, _ := certificate.DecodeRawData(entry.LastVersionData())
 		orderData.PrivateKey = []byte(rawdata.PrivateKey)
 	}
 
 	err := oh.prepareOrderWorkItem(ctx, req, orderData)
-	metadata.IssuanceInfo[FieldOrderedOn] = time.Now().Format(time.RFC3339)
-	metadata.IssuanceInfo[FieldAutoRenewed] = false
+	metadata.IssuanceInfo[FieldOrderedOn] = time.Now().UTC().Format(time.RFC3339)
+	metadata.IssuanceInfo[FieldAutoRotated] = false
 	if err != nil {
-		//TODO do we need to update issuance info in this case?
 		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
 		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
 		metadata.IssuanceInfo[FieldErrorCode] = "RenewError"
@@ -94,8 +95,8 @@ func (oh *OrdersHandler) ExtraValidation(ctx context.Context, req *logical.Reque
 func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Request, data *framework.FieldData, csp secret_backend.CommonSecretParams) (*secretentry.SecretParameters, *logical.Response, error) {
 	//build order data for a new order from input params
 	issuanceInfo := make(map[string]interface{})
-	issuanceInfo[FieldOrderedOn] = time.Now().Format(time.RFC3339)
-	issuanceInfo[FieldAutoRenewed] = false
+	issuanceInfo[FieldOrderedOn] = time.Now().UTC().Format(time.RFC3339)
+	issuanceInfo[FieldAutoRotated] = false
 	issuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
 	issuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
 	issuanceInfo[FieldCAConfig] = data.Get(FieldCAConfig).(string)
@@ -122,7 +123,6 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 		certMetadata.AltName = altNames
 	}
 
-	expiration := time.Now().Add(time.Hour * time.Duration(24))
 	secretParams := secretentry.SecretParameters{
 		Name:        csp.Name,
 		Description: csp.Description,
@@ -134,10 +134,9 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 			secretentry.FieldCommonName: orderData.CommonName,
 			secretentry.FieldAltNames:   orderData.AltName,
 		},
-		ExpirationDate: &expiration,
-		CreatedBy:      csp.UserId,
-		InstanceCRN:    csp.CRN,
-		GroupID:        csp.GroupId, //state
+		CreatedBy:   csp.UserId,
+		InstanceCRN: csp.CRN,
+		GroupID:     csp.GroupId, //state
 	}
 
 	return &secretParams, nil, nil
