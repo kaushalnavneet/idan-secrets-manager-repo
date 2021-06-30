@@ -291,8 +291,8 @@ func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Req
 	}
 
 	respData := make(map[string]interface{})
-	//TODO remove configs
-	respData[DNS] = config.ProviderConfigs
+	confArray := getDNSConfigsAsMap(config)
+	respData[DNS] = confArray
 	resp := &logical.Response{
 		Data: respData,
 	}

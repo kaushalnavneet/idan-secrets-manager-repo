@@ -308,8 +308,8 @@ func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Requ
 	}
 
 	respData := make(map[string]interface{})
-	respData[CA] = config.CaConfigs
-	//TODO remove private keys
+	confArray := getCAConfigsAsMap(config)
+	respData[CA] = confArray
 	resp := &logical.Response{
 		Data: respData,
 	}

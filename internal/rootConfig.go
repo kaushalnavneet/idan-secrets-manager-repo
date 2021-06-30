@@ -38,3 +38,23 @@ func putRootConfig(ctx context.Context, req *logical.Request, config *RootConfig
 	}
 	return nil
 }
+
+func getCAConfigsAsMap(config *RootConfig) []map[string]string {
+	confArray := make([]map[string]string, len(config.CaConfigs))
+	for i, caConfig := range config.CaConfigs {
+		confArray[i] = make(map[string]string)
+		confArray[i][FieldName] = caConfig.Name
+		confArray[i][FieldDirectoryUrl] = caConfig.DirectoryURL
+	}
+	return confArray
+}
+
+func getDNSConfigsAsMap(config *RootConfig) []map[string]string {
+	confArray := make([]map[string]string, len(config.ProviderConfigs))
+	for i, dnsConfig := range config.ProviderConfigs {
+		confArray[i] = make(map[string]string)
+		confArray[i][FieldName] = dnsConfig.Name
+		confArray[i][FieldType] = dnsConfig.Type
+	}
+	return confArray
+}
