@@ -9,19 +9,20 @@ import (
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	at "github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
 )
 
 func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
-	atSecretConfigUpdate := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: "secrets-manager/secret-engine-config",
+	atSecretConfigUpdate := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
 		Description: "Set secret engine configuration", Action: common.SetEngineConfigAction, SecretType: SecretTypePublicCert, TargetResourceType: DNS}
-	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: "secrets-manager/secret-engine-config",
+	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
 		Description: "Get secret engine configuration", Action: common.GetEngineConfigAction, SecretType: SecretTypePublicCert, TargetResourceType: DNS}
-	atSecretConfigDelete := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: "secrets-manager/secret-engine-config",
+	atSecretConfigDelete := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
 		Description: "Delete secret engine configuration", Action: DeleteEngineConfigAction, SecretType: SecretTypePublicCert, TargetResourceType: DNS}
 
 	fields := map[string]*framework.FieldSchema{
-		FieldName: {
+		secretentry.FieldName: {
 			Type:        framework.TypeString,
 			Description: "Specifies the dns provider name.",
 			Required:    true,
@@ -72,7 +73,7 @@ func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
 			HelpDescription: dnsConfigDesc,
 		},
 		{
-			Pattern:         ConfigDNSPath + "/" + framework.GenericNameRegex(FieldName),
+			Pattern:         ConfigDNSPath + "/" + framework.GenericNameRegex(secretentry.FieldName),
 			Fields:          fields,
 			Operations:      operationsWithPathParam,
 			HelpSynopsis:    dnsConfigSyn,
@@ -89,7 +90,7 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 		return nil, err
 	}
 	//get config name
-	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
+	name, err := ob.validateStringField(d, secretentry.FieldName, "min=2,max=512", "length should be 2 to 512 chars")
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
 		common.ErrorLogForCustomer(errorMessage, logdna.Error07040, logdna.BadRequestErrorMessage)
@@ -142,7 +143,7 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 	}
 
 	respData := make(map[string]interface{})
-	respData[FieldName] = configToStore.Name
+	respData[secretentry.FieldName] = configToStore.Name
 	respData[FieldType] = configToStore.Type
 	respData[FieldConfig] = configToStore.Config
 	resp := &logical.Response{
@@ -159,7 +160,7 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 		return nil, err
 	}
 	//get config name
-	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
+	name, err := ob.validateStringField(d, secretentry.FieldName, "min=2,max=512", "length should be 2 to 512 chars")
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
 		common.ErrorLogForCustomer(errorMessage, logdna.Error07046, logdna.BadRequestErrorMessage)
@@ -217,7 +218,7 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	}
 
 	respData := make(map[string]interface{})
-	respData[FieldName] = configToStore.Name
+	respData[secretentry.FieldName] = configToStore.Name
 	respData[FieldType] = configToStore.Type
 	respData[FieldConfig] = configToStore.Config
 	resp := &logical.Response{
@@ -235,7 +236,7 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 		return nil, err
 	}
 	//get config name
-	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
+	name, err := ob.validateStringField(d, secretentry.FieldName, "min=2,max=512", "length should be 2 to 512 chars")
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
 		common.ErrorLogForCustomer(errorMessage, logdna.Error07052, logdna.BadRequestErrorMessage)
@@ -256,7 +257,7 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 	}
 
 	respData := make(map[string]interface{})
-	respData[FieldName] = foundConfig.Name
+	respData[secretentry.FieldName] = foundConfig.Name
 	respData[FieldType] = foundConfig.Type
 	respData[FieldConfig] = foundConfig.Config
 	resp := &logical.Response{
@@ -305,7 +306,7 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 		return nil, err
 	}
 	//get config name
-	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
+	name, err := ob.validateStringField(d, secretentry.FieldName, "min=2,max=512", "length should be 2 to 512 chars")
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
 		common.ErrorLogForCustomer(errorMessage, logdna.Error07059, logdna.BadRequestErrorMessage)

@@ -29,10 +29,14 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 		ob.pathConfigCA(),
 		ob.pathConfigDNS(),
 		ob.pathConfigRoot(),
+		//order
 		ob.pathIssueCert(),
+		//rotate
+		ob.pathRotateCertificate(),
 		ob.pathCertificateMetadata(),
 		ob.pathCertificate(),
-		ob.pathRotateCertificate(),
+		ob.pathGetVersion(),
+		ob.pathGetVersionMetadata(),
 		[]*framework.Path{
 			//// Make sure this stays at the end so that the valid paths are processed first.
 			//common.PathInvalid(backendHelp),
