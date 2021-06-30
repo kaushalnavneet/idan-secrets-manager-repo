@@ -6,6 +6,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -41,13 +42,13 @@ type OrderData struct {
 	CommonName   string
 	AltName      []string
 	IssuanceInfo map[string]interface{}
+	PrivateKey   []byte
 }
 
 func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *logical.Request, data *framework.FieldData, entry *secretentry.SecretEntry, userID string) (*logical.Response, error) {
-	//rotate secretFieldRotateKeys).(bool)
-	var metadata *certificate.CertificateMetadata
-	metadata, _ = certificate.DecodeMetadata(entry.ExtraData)
-
+	rotateKey := data.Get(FieldRotateKeys).(bool)
+	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
+	//TODO check state ? it must be Active?
 	//prepare order data from existing secret
 	orderData := &OrderData{
 		Algorithm:    metadata.Algorithm,
@@ -56,7 +57,13 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 		AltName:      metadata.AltName,
 		IssuanceInfo: metadata.IssuanceInfo,
 	}
-	//TODO check state ? it must be Active?
+
+	if !rotateKey {
+		//TODO always version[0] ??
+		rawdata, _ := certificate.DecodeRawData(entry.Versions[0].VersionData)
+		orderData.PrivateKey = []byte(rawdata.PrivateKey)
+	}
+
 	err := oh.prepareOrderWorkItem(ctx, req, orderData)
 	metadata.IssuanceInfo[FieldOrderedOn] = time.Now().Format(time.RFC3339)
 	metadata.IssuanceInfo[FieldAutoRenewed] = false
@@ -68,13 +75,14 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 		metadata.IssuanceInfo[FieldErrorMessage] = err.Error()
 		entry.ExtraData = metadata
 		return nil, err
+	} else {
+		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
+		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
+		delete(metadata.IssuanceInfo, FieldErrorCode)
+		delete(metadata.IssuanceInfo, FieldErrorMessage)
+		entry.ExtraData = metadata
+		return nil, nil
 	}
-	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
-	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
-	delete(metadata.IssuanceInfo, FieldErrorCode)
-	delete(metadata.IssuanceInfo, FieldErrorMessage)
-	entry.ExtraData = metadata
-	return nil, nil
 }
 
 // ExtraValidation Perform Extra validation according to the request.
@@ -287,7 +295,7 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	}
 
 	block, _ := pem.Decode([]byte(caConfig.PrivateKey))
-	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	caPrivKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
 		return err
 	}
@@ -300,7 +308,7 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 		Registration: &registration.Resource{
 			URI: caConfig.RegistrationURL,
 		},
-		key: privateKey,
+		key: caPrivKey,
 	}
 
 	//Get keyType and keyBits
@@ -308,7 +316,6 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	if err != nil {
 		return err
 	}
-	//TODO maybe add iam to dnsConfig	dnsConfig.Config["iam"] but it should be string
 	iamConfig, err := oh.configureIamIfNeeded(ctx, req.Storage)
 	workItem := WorkItem{
 		storage:    req.Storage,
@@ -318,6 +325,17 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 		dnsConfig:  dnsConfig,
 		domains:    domains,
 		isBundle:   isBundle,
+	}
+	if data.PrivateKey != nil && len(data.PrivateKey) > 0 {
+		certPrivKey, err := certcrypto.ParsePEMPrivateKey(data.PrivateKey)
+		if err != nil {
+			//can't happen
+		}
+		//need to reuse the same key
+		csrAsDER, _ := certcrypto.GenerateCSR(certPrivKey, data.CommonName, data.AltName, false)
+		csr, _ := x509.ParseCertificateRequest(csrAsDER)
+		workItem.csr = csr
+		workItem.privateKey = data.PrivateKey
 	}
 
 	orderKey := getOrderID(domains)
