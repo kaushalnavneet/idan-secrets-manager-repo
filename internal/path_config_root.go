@@ -40,7 +40,7 @@ func (ob *OrdersBackend) pathRootConfigRead(ctx context.Context, req *logical.Re
 		return nil, err
 	}
 	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), logdna.Error07003, "There are unexpected fields. Verify that the request parameters are valid")
+		common.ErrorLogForCustomer(err.Error(), logdna.Error07003, "There are unexpected fields. Verify that the request parameters are valid", true)
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 	// lock for reading
@@ -51,7 +51,7 @@ func (ob *OrdersBackend) pathRootConfigRead(ctx context.Context, req *logical.Re
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error07004, logdna.InternalErrorMessage)
+		common.ErrorLogForCustomer("Internal server error", logdna.Error07004, logdna.InternalErrorMessage, false)
 		return nil, errors.New(errorMessage)
 	}
 

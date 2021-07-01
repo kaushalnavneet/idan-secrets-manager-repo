@@ -178,7 +178,7 @@ func (oh *OrdersHandler) UpdateSecretEntryMetadata(ctx context.Context, req *log
 	newNameRaw, ok := data.GetOk(secretentry.FieldName)
 	if !ok {
 		msg := fmt.Sprintf("Invalid %s parameter", secretentry.FieldName)
-		common.ErrorLogForCustomer(msg, logdna.Error01035, "Retry with a valid name parameter")
+		common.ErrorLogForCustomer(msg, logdna.Error01035, "Retry with a valid name parameter", true)
 		return nil, logical.CodedError(http.StatusBadRequest, msg)
 	}
 

@@ -6,8 +6,8 @@ import (
 )
 
 type RootConfig struct {
-	CaConfigs       []*CAUserConfigToStore `json "certificate_authorities"`
-	ProviderConfigs []*DnsProviderConfig   `json "dns_providers"`
+	CaConfigs       []*CAUserConfigToStore `json:"certificate_authorities"`
+	ProviderConfigs []*DnsProviderConfig   `json:"dns_providers"`
 }
 
 func getRootConfig(ctx context.Context, req *logical.Request) (*RootConfig, error) {
