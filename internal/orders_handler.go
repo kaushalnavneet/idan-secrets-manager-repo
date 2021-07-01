@@ -37,7 +37,6 @@ type OrderError struct {
 }
 
 type OrderData struct {
-	Algorithm    string
 	KeyAlgorithm string
 	CommonName   string
 	AltName      []string
@@ -54,7 +53,6 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 	//TODO check state ? it must be Active?
 	//prepare order data from existing secret
 	orderData := &OrderData{
-		Algorithm:    metadata.Algorithm,
 		KeyAlgorithm: metadata.KeyAlgorithm,
 		CommonName:   metadata.CommonName,
 		AltName:      metadata.AltName,
@@ -103,7 +101,6 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 	issuanceInfo[FieldDNSConfig] = data.Get(FieldDNSConfig).(string)
 	issuanceInfo[FieldBundleCert] = data.Get(FieldBundleCert).(bool)
 	orderData := &OrderData{
-		Algorithm:    data.Get(secretentry.FieldAlgorithm).(string),
 		KeyAlgorithm: data.Get(secretentry.FieldKeyAlgorithm).(string),
 		CommonName:   data.Get(secretentry.FieldCommonName).(string),
 		AltName:      data.Get(secretentry.FieldAltNames).([]string),
@@ -171,7 +168,7 @@ func (oh *OrdersHandler) MapSecretEntry(entry *secretentry.SecretEntry, operatio
 	if operation == logical.CreateOperation || operation == logical.UpdateOperation {
 		return oh.getOrderResponse(entry)
 	} else { //for all other cases
-		return oh.getCertMetadata(entry, includeSecretData)
+		return oh.getCertMetadata(entry, includeSecretData, includeSecretData)
 	}
 }
 
@@ -220,7 +217,7 @@ func (oh *OrdersHandler) MapSecretVersion(version *secretentry.SecretVersion, se
 	return res
 }
 
-func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, includeSecretData bool) map[string]interface{} {
+func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, includeSecretData bool, includeVersion bool) map[string]interface{} {
 	var metadata *certificate.CertificateMetadata
 	e := entry.ToMapWithVersionsMapper(oh.mapSecretVersionForVersionsList, logical.ReadOperation)
 	metadata, _ = certificate.DecodeMetadata(entry.ExtraData)
@@ -247,6 +244,11 @@ func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, include
 	if !includeSecretData {
 		delete(e, secretentry.FieldSecretData)
 	}
+
+	if !includeVersion {
+		delete(e, secretentry.FieldVersions)
+	}
+
 	return e
 }
 

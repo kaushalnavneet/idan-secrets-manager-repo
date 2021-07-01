@@ -167,17 +167,3 @@ func (ob *OrdersBackend) pathGetVersionMetadata() []*framework.Path {
 		},
 	}
 }
-
-const VersionMetaReadOpDesc = `The versions metadata read operation receives the secretId parameter as part of the path.
-It returns all of the secret's version metadata.`
-
-const VersionReadOpDesc = `The versions read operation receives the secretId parameter as part of the path.
-It returns all of the secret's version.`
-
-const VersionOperationsHelpSyn = `Read secrets version in the Imported certificate Secrets store.`
-const VersionOperationsHelpDesc = `This path takes a secretId and attempts to perform the version read operation on the secret with this secretId.` +
-	"\n" + VersionReadOpDesc
-
-const VersionMetaOperationsHelpSyn = `Read metadata for secrets version in the Imported certificate Secrets store.`
-const VersionMetaOperationsHelpDesc = `This path takes a secretId and attempts to perform the version metadata read operation on the secret with this secretId.` +
-	"\n" + VersionMetaReadOpDesc

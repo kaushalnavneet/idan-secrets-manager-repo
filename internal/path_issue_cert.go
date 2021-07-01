@@ -10,8 +10,11 @@ import (
 )
 
 func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
-	atSecretConfigCreate := &at.ActivityTrackerVault{DataEvent: true, TargetTypeURI: at.SecretTargetTypeURI,
+	atSecretCreate := &at.ActivityTrackerVault{DataEvent: true, TargetTypeURI: at.SecretTargetTypeURI,
 		Description: "Issue a new certificate", Action: common.CreateSecretAction, SecretType: SecretTypePublicCert,
+		TargetResourceType: secretentry.SecretResourceName}
+	atSecretList := &at.ActivityTrackerVault{DataEvent: true, TargetTypeURI: at.SecretTargetTypeURI,
+		Description: "List certificates", Action: common.ListSecretsAction, SecretType: SecretTypePublicCert,
 		TargetResourceType: secretentry.SecretResourceName}
 
 	fields := map[string]*framework.FieldSchema{
@@ -19,7 +22,6 @@ func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 		secretentry.FieldDescription: common.Fields[secretentry.FieldDescription],
 		secretentry.FieldLabels:      common.Fields[secretentry.FieldLabels],
 		secretentry.FieldGroupId:     common.Fields[secretentry.FieldGroupId],
-
 		FieldCAConfig: {
 			Type:        framework.TypeString,
 			Description: "Specifies the certificate authority configuration name.",
@@ -46,35 +48,53 @@ func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 			Description: "Set to `true` to bundle the issuer certificate with the public certificate (fullchain cert file)..",
 			Default:     true,
 		},
-		secretentry.FieldAlgorithm: {
-			Type:        framework.TypeString,
-			Description: "Specifies the certificate algorithm.",
-			Required:    false,
-			Default:     "sha256WithRSAEncryption",
-		},
 		secretentry.FieldKeyAlgorithm: {
 			Type:        framework.TypeString,
 			Description: "Specifies the certificate key algorithm.",
 			Required:    false,
 			Default:     "rsaEncryption 2048 bit",
 		},
-		//TODO add rotation policy
+		FieldRotation: {
+			Type:        framework.TypeMap,
+			Description: "Specifies the set of rotation settings.",
+			Required:    false,
+			Default:     map[string]interface{}{FieldEnabled: false, FieldRotateKeys: false},
+		},
+		secretentry.FieldOffset: common.Fields[secretentry.FieldOffset],
+		secretentry.FieldLimit:  common.Fields[secretentry.FieldLimit],
+		common.SearchText:       common.Fields[common.SearchText],
+		common.SortBy:           common.Fields[common.SortBy],
+		secretentry.FieldGroups: common.Fields[secretentry.FieldGroups],
 	}
+
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.CreateOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.secretBackend.Create, atSecretConfigCreate),
+			Callback: ob.secretBackend.PathCallback(ob.secretBackend.Create, atSecretCreate),
 			Summary:  "Issue a certificate",
+		},
+		logical.ReadOperation: &framework.PathOperation{
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.List, atSecretList),
+			Summary:     "List certificates",
+			Description: ListOpDesc,
 		},
 	}
 
 	return []*framework.Path{
 		{
-			Pattern:         IssuePath,
+			Pattern:         "secrets/?$",
 			Fields:          fields,
 			ExistenceCheck:  existenceCheck,
 			Operations:      operations,
-			HelpSynopsis:    issueConfigSyn,
-			HelpDescription: issueConfigDesc,
+			HelpSynopsis:    secretsRootHelpSyn,
+			HelpDescription: secretsRootHelpDesc,
+		},
+		{
+			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/?$",
+			Fields:          fields,
+			Operations:      operations,
+			ExistenceCheck:  existenceCheck,
+			HelpSynopsis:    secretsRootHelpSyn,
+			HelpDescription: secretsRootHelpDesc,
 		},
 	}
 }
@@ -120,9 +140,3 @@ func (ob *OrdersBackend) pathRotateCertificate() []*framework.Path {
 		},
 	}
 }
-
-//TODO update this text
-const issueConfigSyn = "Issue certificate."
-const issueConfigDesc = "Issue certificate."
-const RotateHelpSyn = "Renew certificate"
-const RotateHelpDesc = "Renew certificate"
