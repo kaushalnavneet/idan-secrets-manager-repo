@@ -80,11 +80,18 @@ func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
 		Retries:    2,
 		RetryDelay: 1 * time.Second,
 	})
-	//TODO if crn in prod - endpoints of prod, otherwise - staging
+	var cisURL, iamURL string
+	if strings.Contains(crn, "staging") {
+		cisURL = "https://api.int.cis.cloud.ibm.com/v1"
+		iamURL = "https://iam.test.cloud.ibm.com"
+	} else {
+		cisURL = "https://api.cis.cloud.ibm.com/v1"
+		iamURL = "https://iam.cloud.ibm.com"
+	}
 	return &CISDNSConfig{
 		CRN:         crn,
-		CISEndpoint: "https://api.cis.cloud.ibm.com/v1",
-		IAMEndpoint: "https://iam.cloud.ibm.com",
+		CISEndpoint: cisURL,
+		IAMEndpoint: iamURL,
 		APIKey:      apikey,
 		TTL:         120, //for TXT records
 		Domains:     make(map[string]*Domain),
