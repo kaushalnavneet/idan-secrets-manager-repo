@@ -64,10 +64,11 @@ func (ob *OrdersBackend) checkAuthorization(ctx context.Context, req *logical.Re
 	//validate that the user is authorised to perform this action
 	if err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, action, ""); err != nil {
 		if _, ok := err.(logical.HTTPCodedError); ok {
-			common.ErrorLogForCustomer("Internal server error", logdna.Error07001, logdna.InternalErrorMessage)
+			common.Logger().Error("Failed to validate request is authorised", "error", err)
+			common.ErrorLogForCustomer("Internal server error", logdna.Error07001, logdna.InternalErrorMessage, false)
 			return err
 		}
-		common.ErrorLogForCustomer(err.Error(), logdna.Error07002, logdna.PermissionErrorMessage)
+		common.ErrorLogForCustomer(err.Error(), logdna.Error07002, logdna.PermissionErrorMessage, true)
 		return err
 	}
 	return nil
