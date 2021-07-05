@@ -2,5 +2,6 @@
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": [
         "local>cloud-platform-sre/cloud-platform-build-dependency-updater:dependencyUpdaterConfig"
-    ]
+    ],
+    "postUpdateOptions": ["gomodTidy"]
 }
