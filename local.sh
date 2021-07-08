@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 export VAULT_ADDR='http://127.0.0.1:8200'
-VAULT_ROOT=/Users/tatyanab/go/bin
+VAULT_ROOT=<VAULT_ROOT_PATH>
 PLUGIN_DIR=$VAULT_ROOT/plugins
 PLUGIN_NAME=public_cert
 PLUGIN_MOUNT_PATH=ibmcloud/$PLUGIN_NAME
