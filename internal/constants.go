@@ -8,11 +8,9 @@ import (
 const (
 	PluginMountPath      = "/v1/ibmcloud/public_cert/"
 	FieldRegistrationUrl = "registration_uri"
-	FieldName            = "name"
 	FieldDirectoryUrl    = "directory_url"
 	FieldCaCert          = "ca-cert"
 	FieldEmail           = "email"
-	FieldPrivateKey      = "private_key"
 	FieldConfig          = "config"
 	FieldType            = "type"
 	FieldCAConfig        = "ca"
@@ -42,6 +40,13 @@ const (
 	DeleteEngineConfigAction    = "secrets-manager.secret-engine-config.delete" //to common
 	SecretMetadataTargetTypeURI = "secrets-manager/secret-metadata"
 	ConfigTargetTypeURI         = "secrets-manager/secret-engine-config"
+
+	MaxNumberCAConfigs             = 10
+	MaxNumberDNSConfigs            = 10
+	DirectoryLetsEncryptProdAlias  = "letsencrypt-prod"
+	DirectoryLetsEncryptStageAlias = "letsencrypt-stage"
+	DirectoryLetsEncryptProd       = "https://acme-v02.api.letsencrypt.org/directory"
+	DirectoryLetsEncryptStage      = "https://acme-staging-v02.api.letsencrypt.org/directory"
 )
 
 const (

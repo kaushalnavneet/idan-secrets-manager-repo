@@ -690,8 +690,8 @@ github.ibm.com/security-services/secrets-manager-common-utils v0.0.6803 h1:uN9XW
 github.ibm.com/security-services/secrets-manager-common-utils v0.0.6803/go.mod h1:bIszJrISiQ9QHa8Pp/hBYXdEi5arSceg7w6s1w773Vg=
 github.ibm.com/security-services/secrets-manager-iam v0.0.6474 h1:4TLB0iy8ddu0lxkJdOFh8W2/2ury15dtnRfH9o6U248=
 github.ibm.com/security-services/secrets-manager-iam v0.0.6474/go.mod h1:deYqp1X+VNMowVyGmE8dnd5d39PCb9fYN6ZiitzAZ1o=
-github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.6806 h1:uHvy66ymuz/FpTrtlQcH2KmwFkTpXkWgnhdYmzP+XEU=
-github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.6806/go.mod h1:5ZGbqJsXvTAYKMQfD8p5IqTbx8IYyelM/9V184yclb4=
+github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.6863 h1:z6rfNOz8YvStVqgVSjKBhAXYBXnzrQGrU9hRtxwEY0U=
+github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.6863/go.mod h1:5ZGbqJsXvTAYKMQfD8p5IqTbx8IYyelM/9V184yclb4=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
 go.opencensus.io v0.20.2/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=

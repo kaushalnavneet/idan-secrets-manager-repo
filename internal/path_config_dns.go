@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/go-acme/lego/v4/providers/dns"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
@@ -11,6 +12,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
+	"strconv"
 )
 
 func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
@@ -90,13 +92,10 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 		return nil, err
 	}
 	//get config name
-	name, err := ob.validateStringField(d, secretentry.FieldName, "min=2,max=512", "length should be 2 to 512 chars")
+	name, err := ob.validateConfigName(d)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, logdna.Error07040, logdna.BadRequestErrorMessage, true)
-		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
+		return nil, logical.CodedError(http.StatusBadRequest, err.Error())
 	}
-
 	//prepare AT context
 	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
 	atContext.ResourceName = name
@@ -117,7 +116,12 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 		common.ErrorLogForCustomer("Internal server error", logdna.Error07042, logdna.InternalErrorMessage, false)
 		return nil, errors.New(errorMessage)
 	}
-
+	if len(config.ProviderConfigs) == MaxNumberDNSConfigs {
+		errorMessage := "This DNS provider configuration couldn't be added because you have reached the maximum number of configurations: " + strconv.Itoa(MaxNumberDNSConfigs)
+		common.Logger().Error(errorMessage)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07064, logdna.BadRequestErrorMessage, false)
+		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
+	}
 	//check if config with this name already exists
 	for _, caConfig := range config.ProviderConfigs {
 		if caConfig.Name == name {
@@ -126,7 +130,7 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 			return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 		}
 	}
-	configToStore, err := createProviderConfigToStore(name, d)
+	configToStore, err := ob.createProviderConfigToStore(name, d)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
 		common.ErrorLogForCustomer(errorMessage, logdna.Error07044, logdna.BadRequestErrorMessage, true)
@@ -160,13 +164,10 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 		return nil, err
 	}
 	//get config name
-	name, err := ob.validateStringField(d, secretentry.FieldName, "min=2,max=512", "length should be 2 to 512 chars")
+	name, err := ob.validateConfigName(d)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, logdna.Error07046, logdna.BadRequestErrorMessage, true)
-		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
+		return nil, logical.CodedError(http.StatusBadRequest, err.Error())
 	}
-
 	//prepare AT context
 	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
 	atContext.ResourceName = name
@@ -176,7 +177,7 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
 	}
 
-	configToStore, err := createProviderConfigToStore(name, d)
+	configToStore, err := ob.createProviderConfigToStore(name, d)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
 		common.ErrorLogForCustomer(errorMessage, logdna.Error07048, logdna.BadRequestErrorMessage, true)
@@ -236,11 +237,9 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 		return nil, err
 	}
 	//get config name
-	name, err := ob.validateStringField(d, secretentry.FieldName, "min=2,max=512", "length should be 2 to 512 chars")
+	name, err := ob.validateConfigName(d)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, logdna.Error07052, logdna.BadRequestErrorMessage, true)
-		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
+		return nil, logical.CodedError(http.StatusBadRequest, err.Error())
 	}
 
 	//prepare AT context
@@ -306,11 +305,9 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 		return nil, err
 	}
 	//get config name
-	name, err := ob.validateStringField(d, secretentry.FieldName, "min=2,max=512", "length should be 2 to 512 chars")
+	name, err := ob.validateConfigName(d)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, logdna.Error07059, logdna.BadRequestErrorMessage, true)
-		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
+		return nil, logical.CodedError(http.StatusBadRequest, err.Error())
 	}
 	//prepare AT context
 	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
@@ -358,18 +355,25 @@ func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.R
 	return logical.RespondWithStatusCode(resp, req, http.StatusNoContent)
 }
 
-func createProviderConfigToStore(name string, d *framework.FieldData) (*DnsProviderConfig, error) {
-	//TODO add config validation according to provider type
-	providerType := d.Get(FieldType).(string)
-	if providerType == "" {
-		return nil, fmt.Errorf("type field is empty")
+func (ob *OrdersBackend) createProviderConfigToStore(name string, d *framework.FieldData) (*DnsProviderConfig, error) {
+	providerType, err := ob.validateStringField(d, FieldType, "min=2,max=128", "length should be 2 to 128 chars")
+	if err != nil {
+		return nil, err
+	}
+	// validate provider type
+	if providerType != "cis" && providerType != "pebble" {
+		_, err = dns.NewDNSChallengeProviderByName(providerType)
+		if err != nil {
+			return nil, err
+		}
 	}
 	config := d.Get(FieldConfig).(map[string]string)
 	if config == nil {
-		return nil, fmt.Errorf("config field is empty")
+		return nil, fmt.Errorf("config field is not valid")
 	}
-	p := NewDnsProviderConfig(name, providerType, config)
-	return p, nil
+	//todo add validation for prop name and prop value length
+	providerConfig := NewDnsProviderConfig(name, providerType, config)
+	return providerConfig, nil
 }
 
 func getDNSConfigByName(ctx context.Context, req *logical.Request, name string) (*DnsProviderConfig, error) {

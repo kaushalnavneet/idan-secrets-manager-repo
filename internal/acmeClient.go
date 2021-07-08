@@ -47,7 +47,6 @@ func (client *Client) setDNSProvider(dnsProvider *DnsProviderConfig, domains []s
 	providerType := dnsProvider.Type
 	providerConfiguration := dnsProvider.Config
 	if providerType == "pebble" {
-
 		host, found := providerConfiguration["host"]
 		if !found {
 			return fmt.Errorf("host for pebble DNS challenge is not provided")
