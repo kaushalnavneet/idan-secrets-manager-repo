@@ -10,7 +10,9 @@ import (
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	at "github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
+	"strconv"
 )
 
 var secretsConfigLock locksutil.LockEntry
@@ -24,7 +26,7 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 		Description: "Delete secret engine configuration", Action: DeleteEngineConfigAction, SecretType: SecretTypePublicCert, TargetResourceType: CA}
 
 	fields := map[string]*framework.FieldSchema{
-		FieldName: {
+		secretentry.FieldName: {
 			Type:        framework.TypeString,
 			Description: "Specifies the ACME CA name.",
 			Required:    true,
@@ -44,7 +46,7 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 			Description: "Email to be used for registering the user. If a user account is being retrieved, then the retrieved email will override this field",
 			Required:    false,
 		},
-		FieldPrivateKey: {
+		secretentry.FieldPrivateKey: {
 			Type:        framework.TypeString,
 			Description: "Private key in PKCS8 PEM encoded format to retrieve an existing account",
 			Required:    true,
@@ -90,7 +92,7 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 			HelpDescription: caConfigDesc,
 		},
 		{
-			Pattern:         ConfigCAPath + "/" + framework.GenericNameRegex(FieldName),
+			Pattern:         ConfigCAPath + "/" + framework.GenericNameRegex(secretentry.FieldName),
 			Fields:          fields,
 			Operations:      operationsWithPathParam,
 			HelpSynopsis:    caConfigSyn,
@@ -107,11 +109,9 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 		return nil, err
 	}
 	//get config name
-	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
+	name, err := ob.validateConfigName(d)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, logdna.Error07010, logdna.BadRequestErrorMessage, true)
-		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
+		return nil, logical.CodedError(http.StatusBadRequest, err.Error())
 	}
 
 	//prepare AT context
@@ -132,7 +132,13 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
 		common.ErrorLogForCustomer("Internal server error", logdna.Error07012, logdna.InternalErrorMessage, false)
-		return nil, errors.New(errorMessage)
+		return nil, logical.CodedError(http.StatusInternalServerError, logdna.InternalErrorMessage)
+	}
+	if len(config.CaConfigs) == MaxNumberCAConfigs {
+		errorMessage := "This CA configuration couldn't be added because you have reached the maximum number of configurations: " + strconv.Itoa(MaxNumberCAConfigs)
+		common.Logger().Error(errorMessage)
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07033, logdna.BadRequestErrorMessage, false)
+		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 	}
 	//check if config with this name already exists
 	for _, caConfig := range config.CaConfigs {
@@ -160,9 +166,9 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 	}
 
 	respData := make(map[string]interface{})
-	respData[FieldName] = configToStore.Name
+	respData[secretentry.FieldName] = configToStore.Name
 	respData[FieldDirectoryUrl] = configToStore.DirectoryURL
-	respData[FieldPrivateKey] = configToStore.PrivateKey
+	respData[secretentry.FieldPrivateKey] = configToStore.PrivateKey
 	resp := &logical.Response{
 		Data: respData,
 	}
@@ -177,11 +183,9 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 		return nil, err
 	}
 	//get config name
-	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
+	name, err := ob.validateConfigName(d)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, logdna.Error07016, logdna.BadRequestErrorMessage, true)
-		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
+		return nil, logical.CodedError(http.StatusBadRequest, err.Error())
 	}
 	//prepare AT context
 	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
@@ -234,9 +238,9 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 	}
 
 	respData := make(map[string]interface{})
-	respData[FieldName] = configToStore.Name
+	respData[secretentry.FieldName] = configToStore.Name
 	respData[FieldDirectoryUrl] = configToStore.DirectoryURL
-	respData[FieldPrivateKey] = configToStore.PrivateKey
+	respData[secretentry.FieldPrivateKey] = configToStore.PrivateKey
 	resp := &logical.Response{
 		Data: respData,
 	}
@@ -252,13 +256,10 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 		return nil, err
 	}
 	//get config name
-	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
+	name, err := ob.validateConfigName(d)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, logdna.Error07022, logdna.BadRequestErrorMessage, true)
-		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
+		return nil, logical.CodedError(http.StatusBadRequest, err.Error())
 	}
-
 	//prepare AT context
 	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
 	atContext.ResourceName = name
@@ -273,9 +274,9 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 	}
 
 	respData := make(map[string]interface{})
-	respData[FieldName] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Name, d.GetDefaultOrZero(FieldName).(string))
+	respData[secretentry.FieldName] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Name, d.GetDefaultOrZero(secretentry.FieldName).(string))
 	respData[FieldDirectoryUrl] = common.GetNonEmptyStringFirstOrSecond(foundConfig.DirectoryURL, d.GetDefaultOrZero(FieldDirectoryUrl).(string))
-	respData[FieldPrivateKey] = common.GetNonEmptyStringFirstOrSecond(foundConfig.PrivateKey, d.GetDefaultOrZero(FieldPrivateKey).(string))
+	respData[secretentry.FieldPrivateKey] = common.GetNonEmptyStringFirstOrSecond(foundConfig.PrivateKey, d.GetDefaultOrZero(secretentry.FieldPrivateKey).(string))
 	respData[FieldRegistrationUrl] = common.GetNonEmptyStringFirstOrSecond(foundConfig.RegistrationURL, d.GetDefaultOrZero(FieldRegistrationUrl).(string))
 	respData[FieldEmail] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Email, d.GetDefaultOrZero(FieldEmail).(string))
 	resp := &logical.Response{
@@ -323,11 +324,9 @@ func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Re
 		return nil, err
 	}
 	//get config name
-	name, err := ob.validateStringField(d, FieldName, "min=2,max=512", "length should be 2 to 512 chars")
+	name, err := ob.validateConfigName(d)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, logdna.Error07028, logdna.BadRequestErrorMessage, true)
-		return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
+		return nil, logical.CodedError(http.StatusBadRequest, err.Error())
 	}
 	//prepare AT context
 	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
@@ -375,13 +374,22 @@ func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Re
 }
 
 func (ob *OrdersBackend) createCAConfigToStore(d *framework.FieldData, name string) (*CAUserConfigToStore, error) {
-	directoryUrl, err := ob.validateStringField(d, FieldDirectoryUrl, "url", "not valid url")
+	var directoryUrl string
+	var err error
+	switch d.Get(FieldDirectoryUrl).(string) {
+	case DirectoryLetsEncryptProdAlias:
+		directoryUrl = DirectoryLetsEncryptProd
+	case DirectoryLetsEncryptStageAlias:
+		directoryUrl = DirectoryLetsEncryptStage
+	default:
+		directoryUrl, err = ob.validateStringField(d, FieldDirectoryUrl, "url", "url is not valid")
+		if err != nil {
+			return nil, err
+		}
+	}
+	privateKeyPEM, err := ob.validateStringField(d, secretentry.FieldPrivateKey, "min=2,max=100000", "length should be 2 to 100000 chars")
 	if err != nil {
 		return nil, err
-	}
-	privateKeyPEM := d.Get(FieldPrivateKey).(string)
-	if privateKeyPEM == "" {
-		return nil, errors.New("private key is missing")
 	}
 	email := d.Get(FieldEmail).(string)
 	caCert := d.Get(FieldCaCert).(string)

@@ -3,6 +3,7 @@ package publiccerts
 import (
 	"context"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 )
 
 type RootConfig struct {
@@ -43,7 +44,7 @@ func getCAConfigsAsMap(config *RootConfig) []map[string]string {
 	confArray := make([]map[string]string, len(config.CaConfigs))
 	for i, caConfig := range config.CaConfigs {
 		confArray[i] = make(map[string]string)
-		confArray[i][FieldName] = caConfig.Name
+		confArray[i][secretentry.FieldName] = caConfig.Name
 		confArray[i][FieldDirectoryUrl] = caConfig.DirectoryURL
 	}
 	return confArray
@@ -53,7 +54,7 @@ func getDNSConfigsAsMap(config *RootConfig) []map[string]string {
 	confArray := make([]map[string]string, len(config.ProviderConfigs))
 	for i, dnsConfig := range config.ProviderConfigs {
 		confArray[i] = make(map[string]string)
-		confArray[i][FieldName] = dnsConfig.Name
+		confArray[i][secretentry.FieldName] = dnsConfig.Name
 		confArray[i][FieldType] = dnsConfig.Type
 	}
 	return confArray

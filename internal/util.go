@@ -233,10 +233,11 @@ func validateNames(names []string) error {
 }
 
 var keyTypes = map[string]certcrypto.KeyType{
-	"rsaEncryption 2048 bit": certcrypto.RSA2048, //UI presentation
-	"rsaEncryption 4096 bit": certcrypto.RSA4096,
-	"rsaEncryption 8192 bit": certcrypto.RSA8192,
-	"SHA256-RSA":             certcrypto.RSA2048, // certificate in fact presentation
+	"RSA2048":  certcrypto.RSA2048,
+	"RSA4096":  certcrypto.RSA4096,
+	"RSA8192":  certcrypto.RSA8192,
+	"ECDSA256": certcrypto.EC256,
+	"ECDSA384": certcrypto.EC384,
 }
 
 func getKeyType(keyAlgorithm string) (certcrypto.KeyType, error) {

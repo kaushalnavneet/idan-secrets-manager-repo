@@ -52,7 +52,7 @@ func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 			Type:        framework.TypeString,
 			Description: "Specifies the certificate key algorithm.",
 			Required:    false,
-			Default:     "rsaEncryption 2048 bit",
+			Default:     "RSA2048",
 		},
 		FieldRotation: {
 			Type:        framework.TypeMap,

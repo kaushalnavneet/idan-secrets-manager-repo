@@ -2,6 +2,7 @@ package publiccerts
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/hashicorp/vault/sdk/framework"
@@ -10,6 +11,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"strings"
 	"time"
 )
@@ -76,10 +78,6 @@ func (ob *OrdersBackend) checkAuthorization(ctx context.Context, req *logical.Re
 
 var validate = validator.New()
 
-func getRequestInfo(req *logical.Request) string {
-	return fmt.Sprintf("request_id: '%s' path: '%s' operation: '%s'", req.ID, req.Path, req.Operation)
-}
-
 func (ob *OrdersBackend) validateStringField(data *framework.FieldData, fieldName, validator, msg string) (string, error) {
 	f := data.Get(fieldName)
 	field := ""
@@ -93,4 +91,14 @@ func (ob *OrdersBackend) validateStringField(data *framework.FieldData, fieldNam
 		return "", e
 	}
 	return field, nil
+}
+
+func (ob *OrdersBackend) validateConfigName(d *framework.FieldData) (string, error) {
+	name, err := ob.validateStringField(d, secretentry.FieldName, "min=2,max=256", "length should be 2 to 256 chars")
+	if err != nil {
+		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07052, logdna.BadRequestErrorMessage, true)
+		return "", errors.New(errorMessage)
+	}
+	return name, nil
 }
