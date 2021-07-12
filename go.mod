@@ -14,9 +14,10 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/go-hclog v0.16.2
 	github.com/hashicorp/vault/sdk v0.2.0
+	github.com/mitchellh/mapstructure v1.4.1
 	github.ibm.com/project-fortress/vault-client-golang v0.0.4
 	github.ibm.com/security-services/secrets-manager-common-utils v0.0.6894
 	github.ibm.com/security-services/secrets-manager-iam v0.0.6887
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.6899
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.6951
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 )

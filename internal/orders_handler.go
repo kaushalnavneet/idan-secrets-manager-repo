@@ -10,9 +10,11 @@ import (
 	"github.com/go-acme/lego/v4/registration"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/mitchellh/mapstructure"
 	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
+	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
@@ -110,10 +112,16 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 	if err != nil {
 		return nil, nil, err
 	}
-
+	rotation, err := getRotationPolicy(data)
+	if err != nil {
+		return nil, nil, err
+	}
 	certMetadata := &certificate.CertificateMetadata{
 		CommonName:   orderData.CommonName,
+		AltName:      orderData.AltName,
+		KeyAlgorithm: orderData.KeyAlgorithm,
 		IssuanceInfo: orderData.IssuanceInfo,
+		Rotation:     rotation,
 	}
 	altNames := orderData.AltName
 	if len(altNames) != 0 {
@@ -137,6 +145,31 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 	}
 
 	return &secretParams, nil, nil
+}
+
+func getRotationPolicy(data *framework.FieldData) (*certificate.RotationPolicy, error) {
+	rawPolicy := data.Get(FieldRotation)
+	policy, ok := rawPolicy.(map[string]interface{})
+	if !ok {
+		return nil, commonErrors.GenerateCodedError(logdna.Error07090, http.StatusBadRequest, "rotation policy is not valid ")
+	}
+	rotation := &certificate.RotationPolicy{}
+	config := mapstructure.DecoderConfig{
+		ErrorUnused: true,
+		ZeroFields:  false,
+		TagName:     "json",
+		Result:      rotation,
+	}
+	decoder, err := mapstructure.NewDecoder(&config)
+	if err != nil {
+		return nil, commonErrors.GenerateCodedError(logdna.Error07091, http.StatusInternalServerError, err.Error())
+	}
+
+	err = decoder.Decode(policy)
+	if err != nil {
+		return nil, commonErrors.GenerateCodedError(logdna.Error07090, http.StatusBadRequest, "rotation policy is not valid ")
+	}
+	return rotation, nil
 }
 
 func (oh *OrdersHandler) MakeActionsBeforeStore(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry) (*logical.Response, error) {
@@ -229,6 +262,7 @@ func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, include
 	e[secretentry.FieldExpirationDate] = metadata.NotAfter
 	e[secretentry.FieldSerialNumber] = metadata.SerialNumber
 	e[FieldIssuanceInfo] = metadata.IssuanceInfo
+	e[FieldRotation] = metadata.Rotation
 
 	//Add only if alt names exists.
 	if metadata.AltName != nil {
@@ -428,7 +462,10 @@ func (oh *OrdersHandler) getOrderResponse(entry *secretentry.SecretEntry) map[st
 	if metadata.AltName != nil {
 		e[secretentry.FieldAltNames] = metadata.AltName
 	}
+	e[secretentry.FieldKeyAlgorithm] = metadata.KeyAlgorithm
 	e[FieldIssuanceInfo] = metadata.IssuanceInfo
+	e[FieldRotation] = metadata.Rotation
+	e[secretentry.FieldVersions] = make([]map[string]interface{}, 0)
 	return e
 }
 

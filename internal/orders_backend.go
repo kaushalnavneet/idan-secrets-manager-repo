@@ -31,10 +31,13 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 		ob.pathConfigCA(),
 		ob.pathConfigDNS(),
 		ob.pathConfigRoot(),
+		//rotation policy
+		//ob.pathSecretPolicies(),
 		//order
 		ob.pathIssueCert(),
 		//rotate
 		ob.pathRotateCertificate(),
+		//secret / metadata
 		ob.pathCertificateMetadata(),
 		ob.pathCertificate(),
 		ob.pathGetVersion(),
