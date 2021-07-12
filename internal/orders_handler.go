@@ -485,6 +485,7 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, storage logic
 		oh.iam = conf
 		err = iam.Configure(conf)
 		if err != nil {
+			common.Logger().Error("Failed to configure iam", "error", err)
 			return nil, err
 		}
 	}

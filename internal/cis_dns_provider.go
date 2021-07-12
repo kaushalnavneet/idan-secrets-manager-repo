@@ -274,6 +274,7 @@ func (c *CISDNSConfig) buildRequestHeader() (*map[string]string, error) {
 	headers := make(map[string]string)
 	iamToken, _, err := iam.ObtainCachedToken(c.IAMEndpoint, c.APIKey, "", "", "")
 	if err != nil {
+		common.Logger().Error("Failed to obtain cached token", "error", err)
 		return &headers, err
 	}
 	headers["x-auth-user-token"] = iamToken
