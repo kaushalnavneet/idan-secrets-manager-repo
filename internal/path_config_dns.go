@@ -372,6 +372,7 @@ func (ob *OrdersBackend) createProviderConfigToStore(name string, d *framework.F
 		return nil, fmt.Errorf("config field is not valid")
 	}
 	//todo add validation for prop name and prop value length
+	//todo add validation for cis properties (CIS_CRN, CIS_APIKEY)
 	providerConfig := NewDnsProviderConfig(name, providerType, config)
 	return providerConfig, nil
 }

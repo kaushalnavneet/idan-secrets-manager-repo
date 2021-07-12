@@ -65,8 +65,8 @@ type CISRequest struct {
 }
 
 func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
-	crn := providerConfig["crn"]
-	apikey := providerConfig["apikey"]
+	crn := providerConfig["CIS_CRN"]
+	apikey := providerConfig["CIS_APIKEY"]
 
 	//create resty client
 	cf := &rest_client_impl.RestClientFactory{}

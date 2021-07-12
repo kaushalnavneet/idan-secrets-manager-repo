@@ -30,45 +30,6 @@ var (
 	)
 )
 
-//func (b *backend) handleExistenceCheck(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
-//	out, err := req.Storage.Get(ctx, req.Path)
-//	if err != nil {
-//		return false, fmt.Errorf("existence check failed: %v", err)
-//	}
-//
-//	return out != nil, nil
-//}
-
-func GetKeyType(keyType string, keyBits int) (certcrypto.KeyType, error) {
-	switch keyType {
-	case "rsa":
-		{
-			if keyBits == 2048 {
-				return certcrypto.RSA2048, nil
-			}
-			if keyBits == 4096 {
-				return certcrypto.RSA4096, nil
-			}
-			if keyBits == 8192 {
-				return certcrypto.RSA8192, nil
-			}
-			return "", errors.New("invalid key bits for RSA")
-		}
-	case "ec":
-		{
-			if keyBits == 256 {
-				return certcrypto.EC256, nil
-			}
-			if keyBits == 384 {
-				return certcrypto.EC384, nil
-			}
-			return "", errors.New("invalid key bits for EC")
-		}
-	default:
-		return "", errors.New("invalid key type")
-	}
-}
-
 // LoadRootCertPoolFromPath builds a trust store (cert pool) containing our CA's root
 // certificate.
 func LoadRootCertPoolFromPath(rootCertPath string) (*x509.CertPool, error) {
@@ -200,6 +161,7 @@ func IsTimeExpired(timeNow time.Time, timeExpiry time.Time) bool {
 }
 
 func validateNames(names []string) error {
+	//TODO add check domains redundancy (if wildcard domain already take over)
 	//regex copied from here - https://github.com/hashicorp/vault/blob/abfc7a844517c87d5dcd32069e6baf682dfa580d/builtin/logical/pki/cert_util.go#L44
 	// A note on hostnameRegex: although we set the StrictDomainName option
 	// when doing the idna conversion, this appears to only affect output, not
@@ -235,7 +197,6 @@ func validateNames(names []string) error {
 var keyTypes = map[string]certcrypto.KeyType{
 	"RSA2048":  certcrypto.RSA2048,
 	"RSA4096":  certcrypto.RSA4096,
-	"RSA8192":  certcrypto.RSA8192,
 	"ECDSA256": certcrypto.EC256,
 	"ECDSA384": certcrypto.EC384,
 }
@@ -243,7 +204,7 @@ var keyTypes = map[string]certcrypto.KeyType{
 func getKeyType(keyAlgorithm string) (certcrypto.KeyType, error) {
 	keyType, ok := keyTypes[keyAlgorithm]
 	if !ok {
-		return "", errors.New("key algorithm is not valid ")
+		return "", errors.New("key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384")
 	}
 	return keyType, nil
 }
