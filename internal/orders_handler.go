@@ -112,7 +112,8 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 	if err != nil {
 		return nil, nil, err
 	}
-	rotation, err := getRotationPolicy(data)
+	rawPolicy := data.Get(FieldRotation)
+	rotation, err := getRotationPolicy(rawPolicy)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -147,8 +148,7 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 	return &secretParams, nil, nil
 }
 
-func getRotationPolicy(data *framework.FieldData) (*certificate.RotationPolicy, error) {
-	rawPolicy := data.Get(FieldRotation)
+func getRotationPolicy(rawPolicy interface{}) (*certificate.RotationPolicy, error) {
 	policy, ok := rawPolicy.(map[string]interface{})
 	if !ok {
 		return nil, commonErrors.GenerateCodedError(logdna.Error07090, http.StatusBadRequest, "rotation policy is not valid ")
@@ -167,7 +167,7 @@ func getRotationPolicy(data *framework.FieldData) (*certificate.RotationPolicy, 
 
 	err = decoder.Decode(policy)
 	if err != nil {
-		return nil, commonErrors.GenerateCodedError(logdna.Error07090, http.StatusBadRequest, "rotation policy is not valid ")
+		return nil, commonErrors.GenerateCodedError(logdna.Error07092, http.StatusBadRequest, "rotation policy is not valid ")
 	}
 	return rotation, nil
 }
@@ -207,24 +207,11 @@ func (oh *OrdersHandler) MapSecretEntry(entry *secretentry.SecretEntry, operatio
 
 // UpdateSecretEntryMetadata Update secret entry metadata
 func (oh *OrdersHandler) UpdateSecretEntryMetadata(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry) (*logical.Response, error) {
-	// update name
-	newNameRaw, ok := data.GetOk(secretentry.FieldName)
-	if !ok {
-		msg := fmt.Sprintf("Invalid %s parameter", secretentry.FieldName)
-		common.ErrorLogForCustomer(msg, logdna.Error01035, "Retry with a valid name parameter", true)
-		return nil, logical.CodedError(http.StatusBadRequest, msg)
+	if strings.Contains(req.Path, "metadata") {
+		return updateMetadata(data, secretEntry)
+	} else if strings.Contains(req.Path, "policies") {
+		return updatePolicy(data, secretEntry)
 	}
-
-	newName := newNameRaw.(string)
-	secretEntry.Name = newName
-	//update labels
-	labels := data.Get(secretentry.FieldLabels)
-	secretEntry.Labels = labels.([]string)
-
-	//update description
-	description := data.Get(secretentry.FieldDescription)
-	secretEntry.Description = description.(string)
-
 	return nil, nil
 }
 
@@ -405,6 +392,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 
 		extraData = map[string]interface{}{
 			FieldIssuanceInfo: metadata.IssuanceInfo,
+			FieldRotation:     metadata.Rotation,
 		}
 		err := secretEntry.UpdateSecretDataV2(data, secretEntry.CreatedBy, extraData)
 		if err != nil {
@@ -433,6 +421,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		delete(metadata.IssuanceInfo, FieldErrorMessage)
 
 		certData.Metadata.IssuanceInfo = metadata.IssuanceInfo
+		certData.Metadata.Rotation = metadata.Rotation
 		data = certData.RawData
 
 		extraData = map[string]interface{}{
@@ -440,6 +429,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 			secretentry.FieldNotAfter:     certData.Metadata.NotAfter,
 			secretentry.FieldSerialNumber: certData.Metadata.SerialNumber,
 			FieldIssuanceInfo:             certData.Metadata.IssuanceInfo,
+			FieldRotation:                 certData.Metadata.Rotation,
 		}
 		err = secretEntry.UpdateSecretDataV2(data, secretEntry.CreatedBy, extraData)
 		if err != nil {
@@ -490,4 +480,46 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, storage logic
 		}
 	}
 	return oh.iam, nil
+}
+
+func updateMetadata(data *framework.FieldData, secretEntry *secretentry.SecretEntry) (*logical.Response, error) {
+	// update name
+	newNameRaw, ok := data.GetOk(secretentry.FieldName)
+	if !ok {
+		msg := fmt.Sprintf("Invalid %s parameter", secretentry.FieldName)
+		common.ErrorLogForCustomer(msg, logdna.Error01035, "Retry with a valid name parameter", true)
+		return nil, logical.CodedError(http.StatusBadRequest, msg)
+	}
+
+	newName := newNameRaw.(string)
+	secretEntry.Name = newName
+	//update labels
+	labels := data.Get(secretentry.FieldLabels)
+	secretEntry.Labels = labels.([]string)
+
+	//update description
+	description := data.Get(secretentry.FieldDescription)
+	secretEntry.Description = description.(string)
+	return nil, nil
+}
+
+func updatePolicy(data *framework.FieldData, secretEntry *secretentry.SecretEntry) (*logical.Response, error) {
+	rawPolicies := data.Get("policies").([]interface{})
+	policyMap, ok := rawPolicies[0].(map[string]interface{})
+	if !ok {
+		return nil, commonErrors.GenerateCodedError(logdna.Error07094, http.StatusBadRequest, "rotation policy is not valid ")
+	}
+	rawRotation, ok := policyMap["rotation"]
+	if !ok {
+		return nil, commonErrors.GenerateCodedError(logdna.Error07095, http.StatusBadRequest, "rotation policy is not valid ")
+	}
+	rotation, err := getRotationPolicy(rawRotation)
+	if err != nil {
+		return nil, err
+	}
+	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
+	metadata.Rotation = rotation
+	secretEntry.ExtraData = metadata
+
+	return nil, nil
 }
