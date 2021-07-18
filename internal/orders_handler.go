@@ -197,6 +197,7 @@ func (oh *OrdersHandler) GetPoliciesResponse(entry *secretentry.SecretEntry, pol
 	policies := map[string]interface{}{"policies": policyMap}
 	return policies
 }
+
 func getPoliciesFromFieldData(data *framework.FieldData) (*policies.Policies, error) {
 	newPolicies := &policies.Policies{}
 	rawPolicies := data.Get("policies").([]interface{})

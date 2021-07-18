@@ -34,7 +34,7 @@ func (ob *OrdersBackend) pathSecretPolicies() []*framework.Path {
 	}
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetMetadata, atReadSecretPolicies),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetPolicies, atReadSecretPolicies),
 			Summary:     "Reads the policy of a secret.",
 			Description: policyReadOpDesc,
 		},
