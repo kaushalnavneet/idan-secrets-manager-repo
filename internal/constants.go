@@ -31,10 +31,9 @@ const (
 	FieldErrorMessage = "error_message"
 	FieldAutoRotated  = "auto_rotated"
 	FieldIssuanceInfo = "issuance_info"
-	FieldRotateKeys   = "rotate_keys"
-	FieldEnabled      = "enabled"
-	endCertificate    = "-----END CERTIFICATE-----"
-	errorPattern      = `{"error_code":"%s","error_message":"%s"}`
+
+	endCertificate = "-----END CERTIFICATE-----"
+	errorPattern   = `{"error_code":"%s","error_message":"%s"}`
 	// to common
 	SecretTypePublicCert        = "public_cert"                                 //to common
 	DeleteEngineConfigAction    = "secrets-manager.secret-engine-config.delete" //to common

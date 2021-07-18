@@ -19,6 +19,13 @@ func (ob *OrdersBackend) pathSecretPolicies() []*framework.Path {
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldId:      common.Fields[secretentry.FieldId],
 		secretentry.FieldGroupId: common.Fields[secretentry.FieldGroupId],
+		"policy": {
+			Type:          framework.TypeString,
+			Description:   "The type of policy that is associated with the specified secret.",
+			Required:      false,
+			Query:         true,
+			AllowedValues: ob.GetSecretBackendHandler().AllowedPolicyTypes(),
+		},
 		"policies": {
 			Type:        framework.TypeSlice,
 			Description: "The new policies for the secret.",
@@ -32,7 +39,7 @@ func (ob *OrdersBackend) pathSecretPolicies() []*framework.Path {
 			Description: policyReadOpDesc,
 		},
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.UpdateMetadata, atUpdateSecretPolicies),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.UpdatePolicies, atUpdateSecretPolicies),
 			Summary:     "Updates the policy of a secret.",
 			Description: policyUpdateOpDesc,
 		},

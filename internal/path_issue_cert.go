@@ -6,6 +6,7 @@ import (
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	at "github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
 	"net/http"
 )
 
@@ -58,7 +59,7 @@ func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 			Type:        framework.TypeMap,
 			Description: "Specifies the set of rotation settings.",
 			Required:    false,
-			Default:     map[string]interface{}{FieldEnabled: false, FieldRotateKeys: false},
+			Default:     map[string]interface{}{policies.FieldAutoRotate: false, policies.FieldRotateKeys: false},
 		},
 		secretentry.FieldOffset: common.Fields[secretentry.FieldOffset],
 		secretentry.FieldLimit:  common.Fields[secretentry.FieldLimit],
@@ -107,7 +108,7 @@ func (ob *OrdersBackend) pathRotateCertificate() []*framework.Path {
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldId:      common.Fields[secretentry.FieldId],
 		secretentry.FieldGroupId: common.Fields[secretentry.FieldGroupId],
-		FieldRotateKeys: {
+		policies.FieldRotateKeys: {
 			Type:        framework.TypeBool,
 			Description: "Specify if a private key should be rotated.",
 			Required:    true,

@@ -277,8 +277,6 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 	respData[secretentry.FieldName] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Name, d.GetDefaultOrZero(secretentry.FieldName).(string))
 	respData[FieldDirectoryUrl] = common.GetNonEmptyStringFirstOrSecond(foundConfig.DirectoryURL, d.GetDefaultOrZero(FieldDirectoryUrl).(string))
 	respData[secretentry.FieldPrivateKey] = common.GetNonEmptyStringFirstOrSecond(foundConfig.PrivateKey, d.GetDefaultOrZero(secretentry.FieldPrivateKey).(string))
-	respData[FieldRegistrationUrl] = common.GetNonEmptyStringFirstOrSecond(foundConfig.RegistrationURL, d.GetDefaultOrZero(FieldRegistrationUrl).(string))
-	respData[FieldEmail] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Email, d.GetDefaultOrZero(FieldEmail).(string))
 	resp := &logical.Response{
 		Data: respData,
 	}
