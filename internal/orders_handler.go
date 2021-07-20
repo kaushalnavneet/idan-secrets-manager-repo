@@ -33,6 +33,10 @@ type OrdersHandler struct {
 	iam           *iam.Config
 }
 
+func (oh *OrdersHandler) GetPolicyHandler() secret_backend.PolicyHandler {
+	return oh
+}
+
 type OrderError struct {
 	Code    string `json:"error_code"`
 	Message string `json:"error_message"`
@@ -179,7 +183,7 @@ func (oh *OrdersHandler) UpdateSecretEntryMetadata(ctx context.Context, req *log
 	return nil, nil
 }
 
-func (oh *OrdersHandler) ValidatePolicies(data *framework.FieldData) (*policies.Policies, error) {
+func (oh *OrdersHandler) GetInputPolicies(data *framework.FieldData) (*policies.Policies, error) {
 	requestPolicies, err := getPoliciesFromFieldData(data)
 	if err != nil {
 		msg := "Invalid policies: " + err.Error()
@@ -190,7 +194,7 @@ func (oh *OrdersHandler) ValidatePolicies(data *framework.FieldData) (*policies.
 
 }
 
-func (oh *OrdersHandler) GetPoliciesResponse(entry *secretentry.SecretEntry, policyType string) map[string]interface{} {
+func (oh *OrdersHandler) BuildPoliciesResponse(entry *secretentry.SecretEntry, policyType string) map[string]interface{} {
 	rotation := entry.Policies.Rotation.FieldsToMap([]string{policies.FieldAutoRotate, policies.FieldRotateKeys})
 	policyMap := make([]map[string]interface{}, 1)
 	policyMap[0] = rotation

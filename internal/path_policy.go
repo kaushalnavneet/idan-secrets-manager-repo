@@ -6,6 +6,7 @@ import (
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	at "github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
 	"net/http"
 )
 
@@ -19,14 +20,14 @@ func (ob *OrdersBackend) pathSecretPolicies() []*framework.Path {
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldId:      common.Fields[secretentry.FieldId],
 		secretentry.FieldGroupId: common.Fields[secretentry.FieldGroupId],
-		"policy": {
+		policies.FieldPolicy: {
 			Type:          framework.TypeString,
 			Description:   "The type of policy that is associated with the specified secret.",
 			Required:      false,
 			Query:         true,
-			AllowedValues: ob.GetSecretBackendHandler().AllowedPolicyTypes(),
+			AllowedValues: ob.GetSecretBackendHandler().GetPolicyHandler().AllowedPolicyTypes(),
 		},
-		"policies": {
+		policies.FieldPolicies: {
 			Type:        framework.TypeSlice,
 			Description: "The new policies for the secret.",
 			Required:    true,
@@ -53,7 +54,7 @@ func (ob *OrdersBackend) pathSecretPolicies() []*framework.Path {
 			HelpDescription: policyOperationsHelpDesc,
 		},
 		{
-			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex("secretId") + "/policies",
+			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/policies",
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    policyOperationsHelpSyn,
