@@ -14,7 +14,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-hclog v0.16.2
 	github.com/hashicorp/vault/sdk v0.2.1
-	github.ibm.com/IAM/pep/v2 v2.0.6 // indirect
 	github.ibm.com/project-fortress/vault-client-golang v0.0.4
 	github.ibm.com/security-services/secrets-manager-common-utils v0.0.7013
 	github.ibm.com/security-services/secrets-manager-iam v0.0.7012
