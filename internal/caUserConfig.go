@@ -7,12 +7,14 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
 )
 
 type CAUserConfig struct {
 	Name         string `json:"name"`
+	CAType       string `json:"type"`
 	CARootCert   string `json:"ca_cert"`
 	DirectoryURL string `json:"directory_url"`
 	Email        string `json:"email"`
@@ -23,11 +25,30 @@ type CAUserConfig struct {
 
 type CAUserConfigToStore struct {
 	Name            string `json:"name"`
+	CAType          string `json:"type"`
 	CARootCert      string `json:"ca_cert"`
 	DirectoryURL    string `json:"directory_url"`
 	Email           string `json:"email"`
 	RegistrationURL string `json:"registration_url"`
 	PrivateKey      string `json:"private_key"`
+}
+
+var caProviders map[string]string
+var validCaProviders []interface{}
+
+func init() {
+	caProviders = map[string]string{
+		DirectoryLetsEncryptProdAlias:  DirectoryLetsEncryptProd,
+		DirectoryLetsEncryptStageAlias: DirectoryLetsEncryptStage,
+	}
+	validCaProviders = make([]interface{}, 0, len(caProviders))
+	for k, _ := range caProviders {
+		validCaProviders = append(validCaProviders, k)
+	}
+}
+
+func GetCATypesAllowedValues() []interface{} {
+	return validCaProviders
 }
 
 func (u *CAUserConfig) GetEmail() string {
@@ -42,7 +63,11 @@ func (u *CAUserConfig) GetPrivateKey() crypto.PrivateKey {
 	return u.key
 }
 
-func NewCAAccountConfig(name, directoryUrl, caRootCertPath, privateKeyPEM, email string) (*CAUserConfig, error) {
+func NewCAAccountConfig(name, caType, caRootCertPath, privateKeyPEM, email string) (*CAUserConfig, error) {
+	directoryUrl, ok := caProviders[caType]
+	if !ok { //should not happen because of input validation
+		return nil, fmt.Errorf("%s is not valid CA. Should be one of %s", caType, validCaProviders)
+	}
 	var privateKey crypto.PrivateKey
 	var err error
 	byoa := privateKeyPEM != ""
@@ -58,6 +83,7 @@ func NewCAAccountConfig(name, directoryUrl, caRootCertPath, privateKeyPEM, email
 	}
 	userConfig := &CAUserConfig{
 		Name:         name,
+		CAType:       caType,
 		Email:        email,
 		key:          privateKey,
 		DirectoryURL: directoryUrl,
@@ -99,6 +125,7 @@ func (u *CAUserConfig) getConfigToStore() (*CAUserConfigToStore, error) {
 
 	storageEntry = &CAUserConfigToStore{
 		Name:            u.Name,
+		CAType:          u.CAType,
 		RegistrationURL: u.Registration.URI,
 		Email:           u.Email,
 		PrivateKey:      string(pemEncoded),

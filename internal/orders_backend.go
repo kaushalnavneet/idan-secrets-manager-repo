@@ -32,7 +32,7 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 		ob.pathConfigDNS(),
 		ob.pathConfigRoot(),
 		//rotation policy
-		//ob.pathSecretPolicies(),
+		ob.pathSecretPolicies(),
 		//order
 		ob.pathIssueCert(),
 		//rotate

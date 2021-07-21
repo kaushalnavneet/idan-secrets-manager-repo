@@ -45,7 +45,7 @@ func getCAConfigsAsMap(config *RootConfig) []map[string]string {
 	for i, caConfig := range config.CaConfigs {
 		confArray[i] = make(map[string]string)
 		confArray[i][secretentry.FieldName] = caConfig.Name
-		confArray[i][FieldDirectoryUrl] = caConfig.DirectoryURL
+		confArray[i][FieldCAType] = caConfig.CAType
 	}
 	return confArray
 }

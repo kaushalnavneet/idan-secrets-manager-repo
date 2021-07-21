@@ -31,10 +31,11 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 			Description: "Specifies the ACME CA name.",
 			Required:    true,
 		},
-		FieldDirectoryUrl: {
-			Type:        framework.TypeString,
-			Description: "Specifies the directory url of the ACME server.",
-			Required:    true,
+		FieldCAType: {
+			Type:          framework.TypeString,
+			Description:   "Specifies the type ACME server.",
+			Required:      true,
+			AllowedValues: GetCATypesAllowedValues(),
 		},
 		FieldCaCert: {
 			Type:        framework.TypeString,
@@ -119,10 +120,14 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 	atContext.ResourceName = name
 
 	// Validate user input
-	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), logdna.Error07011, "There are unexpected fields. Verify that the request parameters are valid", true)
-		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
+	if res, err := ob.secretBackend.GetValidator().ValidateUnknownFields(req, d); err != nil {
+		return res, err
 	}
+	// Validate allowed values
+	if res, err := ob.secretBackend.GetValidator().ValidateAllowedFieldValues(d); err != nil {
+		return res, err
+	}
+
 	// lock for writing
 	secretsConfigLock.Lock()
 	defer secretsConfigLock.Unlock()
@@ -167,7 +172,7 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 
 	respData := make(map[string]interface{})
 	respData[secretentry.FieldName] = configToStore.Name
-	respData[FieldDirectoryUrl] = configToStore.DirectoryURL
+	respData[FieldCAType] = configToStore.CAType
 	respData[secretentry.FieldPrivateKey] = configToStore.PrivateKey
 	resp := &logical.Response{
 		Data: respData,
@@ -239,7 +244,7 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 
 	respData := make(map[string]interface{})
 	respData[secretentry.FieldName] = configToStore.Name
-	respData[FieldDirectoryUrl] = configToStore.DirectoryURL
+	respData[FieldCAType] = configToStore.CAType
 	respData[secretentry.FieldPrivateKey] = configToStore.PrivateKey
 	resp := &logical.Response{
 		Data: respData,
@@ -275,10 +280,8 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 
 	respData := make(map[string]interface{})
 	respData[secretentry.FieldName] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Name, d.GetDefaultOrZero(secretentry.FieldName).(string))
-	respData[FieldDirectoryUrl] = common.GetNonEmptyStringFirstOrSecond(foundConfig.DirectoryURL, d.GetDefaultOrZero(FieldDirectoryUrl).(string))
+	respData[FieldCAType] = common.GetNonEmptyStringFirstOrSecond(foundConfig.CAType, d.GetDefaultOrZero(FieldCAType).(string))
 	respData[secretentry.FieldPrivateKey] = common.GetNonEmptyStringFirstOrSecond(foundConfig.PrivateKey, d.GetDefaultOrZero(secretentry.FieldPrivateKey).(string))
-	respData[FieldRegistrationUrl] = common.GetNonEmptyStringFirstOrSecond(foundConfig.RegistrationURL, d.GetDefaultOrZero(FieldRegistrationUrl).(string))
-	respData[FieldEmail] = common.GetNonEmptyStringFirstOrSecond(foundConfig.Email, d.GetDefaultOrZero(FieldEmail).(string))
 	resp := &logical.Response{
 		Data: respData,
 	}
@@ -374,26 +377,15 @@ func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Re
 }
 
 func (ob *OrdersBackend) createCAConfigToStore(d *framework.FieldData, name string) (*CAUserConfigToStore, error) {
-	var directoryUrl string
 	var err error
-	switch d.Get(FieldDirectoryUrl).(string) {
-	case DirectoryLetsEncryptProdAlias:
-		directoryUrl = DirectoryLetsEncryptProd
-	case DirectoryLetsEncryptStageAlias:
-		directoryUrl = DirectoryLetsEncryptStage
-	default:
-		directoryUrl, err = ob.validateStringField(d, FieldDirectoryUrl, "url", "url is not valid")
-		if err != nil {
-			return nil, err
-		}
-	}
 	privateKeyPEM, err := ob.validateStringField(d, secretentry.FieldPrivateKey, "min=2,max=100000", "length should be 2 to 100000 chars")
 	if err != nil {
 		return nil, err
 	}
 	email := d.Get(FieldEmail).(string)
 	caCert := d.Get(FieldCaCert).(string)
-	ca, err := NewCAAccountConfig(name, directoryUrl, caCert, privateKeyPEM, email)
+	caType := d.Get(FieldCAType).(string)
+	ca, err := NewCAAccountConfig(name, caType, caCert, privateKeyPEM, email)
 	if err != nil {
 		return nil, err
 	}

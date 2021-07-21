@@ -8,7 +8,7 @@ import (
 const (
 	PluginMountPath      = "/v1/ibmcloud/public_cert/"
 	FieldRegistrationUrl = "registration_uri"
-	FieldDirectoryUrl    = "directory_url"
+	FieldCAType          = "type"
 	FieldCaCert          = "ca-cert"
 	FieldEmail           = "email"
 	FieldConfig          = "config"
@@ -31,10 +31,9 @@ const (
 	FieldErrorMessage = "error_message"
 	FieldAutoRotated  = "auto_rotated"
 	FieldIssuanceInfo = "issuance_info"
-	FieldRotateKeys   = "rotate_keys"
-	FieldEnabled      = "enabled"
-	endCertificate    = "-----END CERTIFICATE-----"
-	errorPattern      = `{"error_code":"%s","error_message":"%s"}`
+
+	endCertificate = "-----END CERTIFICATE-----"
+	errorPattern   = `{"error_code":"%s","error_message":"%s"}`
 	// to common
 	SecretTypePublicCert        = "public_cert"                                 //to common
 	DeleteEngineConfigAction    = "secrets-manager.secret-engine-config.delete" //to common
@@ -43,7 +42,7 @@ const (
 
 	MaxNumberCAConfigs             = 10
 	MaxNumberDNSConfigs            = 10
-	DirectoryLetsEncryptProdAlias  = "letsencrypt-prod"
+	DirectoryLetsEncryptProdAlias  = "letsencrypt"
 	DirectoryLetsEncryptStageAlias = "letsencrypt-stage"
 	DirectoryLetsEncryptProd       = "https://acme-v02.api.letsencrypt.org/directory"
 	DirectoryLetsEncryptStage      = "https://acme-staging-v02.api.letsencrypt.org/directory"
