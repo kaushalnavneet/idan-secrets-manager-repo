@@ -8,7 +8,7 @@ import (
 const (
 	PluginMountPath      = "/v1/ibmcloud/public_cert/"
 	FieldRegistrationUrl = "registration_uri"
-	FieldDirectoryUrl    = "directory_url"
+	FieldCAType          = "type"
 	FieldCaCert          = "ca-cert"
 	FieldEmail           = "email"
 	FieldConfig          = "config"
@@ -42,7 +42,7 @@ const (
 
 	MaxNumberCAConfigs             = 10
 	MaxNumberDNSConfigs            = 10
-	DirectoryLetsEncryptProdAlias  = "letsencrypt-prod"
+	DirectoryLetsEncryptProdAlias  = "letsencrypt"
 	DirectoryLetsEncryptStageAlias = "letsencrypt-stage"
 	DirectoryLetsEncryptProd       = "https://acme-v02.api.letsencrypt.org/directory"
 	DirectoryLetsEncryptStage      = "https://acme-staging-v02.api.letsencrypt.org/directory"
