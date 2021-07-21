@@ -12,10 +12,10 @@ import (
 
 func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 	atSecretCreate := &at.ActivityTrackerVault{DataEvent: true, TargetTypeURI: at.SecretTargetTypeURI,
-		Description: "Issue a new certificate", Action: common.CreateSecretAction, SecretType: SecretTypePublicCert,
+		Description: "Issue a new certificate", Action: common.CreateSecretAction, SecretType: secretentry.SecretTypePublicCert,
 		TargetResourceType: secretentry.SecretResourceName}
 	atSecretList := &at.ActivityTrackerVault{DataEvent: true, TargetTypeURI: at.SecretTargetTypeURI,
-		Description: "List certificates", Action: common.ListSecretsAction, SecretType: SecretTypePublicCert,
+		Description: "List certificates", Action: common.ListSecretsAction, SecretType: secretentry.SecretTypePublicCert,
 		TargetResourceType: secretentry.SecretResourceName}
 
 	fields := map[string]*framework.FieldSchema{
@@ -103,7 +103,7 @@ func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 func (ob *OrdersBackend) pathRotateCertificate() []*framework.Path {
 	atRotateCertificate := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName,
 		TargetTypeURI: at.SecretTargetTypeURI, Description: "Rotate a certificate",
-		Action: common.RotateSecretAction, Method: http.MethodPost, SecretType: SecretTypePublicCert}
+		Action: common.RotateSecretAction, Method: http.MethodPost, SecretType: secretentry.SecretTypePublicCert}
 
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldId:      common.Fields[secretentry.FieldId],

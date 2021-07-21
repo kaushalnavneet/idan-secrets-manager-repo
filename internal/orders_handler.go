@@ -111,7 +111,7 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 		Name:        csp.Name,
 		Description: csp.Description,
 		Labels:      csp.Labels,
-		Type:        SecretTypePublicCert,
+		Type:        secretentry.SecretTypePublicCert,
 		ExtraData:   certMetadata,
 		VersionData: certMetadata,
 		VersionExtraData: map[string]interface{}{
