@@ -172,9 +172,8 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
 	atContext.ResourceName = name
 	// Validate user input
-	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), logdna.Error07047, "There are unexpected fields. Verify that the request parameters are valid", true)
-		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
+	if res, err := ob.secretBackend.GetValidator().ValidateUnknownFields(req, d); err != nil {
+		return res, err
 	}
 
 	configToStore, err := ob.createProviderConfigToStore(name, d)

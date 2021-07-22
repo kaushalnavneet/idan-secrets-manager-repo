@@ -166,7 +166,7 @@ func (oh *OrdersHandler) UpdateSecretEntryMetadata(ctx context.Context, req *log
 	newNameRaw, ok := data.GetOk(secretentry.FieldName)
 	if !ok {
 		msg := fmt.Sprintf("Invalid %s parameter", secretentry.FieldName)
-		common.ErrorLogForCustomer(msg, logdna.Error01035, "Retry with a valid name parameter", true)
+		common.ErrorLogForCustomer(msg, logdna.Error01035, logdna.BadRequestErrorMessage, true)
 		return nil, logical.CodedError(http.StatusBadRequest, msg)
 	}
 
@@ -200,28 +200,6 @@ func (oh *OrdersHandler) BuildPoliciesResponse(entry *secretentry.SecretEntry, p
 	policyMap[0] = rotation
 	policies := map[string]interface{}{"policies": policyMap}
 	return policies
-}
-
-func getPoliciesFromFieldData(data *framework.FieldData) (*policies.Policies, error) {
-	newPolicies := &policies.Policies{}
-	rawPolicies := data.Get("policies").([]interface{})
-	if len(rawPolicies) > 1 {
-		return nil, fmt.Errorf("received more than one policy")
-	}
-	policyMap, ok := rawPolicies[0].(map[string]interface{})
-	if !ok {
-		return nil, commonErrors.GenerateCodedError(logdna.Error07094, http.StatusBadRequest, "rotation policy is not valid ")
-	}
-	rawRotation, ok := policyMap["rotation"]
-	if !ok {
-		return nil, commonErrors.GenerateCodedError(logdna.Error07095, http.StatusBadRequest, "rotation policy is not valid ")
-	}
-	newPolicy, err := getRotationPolicy(rawRotation)
-	if err != nil {
-		return nil, err
-	}
-	newPolicies.Rotation = newPolicy
-	return newPolicies, nil
 }
 
 func (oh *OrdersHandler) UpdatePoliciesData(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry, cpp secret_backend.CommonPolicyParams) (*logical.Response, error) {
@@ -502,6 +480,28 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, storage logic
 		}
 	}
 	return oh.iam, nil
+}
+
+func getPoliciesFromFieldData(data *framework.FieldData) (*policies.Policies, error) {
+	newPolicies := &policies.Policies{}
+	rawPolicies := data.Get("policies").([]interface{})
+	if len(rawPolicies) > 1 {
+		return nil, fmt.Errorf("received more than one policy")
+	}
+	policyMap, ok := rawPolicies[0].(map[string]interface{})
+	if !ok {
+		return nil, commonErrors.GenerateCodedError(logdna.Error07094, http.StatusBadRequest, "rotation policy is not valid ")
+	}
+	rawRotation, ok := policyMap["rotation"]
+	if !ok {
+		return nil, commonErrors.GenerateCodedError(logdna.Error07095, http.StatusBadRequest, "rotation policy is not valid ")
+	}
+	newPolicy, err := getRotationPolicy(rawRotation)
+	if err != nil {
+		return nil, err
+	}
+	newPolicies.Rotation = newPolicy
+	return newPolicies, nil
 }
 
 func getRotationPolicy(rawPolicy interface{}) (*policies.RotationPolicy, error) {

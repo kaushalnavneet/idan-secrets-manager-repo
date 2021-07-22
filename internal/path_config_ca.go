@@ -185,7 +185,7 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 	// validate that the user is authorised to perform this action
 	err := ob.checkAuthorization(ctx, req, common.SetEngineConfigAction)
 	if err != nil {
-		return nil, err
+		return nil, logical.CodedError(http.StatusBadRequest, err.Error())
 	}
 	//get config name
 	name, err := ob.validateConfigName(d)
@@ -269,9 +269,8 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
 	atContext.ResourceName = name
 
-	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), logdna.Error07023, "There are unexpected fields. Verify that the request parameters are valid", true)
-		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
+	if res, err := ob.secretBackend.GetValidator().ValidateUnknownFields(req, d); err != nil {
+		return res, err
 	}
 	foundConfig, err := getCAConfigByName(ctx, req, name)
 	if err != nil {

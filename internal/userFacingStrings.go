@@ -9,6 +9,15 @@ const (
 	unavailableCISError   = "Could not call IBM Cloud Internet Services API. Try again later"
 )
 
+//Validation errors
+const (
+	commonNameTooLong            = "A primary domain name cannot be longer than 64 bytes"
+	domainCantBeConvertedToASCII = "Invalid domain %s"
+	redundantDomain              = "At least one of the domains is redundant with a wildcard domain in the same certificate. Remove one or the other from the certificate order."
+	invalidDomain                = "Domain %s is not valid"
+	duplicateDomain              = "Domain %s is duplicated"
+)
+
 //Fields description
 const (
 	FieldPolicyTypeDesc = "The type of policy that is associated with the specified secret."
