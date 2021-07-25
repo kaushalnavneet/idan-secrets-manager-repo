@@ -179,7 +179,7 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 	// validate that the user is authorised to perform this action
 	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, "")
 	if err != nil {
-		return nil, logical.CodedError(http.StatusBadRequest, err.Error())
+		return nil, err
 	}
 	//get config name
 	name, err := ob.validateConfigName(d)
