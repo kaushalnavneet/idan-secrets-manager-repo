@@ -99,7 +99,7 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 // Create or update the IBM Cloud Auth backend configuration
 func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.SetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 // Create or update the IBM Cloud Auth backend configuration
 func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.SetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, "")
 	if err != nil {
 		return nil, logical.CodedError(http.StatusBadRequest, err.Error())
 	}
@@ -250,7 +250,7 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 // Read the IBM Cloud Auth backend configuration from storage
 func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.GetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +283,7 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 
 func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	//validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.GetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
@@ -315,7 +315,7 @@ func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Requ
 
 func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.SetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}

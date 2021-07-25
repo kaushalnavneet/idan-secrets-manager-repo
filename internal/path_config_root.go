@@ -36,7 +36,7 @@ func (ob *OrdersBackend) pathConfigRoot() []*framework.Path {
 }
 
 func (ob *OrdersBackend) pathRootConfigRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	err := ob.checkAuthorization(ctx, req, common.GetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
