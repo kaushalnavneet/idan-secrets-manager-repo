@@ -18,12 +18,12 @@ import (
 var secretsConfigLock locksutil.LockEntry
 
 func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
-	atSecretConfigUpdate := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
+	atSecretConfigUpdate := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: at.ConfigTargetTypeURI,
 		Description: "Set secret engine configuration", Action: common.SetEngineConfigAction, SecretType: secretentry.SecretTypePublicCert, TargetResourceType: CA}
-	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
+	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: at.ConfigTargetTypeURI,
 		Description: "Get secret engine configuration", Action: common.GetEngineConfigAction, SecretType: secretentry.SecretTypePublicCert, TargetResourceType: CA}
-	atSecretConfigDelete := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
-		Description: "Delete secret engine configuration", Action: DeleteEngineConfigAction, SecretType: secretentry.SecretTypePublicCert, TargetResourceType: CA}
+	atSecretConfigDelete := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: at.ConfigTargetTypeURI,
+		Description: "Delete secret engine configuration", Action: common.DeleteEngineConfigAction, SecretType: secretentry.SecretTypePublicCert, TargetResourceType: CA}
 
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldName: {
@@ -37,6 +37,11 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 			Required:      true,
 			AllowedValues: GetCATypesAllowedValues(),
 		},
+		secretentry.FieldPrivateKey: {
+			Type:        framework.TypeString,
+			Description: "Private key in PKCS8 PEM encoded format to retrieve an existing account",
+			Required:    true,
+		},
 		FieldCaCert: {
 			Type:        framework.TypeString,
 			Description: "Path to the root certificate of the ACME CA server.",
@@ -46,18 +51,7 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 			Type:        framework.TypeString,
 			Description: "Email to be used for registering the user. If a user account is being retrieved, then the retrieved email will override this field",
 			Required:    false,
-		},
-		secretentry.FieldPrivateKey: {
-			Type:        framework.TypeString,
-			Description: "Private key in PKCS8 PEM encoded format to retrieve an existing account",
-			Required:    true,
-		},
-		FieldRegistrationUrl: {
-			Type:        framework.TypeString,
-			Description: "Registration URL of an existing account",
-			Required:    true,
-		},
-	}
+		}}
 	operationsWithoutPathParam := map[logical.Operation]framework.OperationHandler{
 		logical.UpdateOperation: &framework.PathOperation{
 			Callback: ob.secretBackend.PathCallback(ob.pathCAConfigCreate, atSecretConfigUpdate),

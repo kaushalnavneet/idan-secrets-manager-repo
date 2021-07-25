@@ -13,7 +13,7 @@ import (
 )
 
 func (ob *OrdersBackend) pathConfigRoot() []*framework.Path {
-	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
+	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: at.ConfigTargetTypeURI,
 		Description: "Get secret engine configuration", Action: common.GetEngineConfigAction,
 		SecretType: secretentry.SecretTypePublicCert, TargetResourceType: Root}
 	fields := map[string]*framework.FieldSchema{}
