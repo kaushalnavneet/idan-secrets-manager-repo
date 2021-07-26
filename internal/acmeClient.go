@@ -60,7 +60,7 @@ func (client *Client) setDNSProvider(dnsProvider *DnsProviderConfig, domains []s
 		return err
 
 	} else if providerType == "cis" {
-		err := client.LegoClient.Challenge.SetDNS01Provider(NewCISDNSProvider(providerConfiguration), challengeOption)
+		err := client.LegoClient.Challenge.SetDNS01Provider(NewCISDNSProvider(providerConfiguration, dnsProvider.smInstanceCrn), challengeOption)
 		return err
 
 	} else {

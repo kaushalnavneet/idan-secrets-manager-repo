@@ -7,6 +7,7 @@ const (
 	errorResponseFromCIS  = "IBM Cloud Internet Services responded with an error"
 	internalServerError   = "Internal server Error"
 	unavailableCISError   = "Could not call IBM Cloud Internet Services API. Try again later"
+	obtainTokenError      = "Couldn't obtain IAM token for  CIS access"
 )
 
 //Validation errors
@@ -75,4 +76,11 @@ It updates the secret's policy with the parameters that were provided, and retur
 	policyOperationsHelpDesc = `This path takes a secretId and attempts to perform the policy read/update operation for the secret with this secretId.` +
 		"\n" + policyReadOpDesc +
 		"\n" + policyUpdateOpDesc
+)
+
+//policies validation errors
+const (
+	policiesMoreThanOne       = "Received more than one policy"
+	policiesNotValidStructure = "Rotation policy has not valid structure"
+	policiesNotValidField     = "Field %s in rotation policy is not valid. "
 )

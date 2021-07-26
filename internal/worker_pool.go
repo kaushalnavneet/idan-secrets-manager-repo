@@ -8,7 +8,6 @@ import (
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/google/uuid"
 	"github.com/hashicorp/vault/sdk/logical"
-	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
@@ -33,19 +32,18 @@ type HttpClientWrapper struct {
 }
 
 type WorkItem struct {
-	storage    logical.Storage
-	iamConfig  *iam.Config
-	requestID  uuid.UUID
+	requestID uuid.UUID //to identify order request in worker pool
+	//order data
 	userConfig *CAUserConfig
 	dnsConfig  *DnsProviderConfig
-
 	keyType    certcrypto.KeyType
 	privateKey []byte
 	csr        *x509.CertificateRequest
 	domains    []string //first entry is the CN and the rest are SAN
 	isBundle   bool
-
-	secretEntry *secretentry.SecretEntry
+	//secret data
+	secretEntry *secretentry.SecretEntry //this secretEntry should be updated when an order is finished
+	storage     logical.Storage          //this storage should be used to save secretEntry
 }
 
 type Result struct {
