@@ -24,13 +24,12 @@ import (
 )
 
 type OrdersHandler struct {
-	workerPool *WorkerPool
-	//certRenewer *CertRenewer
-	storage       logical.Storage
+	workerPool    *WorkerPool
 	beforeOrders  map[string]WorkItem
 	runningOrders map[string]WorkItem
 	parser        certificate.CertificateParser
-	iam           *iam.Config
+	iamConfig     *iam.Config
+	smInstanceCrn string
 }
 
 func (oh *OrdersHandler) GetPolicyHandler() secret_backend.PolicyHandler {
@@ -309,6 +308,8 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	if err != nil {
 		return err
 	}
+	//update current SM instance crn in dns config (for S2S communication)
+	dnsConfig.smInstanceCrn = oh.smInstanceCrn
 	//validate domains
 	domains := getNames(data.CommonName, data.AltName)
 	err = validateNames(domains)
@@ -338,10 +339,12 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	if err != nil {
 		return err
 	}
-	iamConfig, err := oh.configureIamIfNeeded(ctx, req.Storage)
+	err = oh.configureIamIfNeeded(ctx, req)
+	if err != nil {
+		return err
+	}
 	workItem := WorkItem{
 		storage:    req.Storage,
-		iamConfig:  iamConfig,
 		userConfig: ca,
 		keyType:    keyType,
 		dnsConfig:  dnsConfig,
@@ -462,31 +465,34 @@ func (oh *OrdersHandler) getOrderResponse(entry *secretentry.SecretEntry) map[st
 	return e
 }
 
-func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, storage logical.Storage) (*iam.Config, error) {
-	if oh.iam == nil {
+func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.Request) error {
+	storage := req.Storage
+	//todo add lock
+	if oh.iamConfig == nil {
 		authConfig, err := common.ObtainAuthConfigFromStorage(ctx, storage)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if authConfig == nil {
 			common.Logger().Error("Iam config is missing in the storage")
-			return nil, commonErrors.GenerateCodedError(logdna.Error07092, http.StatusInternalServerError, internalServerError)
+			return commonErrors.GenerateCodedError(logdna.Error07092, http.StatusInternalServerError, internalServerError)
 		}
-		conf := &iam.Config{
+		config := &iam.Config{
 			IamEndpoint:  authConfig.IAMEndpoint,
 			ApiKey:       authConfig.Service.APIKey,
 			ClientID:     authConfig.Service.ClientID,
 			ClientSecret: authConfig.Service.ClientSecret,
 			DisableCache: false,
 		}
-		oh.iam = conf
-		err = iam.Configure(conf)
+		oh.iamConfig = config
+		err = iam.Configure(config)
 		if err != nil {
 			common.Logger().Error("Failed to configure iam", "error", err)
-			return nil, commonErrors.GenerateCodedError(logdna.Error07093, http.StatusInternalServerError, internalServerError)
+			return commonErrors.GenerateCodedError(logdna.Error07093, http.StatusInternalServerError, internalServerError)
 		}
+		oh.smInstanceCrn = authConfig.Service.Instance.CRN
 	}
-	return oh.iam, nil
+	return nil
 }
 
 func getPoliciesFromFieldData(data *framework.FieldData) (*policies.Policies, error) {

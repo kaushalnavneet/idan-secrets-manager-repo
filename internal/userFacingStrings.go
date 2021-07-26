@@ -7,6 +7,7 @@ const (
 	errorResponseFromCIS  = "IBM Cloud Internet Services responded with an error"
 	internalServerError   = "Internal server Error"
 	unavailableCISError   = "Could not call IBM Cloud Internet Services API. Try again later"
+	obtainTokenError      = "Couldn't obtain IAM token for  CIS access"
 )
 
 //Validation errors

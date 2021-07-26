@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-acme/lego/v4/providers/dns"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
@@ -128,6 +127,7 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 			return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 		}
 	}
+	ob.ordersHandler.configureIamIfNeeded(ctx, req)
 	configToStore, err := ob.createProviderConfigToStore(name, d)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
@@ -173,7 +173,7 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	if res, err := ob.secretBackend.GetValidator().ValidateUnknownFields(req, d); err != nil {
 		return res, err
 	}
-
+	ob.ordersHandler.configureIamIfNeeded(ctx, req)
 	configToStore, err := ob.createProviderConfigToStore(name, d)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
@@ -354,20 +354,16 @@ func (ob *OrdersBackend) createProviderConfigToStore(name string, d *framework.F
 	if err != nil {
 		return nil, err
 	}
-	// validate provider type
-	if providerType != "cis" && providerType != "pebble" {
-		_, err = dns.NewDNSChallengeProviderByName(providerType)
-		if err != nil {
-			return nil, err
-		}
-	}
 	config := d.Get(FieldConfig).(map[string]string)
 	if config == nil {
 		return nil, fmt.Errorf("config field is not valid")
 	}
-	//todo add validation for prop name and prop value length
-	//todo add validation for cis properties (CIS_CRN, CIS_APIKEY)
-	providerConfig := NewDnsProviderConfig(name, providerType, config)
+	providerConfig := NewDnsProviderConfig(name, providerType, config, ob.ordersHandler.smInstanceCrn)
+	err = providerConfig.validateConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return providerConfig, nil
 }
 

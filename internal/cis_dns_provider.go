@@ -3,12 +3,14 @@ package publiccerts
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
 	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
+	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"net/http"
 	"net/url"
@@ -18,13 +20,15 @@ import (
 )
 
 type CISDNSConfig struct {
-	CRN         string
-	CISEndpoint string
-	IAMEndpoint string
-	APIKey      string
-	TTL         int
-	Domains     map[string]*Domain
-	restClient  rest_client.RestClientFactory
+	CRN           string
+	CISEndpoint   string
+	IAMEndpoint   string
+	APIKey        string
+	TTL           int
+	Domains       map[string]*Domain
+	restClient    rest_client.RestClientFactory
+	smInstanceCrn string
+	iamToken      string
 }
 
 type Domain struct {
@@ -63,7 +67,7 @@ type CISRequest struct {
 	TTL     int    `json:"ttl"`
 }
 
-func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
+func NewCISDNSProvider(providerConfig map[string]string, smInstanceCrn string) *CISDNSConfig {
 	crn := providerConfig["CIS_CRN"]
 	apikey := providerConfig["CIS_APIKEY"]
 
@@ -84,13 +88,14 @@ func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
 		iamURL = "https://iam.cloud.ibm.com"
 	}
 	return &CISDNSConfig{
-		CRN:         crn,
-		CISEndpoint: cisURL,
-		IAMEndpoint: iamURL,
-		APIKey:      apikey,
-		TTL:         120, //for TXT records
-		Domains:     make(map[string]*Domain),
-		restClient:  cf,
+		CRN:           crn,
+		CISEndpoint:   cisURL,
+		IAMEndpoint:   iamURL,
+		APIKey:        apikey,
+		TTL:           120, //for TXT records
+		Domains:       make(map[string]*Domain),
+		restClient:    cf,
+		smInstanceCrn: smInstanceCrn,
 	}
 }
 
@@ -160,7 +165,7 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 	headers, err := c.buildRequestHeader()
 	if err != nil {
 		common.Logger().Error("Couldn't build headers for CIS request: " + err.Error())
-		return "", buildError(logdna.Error07070, internalServerError)
+		return "", buildError(logdna.Error07070, obtainTokenError)
 	}
 	response := &CISResponseList{}
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, response)
@@ -194,7 +199,11 @@ func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 	}
 
 	url := fmt.Sprintf(`%s/%s/zones/%s/dns_records`, c.CISEndpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId))
-	headers, _ := c.buildRequestHeader()
+	headers, err := c.buildRequestHeader()
+	if err != nil {
+		common.Logger().Error("Couldn't build headers for CIS request: " + err.Error())
+		return "", buildError(logdna.Error07082, obtainTokenError)
+	}
 	response := &CISResponseResult{}
 	resp, err := c.restClient.SendRequest(url, http.MethodPost, *headers, requestBody, response)
 	if err != nil {
@@ -223,7 +232,11 @@ func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 func (c *CISDNSConfig) removeChallenge(domain *Domain) error {
 	//todo if domain.txtRecordId is nil, try to get it
 	url := fmt.Sprintf(`%s/%s/zones/%s/dns_records/%s`, c.CISEndpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordId))
-	headers, _ := c.buildRequestHeader()
+	headers, err := c.buildRequestHeader()
+	if err != nil {
+		common.Logger().Error("Couldn't build headers for CIS request: " + err.Error())
+		return buildError(logdna.Error07084, obtainTokenError)
+	}
 	response := &CISResponseResult{}
 	resp, err := c.restClient.SendRequest(url, http.MethodDelete, *headers, nil, response)
 	if err != nil {
@@ -247,7 +260,11 @@ func (c *CISDNSConfig) removeChallenge(domain *Domain) error {
 func (c *CISDNSConfig) getChallengeRecordId(domain *Domain) (string, error) {
 	url := fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&content=%s`, c.CISEndpoint, url.QueryEscape(c.CRN),
 		url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordName), url.QueryEscape(domain.txtRecordValue))
-	headers, _ := c.buildRequestHeader()
+	headers, err := c.buildRequestHeader()
+	if err != nil {
+		common.Logger().Error("Couldn't build headers for CIS request: " + err.Error())
+		return "", buildError(logdna.Error07086, obtainTokenError)
+	}
 	response := &CISResponseList{}
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, response)
 	if err != nil {
@@ -271,14 +288,59 @@ func (c *CISDNSConfig) getChallengeRecordId(domain *Domain) (string, error) {
 
 func (c *CISDNSConfig) buildRequestHeader() (*map[string]string, error) {
 	headers := make(map[string]string)
-	iamToken, _, err := iam.ObtainCachedToken(c.IAMEndpoint, c.APIKey, "", "", "")
-	if err != nil {
-		common.Logger().Error("Failed to obtain cached token", "error", err)
-		return &headers, err
+	if c.iamToken != "" {
+		if _, err := iam.GetClaims(c.iamToken); err != nil {
+			common.Logger().Info("Cached IAM token for CIS access is not valid.")
+			c.iamToken = ""
+		}
 	}
-	headers["x-auth-user-token"] = iamToken
+	if c.iamToken == "" {
+		var iamToken string
+		var err error
+		common.Logger().Info("Obtaining IAM token for CIS access.")
+		if c.APIKey != "" {
+			iamToken, _, err = iam.ObtainCachedToken(c.IAMEndpoint, c.APIKey, "", "", "")
+		} else {
+			iamToken, _, err = iam.ObtainCrnToken(c.IAMEndpoint, c.smInstanceCrn)
+		}
+		if err != nil {
+			msg := "Failed to obtain IAM token for CIS access: " + err.Error()
+			common.Logger().Error(msg)
+			return &headers, errors.New(msg)
+		}
+		c.iamToken = iamToken
+	}
+	headers["x-auth-user-token"] = c.iamToken
 	headers["Content-Type"] = "application/json"
 	return &headers, nil
+}
+
+//this func is called synchronous, so errors will be a part of response
+func (c *CISDNSConfig) validateConfig() error {
+	//try to get domains
+	url := fmt.Sprintf(`%s/%s/zones?per_page=5`, c.CISEndpoint, url.QueryEscape(c.CRN))
+	headers, err := c.buildRequestHeader()
+	if err != nil {
+		common.Logger().Error("Couldn't build headers for CIS request: " + err.Error())
+		return commonErrors.GenerateCodedError(logdna.Error07087, http.StatusBadRequest, err.Error())
+	}
+	response := &CISResponseList{}
+	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, response)
+	if err != nil {
+		common.Logger().Error("Couldn't get zone by domain name: " + err.Error())
+		return buildError(logdna.Error07083, unavailableCISError)
+	}
+	//success
+	if resp.StatusCode() == http.StatusOK {
+		return nil
+	}
+	if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
+		common.Logger().Error("Couldn't get zone by domain name: Authorization error ")
+		return buildError(logdna.Error07088, fmt.Sprintf(authorizationErrorCIS, "to get zones from"))
+	}
+	cisError := getCISErrors(response.Errors)
+	common.Logger().Error("Couldn't get zones: " + cisError)
+	return buildError(logdna.Error07085, errorResponseFromCIS)
 }
 
 func createTxtRecordBody(key, value string, ttl int) (*bytes.Buffer, error) {
