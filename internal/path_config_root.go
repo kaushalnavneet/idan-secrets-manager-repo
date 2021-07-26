@@ -9,18 +9,19 @@ import (
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	at "github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
-	"net/http"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 )
 
 func (ob *OrdersBackend) pathConfigRoot() []*framework.Path {
-	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
+	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: at.ConfigTargetTypeURI,
 		Description: "Get secret engine configuration", Action: common.GetEngineConfigAction,
-		SecretType: SecretTypePublicCert, TargetResourceType: Root}
+		SecretType: secretentry.SecretTypePublicCert, TargetResourceType: Root}
 	fields := map[string]*framework.FieldSchema{}
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathRootConfigRead, atSecretConfigRead),
-			Summary:  "Get all the configuration values",
+			Callback:    ob.secretBackend.PathCallback(ob.pathRootConfigRead, atSecretConfigRead),
+			Summary:     GetRootConfigOpSummary,
+			Description: GetRootConfigOpDesc,
 		},
 	}
 	return []*framework.Path{
@@ -28,20 +29,19 @@ func (ob *OrdersBackend) pathConfigRoot() []*framework.Path {
 			Pattern:         ConfigRootPath,
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    rootConfigSyn,
-			HelpDescription: rootConfigDesc,
+			HelpSynopsis:    GetRootConfigHelpSyn,
+			HelpDescription: GetRootConfigHelpDesc,
 		},
 	}
 }
 
 func (ob *OrdersBackend) pathRootConfigRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	err := ob.checkAuthorization(ctx, req, common.GetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
-	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), logdna.Error07003, "There are unexpected fields. Verify that the request parameters are valid", true)
-		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
+	if res, err := ob.secretBackend.GetValidator().ValidateUnknownFields(req, d); err != nil {
+		return res, err
 	}
 	// lock for reading
 	secretsConfigLock.RLock()
@@ -51,7 +51,7 @@ func (ob *OrdersBackend) pathRootConfigRead(ctx context.Context, req *logical.Re
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error07004, logdna.InternalErrorMessage, false)
+		common.ErrorLogForCustomer(internalServerError, logdna.Error07004, logdna.InternalErrorMessage, false)
 		return nil, errors.New(errorMessage)
 	}
 
@@ -63,7 +63,3 @@ func (ob *OrdersBackend) pathRootConfigRead(ctx context.Context, req *logical.Re
 	}
 	return resp, nil
 }
-
-//TODO update this text
-const rootConfigSyn = "Read and Update the root configuration."
-const rootConfigDesc = "Read and Update the root configuration."

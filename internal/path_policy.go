@@ -22,26 +22,26 @@ func (ob *OrdersBackend) pathSecretPolicies() []*framework.Path {
 		secretentry.FieldGroupId: common.Fields[secretentry.FieldGroupId],
 		policies.FieldPolicy: {
 			Type:          framework.TypeString,
-			Description:   "The type of policy that is associated with the specified secret.",
+			Description:   FieldPolicyTypeDesc,
 			Required:      false,
 			Query:         true,
 			AllowedValues: ob.GetSecretBackendHandler().GetPolicyHandler().AllowedPolicyTypes(),
 		},
 		policies.FieldPolicies: {
 			Type:        framework.TypeSlice,
-			Description: "The new policies for the secret.",
+			Description: FieldPoliciesDesc,
 			Required:    true,
 		},
 	}
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
 			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetPolicies, atReadSecretPolicies),
-			Summary:     "Reads the policy of a secret.",
+			Summary:     policyReadOpSummary,
 			Description: policyReadOpDesc,
 		},
 		logical.UpdateOperation: &framework.PathOperation{
 			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.UpdatePolicies, atUpdateSecretPolicies),
-			Summary:     "Updates the policy of a secret.",
+			Summary:     policyUpdateOpSummary,
 			Description: policyUpdateOpDesc,
 		},
 	}
@@ -62,13 +62,3 @@ func (ob *OrdersBackend) pathSecretPolicies() []*framework.Path {
 		},
 	}
 }
-
-const policyReadOpDesc = `The policy read operation receives the secretId parameter as part of the path.
-It returns the secret's policy, in case it was defined for this secret'.`
-const policyUpdateOpDesc = `The update operation receives the secretId parameter as part of the path.
-It updates the secret's policy with the parameters that were provided, and returns the updated policy.`
-
-const policyOperationsHelpSyn = `Read and update a secret's policy for secrets in the User Credentials Secrets store.`
-const policyOperationsHelpDesc = `This path takes a secretId and attempts to perform the policy read/update operation for the secret with this secretId.` +
-	"\n" + policyReadOpDesc +
-	"\n" + policyUpdateOpDesc

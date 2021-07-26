@@ -65,20 +65,6 @@ func existenceCheck(ctx context.Context, request *logical.Request, data *framewo
 	return false, nil
 }
 
-func (ob *OrdersBackend) checkAuthorization(ctx context.Context, req *logical.Request, action string) error {
-	//validate that the user is authorised to perform this action
-	if err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, action, ""); err != nil {
-		if _, ok := err.(logical.HTTPCodedError); ok {
-			common.Logger().Error("Failed to validate request is authorised", "error", err)
-			common.ErrorLogForCustomer("Internal server error", logdna.Error07001, logdna.InternalErrorMessage, false)
-			return err
-		}
-		common.ErrorLogForCustomer(err.Error(), logdna.Error07002, logdna.PermissionErrorMessage, true)
-		return err
-	}
-	return nil
-}
-
 var validate = validator.New()
 
 func (ob *OrdersBackend) validateStringField(data *framework.FieldData, fieldName, validator, msg string) (string, error) {

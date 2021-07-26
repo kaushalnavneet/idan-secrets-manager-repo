@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/vault/sdk/plugin"
 	"github.ibm.com/security-services/secrets-manager-vault-plugin-public-cert-secret/internal"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
+	"net/http"
 	"os"
 )
 
@@ -18,6 +19,10 @@ func main() {
 		PluginMountPath:       publiccerts.PluginMountPath,
 		BackendHelp:           "",
 		PathInvalidHelp:       "",
+		ResponseCodeForAction: map[string]int{
+			secret_backend.ActionCreation: http.StatusAccepted,
+			secret_backend.ActionRotation: http.StatusAccepted,
+		},
 	}
 
 	if err := plugin.Serve(&plugin.ServeOpts{

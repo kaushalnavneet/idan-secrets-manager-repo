@@ -18,12 +18,12 @@ import (
 var secretsConfigLock locksutil.LockEntry
 
 func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
-	atSecretConfigUpdate := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
-		Description: "Set secret engine configuration", Action: common.SetEngineConfigAction, SecretType: SecretTypePublicCert, TargetResourceType: CA}
-	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
-		Description: "Get secret engine configuration", Action: common.GetEngineConfigAction, SecretType: SecretTypePublicCert, TargetResourceType: CA}
-	atSecretConfigDelete := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
-		Description: "Delete secret engine configuration", Action: DeleteEngineConfigAction, SecretType: SecretTypePublicCert, TargetResourceType: CA}
+	atSecretConfigUpdate := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: at.ConfigTargetTypeURI,
+		Description: "Set secret engine configuration", Action: common.SetEngineConfigAction, SecretType: secretentry.SecretTypePublicCert, TargetResourceType: CA}
+	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: at.ConfigTargetTypeURI,
+		Description: "Get secret engine configuration", Action: common.GetEngineConfigAction, SecretType: secretentry.SecretTypePublicCert, TargetResourceType: CA}
+	atSecretConfigDelete := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: at.ConfigTargetTypeURI,
+		Description: "Delete secret engine configuration", Action: common.DeleteEngineConfigAction, SecretType: secretentry.SecretTypePublicCert, TargetResourceType: CA}
 
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldName: {
@@ -37,6 +37,11 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 			Required:      true,
 			AllowedValues: GetCATypesAllowedValues(),
 		},
+		secretentry.FieldPrivateKey: {
+			Type:        framework.TypeString,
+			Description: "Private key in PKCS8 PEM encoded format to retrieve an existing account",
+			Required:    true,
+		},
 		FieldCaCert: {
 			Type:        framework.TypeString,
 			Description: "Path to the root certificate of the ACME CA server.",
@@ -46,18 +51,7 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 			Type:        framework.TypeString,
 			Description: "Email to be used for registering the user. If a user account is being retrieved, then the retrieved email will override this field",
 			Required:    false,
-		},
-		secretentry.FieldPrivateKey: {
-			Type:        framework.TypeString,
-			Description: "Private key in PKCS8 PEM encoded format to retrieve an existing account",
-			Required:    true,
-		},
-		FieldRegistrationUrl: {
-			Type:        framework.TypeString,
-			Description: "Registration URL of an existing account",
-			Required:    true,
-		},
-	}
+		}}
 	operationsWithoutPathParam := map[logical.Operation]framework.OperationHandler{
 		logical.UpdateOperation: &framework.PathOperation{
 			Callback: ob.secretBackend.PathCallback(ob.pathCAConfigCreate, atSecretConfigUpdate),
@@ -105,7 +99,7 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 // Create or update the IBM Cloud Auth backend configuration
 func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.SetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +177,7 @@ func (ob *OrdersBackend) pathCAConfigCreate(ctx context.Context, req *logical.Re
 // Create or update the IBM Cloud Auth backend configuration
 func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.SetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +250,7 @@ func (ob *OrdersBackend) pathCAConfigUpdate(ctx context.Context, req *logical.Re
 // Read the IBM Cloud Auth backend configuration from storage
 func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.GetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
@@ -269,9 +263,8 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
 	atContext.ResourceName = name
 
-	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), logdna.Error07023, "There are unexpected fields. Verify that the request parameters are valid", true)
-		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
+	if res, err := ob.secretBackend.GetValidator().ValidateUnknownFields(req, d); err != nil {
+		return res, err
 	}
 	foundConfig, err := getCAConfigByName(ctx, req, name)
 	if err != nil {
@@ -290,7 +283,7 @@ func (ob *OrdersBackend) pathCAConfigRead(ctx context.Context, req *logical.Requ
 
 func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	//validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.GetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +315,7 @@ func (ob *OrdersBackend) pathCAConfigList(ctx context.Context, req *logical.Requ
 
 func (ob *OrdersBackend) pathCAConfigDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.SetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}

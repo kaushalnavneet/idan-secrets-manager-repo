@@ -16,12 +16,12 @@ import (
 )
 
 func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
-	atSecretConfigUpdate := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
-		Description: "Set secret engine configuration", Action: common.SetEngineConfigAction, SecretType: SecretTypePublicCert, TargetResourceType: DNS}
-	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
-		Description: "Get secret engine configuration", Action: common.GetEngineConfigAction, SecretType: SecretTypePublicCert, TargetResourceType: DNS}
-	atSecretConfigDelete := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: ConfigTargetTypeURI,
-		Description: "Delete secret engine configuration", Action: DeleteEngineConfigAction, SecretType: SecretTypePublicCert, TargetResourceType: DNS}
+	atSecretConfigUpdate := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: at.ConfigTargetTypeURI,
+		Description: "Set secret engine configuration", Action: common.SetEngineConfigAction, SecretType: secretentry.SecretTypePublicCert, TargetResourceType: DNS}
+	atSecretConfigRead := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: at.ConfigTargetTypeURI,
+		Description: "Get secret engine configuration", Action: common.GetEngineConfigAction, SecretType: secretentry.SecretTypePublicCert, TargetResourceType: DNS}
+	atSecretConfigDelete := &at.ActivityTrackerVault{DataEvent: false, TargetTypeURI: at.ConfigTargetTypeURI,
+		Description: "Delete secret engine configuration", Action: common.DeleteEngineConfigAction, SecretType: secretentry.SecretTypePublicCert, TargetResourceType: DNS}
 
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldName: {
@@ -87,7 +87,7 @@ func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
 // Create or update the IBM Cloud Auth backend configuration
 func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.SetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func (ob *OrdersBackend) pathDnsConfigCreate(ctx context.Context, req *logical.R
 // Create or update the IBM Cloud Auth backend configuration
 func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.SetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
@@ -172,9 +172,8 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 	atContext := ctx.Value(at.AtContextKey).(*at.AtContext)
 	atContext.ResourceName = name
 	// Validate user input
-	if err := common.ValidateUnknownFields(req, d); err != nil {
-		common.ErrorLogForCustomer(err.Error(), logdna.Error07047, "There are unexpected fields. Verify that the request parameters are valid", true)
-		return nil, logical.CodedError(http.StatusUnprocessableEntity, err.Error())
+	if res, err := ob.secretBackend.GetValidator().ValidateUnknownFields(req, d); err != nil {
+		return res, err
 	}
 
 	configToStore, err := ob.createProviderConfigToStore(name, d)
@@ -232,7 +231,7 @@ func (ob *OrdersBackend) pathDnsConfigUpdate(ctx context.Context, req *logical.R
 // Read the IBM Cloud Auth backend configuration from storage
 func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.GetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +266,7 @@ func (ob *OrdersBackend) pathDnsConfigRead(ctx context.Context, req *logical.Req
 
 func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.GetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.GetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +299,7 @@ func (ob *OrdersBackend) pathDnsConfigList(ctx context.Context, req *logical.Req
 
 func (ob *OrdersBackend) pathDnsConfigDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	// validate that the user is authorised to perform this action
-	err := ob.checkAuthorization(ctx, req, common.SetEngineConfigAction)
+	err := ob.secretBackend.GetValidator().ValidateRequestIsAuthorised(ctx, req, common.SetEngineConfigAction, "")
 	if err != nil {
 		return nil, err
 	}

@@ -13,6 +13,9 @@ import (
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
+	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
+	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/idna"
 	"io/ioutil"
@@ -161,7 +164,6 @@ func IsTimeExpired(timeNow time.Time, timeExpiry time.Time) bool {
 }
 
 func validateNames(names []string) error {
-	//TODO add check domains redundancy (if wildcard domain already take over)
 	//regex copied from here - https://github.com/hashicorp/vault/blob/abfc7a844517c87d5dcd32069e6baf682dfa580d/builtin/logical/pki/cert_util.go#L44
 	// A note on hostnameRegex: although we set the StrictDomainName option
 	// when doing the idna conversion, this appears to only affect output, not
@@ -169,27 +171,57 @@ func validateNames(names []string) error {
 	// we still need to use this to check the output.
 	var hostnameRegex = regexp.MustCompile(`^(\*\.)?(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])\.?$`)
 	uniqueDomains := make(map[string]bool)
-	for _, name := range names {
+	wildcardDomains := make([]string, 0)
+	directChildDomains := make(map[string]int)
+	for i, name := range names {
 		sanitizedName := name
 		// If we have an asterisk as the first part of the domain name, mark it
 		// as wildcard and set the sanitized name to the remainder of the  domain
 		if strings.HasPrefix(name, "*.") {
 			sanitizedName = sanitizedName[2:]
+			//add it to the list of wildcard domains but without *
+			wildcardDomains = append(wildcardDomains, sanitizedName)
+		} else {
+			//count this domain in its parent domain
+			point := strings.Index(name, ".")
+			parent := name[point+1:]
+			if _, ok := directChildDomains[parent]; !ok {
+				directChildDomains[parent] = 0
+			}
+			directChildDomains[parent]++
 		}
 		// The domain name MUST be encoded in the form in which it would appear in a certificate.
 		// That is, it MUST be encoded according to the rules in Section 7 of [RFC5280].
 		// https://tools.ietf.org/html/rfc5280#section-7
 		converted, err := idnaValidator.ToASCII(sanitizedName)
 		if err != nil {
-			return err
+			msg := fmt.Sprintf(domainCantBeConvertedToASCII, sanitizedName)
+			common.ErrorLogForCustomer(msg, logdna.Error07106, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07106, http.StatusBadRequest, msg)
+		}
+		//this check is for common name only (the first in the array)
+		if i == 0 && len(converted) > 64 {
+			common.ErrorLogForCustomer(commonNameTooLong, logdna.Error07106, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07106, http.StatusBadRequest, commonNameTooLong)
 		}
 		if !hostnameRegex.MatchString(converted) {
-			return errors.New(" Domain " + name + " is not valid")
+			msg := fmt.Sprintf(invalidDomain, name)
+			common.ErrorLogForCustomer(msg, logdna.Error07107, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07107, http.StatusBadRequest, msg)
 		}
 		if uniqueDomains[converted] {
-			return errors.New(" Domain " + name + " is duplicated")
+			msg := fmt.Sprintf(duplicateDomain, name)
+			common.ErrorLogForCustomer(msg, logdna.Error07108, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07108, http.StatusBadRequest, msg)
+
 		}
 		uniqueDomains[converted] = true
+	}
+	for _, wildcard := range wildcardDomains {
+		if directChildDomains[wildcard] > 0 {
+			common.ErrorLogForCustomer(redundantDomain, logdna.Error07109, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07109, http.StatusBadRequest, redundantDomain)
+		}
 	}
 	return nil
 }

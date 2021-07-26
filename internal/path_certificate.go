@@ -12,10 +12,10 @@ import (
 func (ob *OrdersBackend) pathCertificate() []*framework.Path {
 	atGetCertificate := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName,
 		TargetTypeURI: at.SecretTargetTypeURI, Description: "Get a certificate",
-		Action: common.ReadSecretAction, Method: http.MethodGet, SecretType: SecretTypePublicCert}
+		Action: common.ReadSecretAction, Method: http.MethodGet, SecretType: secretentry.SecretTypePublicCert}
 	atDeleteCertificate := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName,
 		TargetTypeURI: at.SecretTargetTypeURI, Description: "Delete a certificate",
-		Action: common.DeleteSecretAction, Method: http.MethodDelete, SecretType: SecretTypePublicCert}
+		Action: common.DeleteSecretAction, Method: http.MethodDelete, SecretType: secretentry.SecretTypePublicCert}
 
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldId:          common.Fields[secretentry.FieldId],
@@ -52,7 +52,7 @@ func (ob *OrdersBackend) pathCertificate() []*framework.Path {
 
 func (ob *OrdersBackend) pathGetVersion() []*framework.Path {
 	atGetVersion := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName, TargetTypeURI: at.SecretTargetTypeURI,
-		Description: "Get version", Action: common.ReadSecretAction, Method: http.MethodGet, SecretType: SecretTypePublicCert}
+		Description: "Get version", Action: common.ReadSecretAction, Method: http.MethodGet, SecretType: secretentry.SecretTypePublicCert}
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldId:        common.Fields[secretentry.FieldId],
 		secretentry.FieldGroupId:   common.Fields[secretentry.FieldGroupId],
@@ -87,11 +87,11 @@ func (ob *OrdersBackend) pathGetVersion() []*framework.Path {
 
 func (ob *OrdersBackend) pathCertificateMetadata() []*framework.Path {
 	atGetCertificate := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName,
-		TargetTypeURI: SecretMetadataTargetTypeURI, Description: "Get a certificate metadata",
-		Action: common.ReadSecretMetadataAction, Method: http.MethodGet, SecretType: SecretTypePublicCert}
+		TargetTypeURI: at.SecretMetadataTargetTypeURI, Description: "Get a certificate metadata",
+		Action: common.ReadSecretMetadataAction, Method: http.MethodGet, SecretType: secretentry.SecretTypePublicCert}
 	atUpdateCertificate := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName,
-		TargetTypeURI: SecretMetadataTargetTypeURI, Description: "Update a certificate metadata",
-		Action: common.UpdateSecretMetadataAction, Method: http.MethodPut, SecretType: SecretTypePublicCert}
+		TargetTypeURI: at.SecretMetadataTargetTypeURI, Description: "Update a certificate metadata",
+		Action: common.UpdateSecretMetadataAction, Method: http.MethodPut, SecretType: secretentry.SecretTypePublicCert}
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldId:          common.Fields[secretentry.FieldId],
 		secretentry.FieldGroupId:     common.Fields[secretentry.FieldGroupId],
@@ -133,9 +133,9 @@ func (ob *OrdersBackend) pathCertificateMetadata() []*framework.Path {
 }
 
 func (ob *OrdersBackend) pathGetVersionMetadata() []*framework.Path {
-	atGetVersion := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName, TargetTypeURI: SecretMetadataTargetTypeURI,
+	atGetVersion := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName, TargetTypeURI: at.SecretMetadataTargetTypeURI,
 		Description: "Get version metadata", Action: common.ReadSecretMetadataAction, Method: http.MethodGet,
-		SecretType: SecretTypePublicCert}
+		SecretType: secretentry.SecretTypePublicCert}
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldId:        common.Fields[secretentry.FieldId],
 		secretentry.FieldGroupId:   common.Fields[secretentry.FieldGroupId],
