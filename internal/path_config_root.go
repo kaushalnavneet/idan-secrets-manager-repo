@@ -2,14 +2,15 @@ package publiccerts
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	at "github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
+	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
+	"net/http"
 )
 
 func (ob *OrdersBackend) pathConfigRoot() []*framework.Path {
@@ -52,7 +53,7 @@ func (ob *OrdersBackend) pathRootConfigRead(ctx context.Context, req *logical.Re
 		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
 		common.Logger().Error(errorMessage)
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07004, logdna.InternalErrorMessage, false)
-		return nil, errors.New(errorMessage)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07004, http.StatusInternalServerError, internalServerError)
 	}
 
 	respData := make(map[string]interface{})

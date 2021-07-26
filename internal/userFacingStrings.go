@@ -76,3 +76,10 @@ It updates the secret's policy with the parameters that were provided, and retur
 		"\n" + policyReadOpDesc +
 		"\n" + policyUpdateOpDesc
 )
+
+//policies validation errors
+const (
+	policiesMoreThanOne       = "Received more than one policy"
+	policiesNotValidStructure = "Rotation policy has not valid structure"
+	policiesNotValidField     = "Field %s in rotation policy is not valid. "
+)

@@ -187,8 +187,8 @@ func (oh *OrdersHandler) GetInputPolicies(data *framework.FieldData) (*policies.
 	requestPolicies, err := getPoliciesFromFieldData(data)
 	if err != nil {
 		msg := "Invalid policies: " + err.Error()
-		common.ErrorLogForCustomer(msg, logdna.Error07095, "Verify that the policies parameter is valid", true)
-		return nil, commonErrors.GenerateCodedError(logdna.Error07095, http.StatusBadRequest, msg)
+		common.ErrorLogForCustomer(msg, logdna.Error07090, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07090, http.StatusBadRequest, msg)
 	}
 	return requestPolicies, nil
 
@@ -198,16 +198,16 @@ func (oh *OrdersHandler) BuildPoliciesResponse(entry *secretentry.SecretEntry, p
 	rotation := entry.Policies.Rotation.FieldsToMap([]string{policies.FieldAutoRotate, policies.FieldRotateKeys})
 	policyMap := make([]map[string]interface{}, 1)
 	policyMap[0] = rotation
-	policies := map[string]interface{}{"policies": policyMap}
-	return policies
+	policiesMap := map[string]interface{}{policies.FieldPolicies: policyMap}
+	return policiesMap
 }
 
 func (oh *OrdersHandler) UpdatePoliciesData(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry, cpp secret_backend.CommonPolicyParams) (*logical.Response, error) {
 	err := secretEntry.Policies.UpdateRotationPolicy(cpp.Policies.Rotation, cpp.UserId, cpp.CRN)
 	if err != nil {
-		common.Logger().Error("could not update rotation policy", "error", err)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error07093, logdna.InternalErrorMessage, false)
-		return common.ResponseInternalError()
+		common.Logger().Error("Could not update rotation policy", "error", err)
+		common.ErrorLogForCustomer(internalServerError, logdna.Error07091, logdna.InternalErrorMessage, false)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07091, http.StatusInternalServerError, internalServerError)
 	}
 	return nil, nil
 }
@@ -437,7 +437,10 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		secretEntry.ExpirationDate = certData.Metadata.NotAfter
 		secretEntry.State = secretentry.StateActive
 	}
-	common.StoreSecretWithoutLocking(secretEntry, storage, context.Background())
+	err := common.StoreSecretWithoutLocking(secretEntry, storage, context.Background())
+	if err != nil {
+		common.Logger().Error("Couldn't save order result to storage: " + err.Error())
+	}
 
 }
 
@@ -465,6 +468,10 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, storage logic
 		if err != nil {
 			return nil, err
 		}
+		if authConfig == nil {
+			common.Logger().Error("Iam config is missing in the storage")
+			return nil, commonErrors.GenerateCodedError(logdna.Error07092, http.StatusInternalServerError, internalServerError)
+		}
 		conf := &iam.Config{
 			IamEndpoint:  authConfig.IAMEndpoint,
 			ApiKey:       authConfig.Service.APIKey,
@@ -476,7 +483,7 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, storage logic
 		err = iam.Configure(conf)
 		if err != nil {
 			common.Logger().Error("Failed to configure iam", "error", err)
-			return nil, err
+			return nil, commonErrors.GenerateCodedError(logdna.Error07093, http.StatusInternalServerError, internalServerError)
 		}
 	}
 	return oh.iam, nil
@@ -484,17 +491,20 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, storage logic
 
 func getPoliciesFromFieldData(data *framework.FieldData) (*policies.Policies, error) {
 	newPolicies := &policies.Policies{}
-	rawPolicies := data.Get("policies").([]interface{})
+	rawPolicies := data.Get(policies.FieldPolicies).([]interface{})
 	if len(rawPolicies) > 1 {
-		return nil, fmt.Errorf("received more than one policy")
+		common.ErrorLogForCustomer(policiesMoreThanOne, logdna.Error07094, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07094, http.StatusBadRequest, policiesMoreThanOne)
 	}
 	policyMap, ok := rawPolicies[0].(map[string]interface{})
 	if !ok {
-		return nil, commonErrors.GenerateCodedError(logdna.Error07094, http.StatusBadRequest, "rotation policy is not valid ")
+		common.ErrorLogForCustomer(policiesNotValidStructure, logdna.Error07095, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07095, http.StatusBadRequest, policiesNotValidStructure)
 	}
-	rawRotation, ok := policyMap["rotation"]
+	rawRotation, ok := policyMap[policies.PolicyTypeRotation]
 	if !ok {
-		return nil, commonErrors.GenerateCodedError(logdna.Error07095, http.StatusBadRequest, "rotation policy is not valid ")
+		common.ErrorLogForCustomer(policiesNotValidStructure, logdna.Error07096, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07096, http.StatusBadRequest, policiesNotValidStructure)
 	}
 	newPolicy, err := getRotationPolicy(rawRotation)
 	if err != nil {
@@ -507,15 +517,20 @@ func getPoliciesFromFieldData(data *framework.FieldData) (*policies.Policies, er
 func getRotationPolicy(rawPolicy interface{}) (*policies.RotationPolicy, error) {
 	policy, ok := rawPolicy.(map[string]interface{})
 	if !ok {
-		return nil, commonErrors.GenerateCodedError(logdna.Error07090, http.StatusBadRequest, "rotation policy has not valid structure")
+		common.ErrorLogForCustomer(policiesNotValidStructure, logdna.Error07097, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07097, http.StatusBadRequest, policiesNotValidStructure)
 	}
 	autoRotate, ok := policy[policies.FieldAutoRotate].(bool)
 	if !ok {
-		return nil, commonErrors.GenerateCodedError(logdna.Error07094, http.StatusBadRequest, fmt.Sprintf("field %s in rotation policy is not valid. ", policies.FieldAutoRotate))
+		msg := fmt.Sprintf(policiesNotValidField, policies.FieldAutoRotate)
+		common.ErrorLogForCustomer(msg, logdna.Error07098, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07098, http.StatusBadRequest, msg)
 	}
 	rotateKeys, ok := policy[policies.FieldRotateKeys].(bool)
 	if !ok {
-		return nil, commonErrors.GenerateCodedError(logdna.Error07096, http.StatusBadRequest, fmt.Sprintf("field %s in rotation policy is not valid ", policies.FieldRotateKeys))
+		msg := fmt.Sprintf(policiesNotValidField, policies.FieldRotateKeys)
+		common.ErrorLogForCustomer(msg, logdna.Error07099, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07099, http.StatusBadRequest, msg)
 	}
 	rotationPolicy := policies.RotationPolicy{
 		Rotation: &policies.RotationData{
