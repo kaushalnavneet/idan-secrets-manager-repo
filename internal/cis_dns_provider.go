@@ -8,6 +8,7 @@ import (
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
+	"github.ibm.com/security-services/secrets-manager-iam/pkg/crn"
 	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
@@ -67,9 +68,14 @@ type CISRequest struct {
 	TTL     int    `json:"ttl"`
 }
 
+const (
+	cisCrn    = "CIS_CRN"
+	cisApikey = "CIS_APIKEY"
+)
+
 func NewCISDNSProvider(providerConfig map[string]string, smInstanceCrn string) *CISDNSConfig {
-	crn := providerConfig["CIS_CRN"]
-	apikey := providerConfig["CIS_APIKEY"]
+	crn := providerConfig[cisCrn]
+	apikey := providerConfig[cisApikey]
 
 	//create resty client
 	cf := &rest_client_impl.RestClientFactory{}
@@ -295,16 +301,18 @@ func (c *CISDNSConfig) buildRequestHeader() (*map[string]string, error) {
 		}
 	}
 	if c.iamToken == "" {
-		var iamToken string
+		var iamToken, msg string
 		var err error
 		common.Logger().Info("Obtaining IAM token for CIS access.")
 		if c.APIKey != "" {
 			iamToken, _, err = iam.ObtainCachedToken(c.IAMEndpoint, c.APIKey, "", "", "")
+			msg = obtainTokenError
 		} else {
 			iamToken, _, err = iam.ObtainCrnToken(c.IAMEndpoint, c.smInstanceCrn)
+			msg = obtainCRNTokenError
 		}
 		if err != nil {
-			msg := "Failed to obtain IAM token for CIS access: " + err.Error()
+			msg = msg + err.Error()
 			common.Logger().Error(msg)
 			return &headers, errors.New(msg)
 		}
@@ -336,7 +344,7 @@ func (c *CISDNSConfig) validateConfig() error {
 	}
 	if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
 		common.Logger().Error("Couldn't get zone by domain name: Authorization error ")
-		return buildError(logdna.Error07088, fmt.Sprintf(authorizationErrorCIS, "to get zones from"))
+		return buildError(logdna.Error07088, fmt.Sprintf(authorizationErrorCIS, "to access"))
 	}
 	cisError := getCISErrors(response.Errors)
 	common.Logger().Error("Couldn't get zones: " + cisError)
@@ -367,6 +375,26 @@ func getCISErrors(errors []CISError) string {
 
 func buildError(code, message string) error {
 	return fmt.Errorf(errorPattern, code, message)
+}
+
+func validateCISConfigStructure(config map[string]string) error {
+	if crnValue, ok := config[cisCrn]; !ok {
+		common.ErrorLogForCustomer(missingCISInstanceCrn, logdna.Error07065, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07065, http.StatusBadRequest, missingCISInstanceCrn)
+	} else if validCrn, err := crn.ToCRN(crnValue); err != nil {
+		common.ErrorLogForCustomer(invalidCISInstanceCrn, logdna.Error07066, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07066, http.StatusBadRequest, invalidCISInstanceCrn)
+	} else if validCrn.ServiceName != "internet-svcs-ci" && validCrn.ServiceName != "internet-svcs" {
+		common.ErrorLogForCustomer(invalidCISInstanceCrn, logdna.Error07067, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07067, http.StatusBadRequest, invalidCISInstanceCrn)
+	}
+	for k, _ := range config {
+		if k != cisCrn && k != cisApikey {
+			common.ErrorLogForCustomer(invalidCISConfigStruct, logdna.Error07068, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07068, http.StatusBadRequest, invalidCISConfigStruct)
+		}
+	}
+	return nil
 }
 
 //TODO: Enable timeout!
