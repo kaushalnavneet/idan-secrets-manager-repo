@@ -2,12 +2,16 @@ package publiccerts
 
 //Errors in communication with CIS
 const (
-	domainIsNotFoundInCIS = "Domain %s is not found in the IBM Cloud Internet Services instance"
-	authorizationErrorCIS = "Authorization error when trying %s the IBM Cloud Internet Services instance"
-	errorResponseFromCIS  = "IBM Cloud Internet Services responded with an error"
-	internalServerError   = "Internal server Error"
-	unavailableCISError   = "Could not call IBM Cloud Internet Services API. Try again later"
-	obtainTokenError      = "Couldn't obtain IAM token for  CIS access"
+	domainIsNotFoundInCIS  = "Domain %s is not found in the IBM Cloud Internet Services instance"
+	authorizationErrorCIS  = "Authorization error when trying %s the IBM Cloud Internet Services instance"
+	errorResponseFromCIS   = "IBM Cloud Internet Services responded with an error"
+	internalServerError    = "Internal server Error"
+	unavailableCISError    = "Couldn't call IBM Cloud Internet Services API. Try again later"
+	obtainTokenError       = "Couldn't obtain IAM token for provided ApiKey in order to access IBM Cloud Internet Services"
+	obtainCRNTokenError    = "Couldn't obtain IAM S2S token in order to access IBM Cloud Internet Services"
+	missingCISInstanceCrn  = "Property CIS_CRN is missing in dns provider config"
+	invalidCISInstanceCrn  = "IBM Cloud Internet Services instance crn is not valid"
+	invalidCISConfigStruct = "DNS provider configuration of type 'cis' has a wrong structure. It may contain only properties CIS_CRN and CIS_APIKEY."
 )
 
 //Validation errors
@@ -67,11 +71,12 @@ The limit and offset parameters are used for pagination.`
 //policies operations
 const (
 	policyReadOpSummary = "Reads the policy of a secret."
-	policyReadOpDesc    = `The policy read operation receives the secretId parameter as part of the path.
-It returns the secret's policy, in case it was defined for this secret'.`
+	policyReadOpDesc    = `The policy read operation receives the secretId parameter as part of the path. It returns the secret's policy'.`
+
 	policyUpdateOpSummary = "Updates the policy of a secret."
 	policyUpdateOpDesc    = `The update operation receives the secretId parameter as part of the path.
 It updates the secret's policy with the parameters that were provided, and returns the updated policy.`
+
 	policyOperationsHelpSyn  = `Read and update a secret's policy for secrets in the User Credentials Secrets store.`
 	policyOperationsHelpDesc = `This path takes a secretId and attempts to perform the policy read/update operation for the secret with this secretId.` +
 		"\n" + policyReadOpDesc +

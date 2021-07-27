@@ -29,6 +29,10 @@ func NewDnsProviderConfig(name, providerType string, config map[string]string, s
 func (p *DnsProviderConfig) validateConfig() error {
 	switch p.Type {
 	case "cis":
+		err := validateCISConfigStructure(p.Config)
+		if err != nil {
+			return err
+		}
 		return NewCISDNSProvider(p.Config, p.smInstanceCrn).validateConfig()
 	default:
 		//TODO we won't want to support ALL providers, it should be locked list
