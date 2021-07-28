@@ -69,8 +69,10 @@ type CISRequest struct {
 }
 
 const (
-	cisCrn    = "CIS_CRN"
-	cisApikey = "CIS_APIKEY"
+	cisCrn             = "CIS_CRN"
+	cisApikey          = "CIS_APIKEY"
+	PropagationTimeout = 5 * time.Minute
+	PollingInterval    = 2 * time.Second
 )
 
 func NewCISDNSProvider(providerConfig map[string]string, smInstanceCrn string) *CISDNSConfig {
@@ -397,9 +399,8 @@ func validateCISConfigStructure(config map[string]string) error {
 	return nil
 }
 
-//TODO: Enable timeout!
-//// Timeout returns the timeout and interval to use when checking for DNS propagation.
-//// Adjusting here to cope with spikes in propagation times.
-//func (c *CISDNSConfig) Timeout() (timeout, interval time.Duration) {
-//	return d.config.PropagationTimeout, d.config.PollingInterval
-//}
+// Timeout returns the timeout and interval to use when checking for DNS propagation.
+// Adjusting here to cope with spikes in propagation times.
+func (c *CISDNSConfig) Timeout() (timeout, interval time.Duration) {
+	return PropagationTimeout, PollingInterval
+}
