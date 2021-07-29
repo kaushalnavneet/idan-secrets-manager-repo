@@ -52,3 +52,12 @@ const (
 	DirectoryLetsEncryptProd       = "https://acme-v02.api.letsencrypt.org/directory"
 	DirectoryLetsEncryptStage      = "https://acme-staging-v02.api.letsencrypt.org/directory"
 )
+
+const (
+	cisCrn             = "CIS_CRN"
+	cisApikey          = "CIS_APIKEY"
+	PropagationTimeout = 5 * time.Minute
+	PollingInterval    = 2 * time.Second
+	serviceCISint      = "internet-svcs-ci"
+	serviceCIS         = "internet-svcs"
+)

@@ -68,13 +68,6 @@ type CISRequest struct {
 	TTL     int    `json:"ttl"`
 }
 
-const (
-	cisCrn             = "CIS_CRN"
-	cisApikey          = "CIS_APIKEY"
-	PropagationTimeout = 5 * time.Minute
-	PollingInterval    = 2 * time.Second
-)
-
 func NewCISDNSProvider(providerConfig map[string]string, smInstanceCrn string) *CISDNSConfig {
 	crn := providerConfig[cisCrn]
 	apikey := providerConfig[cisApikey]
@@ -89,8 +82,8 @@ func NewCISDNSProvider(providerConfig map[string]string, smInstanceCrn string) *
 	})
 	var cisURL, iamURL string
 	if strings.Contains(crn, "staging") {
-		if strings.Contains(crn, "internet-svcs-ci") {
-			cisURL = "https://api.cis.test.cloud.ibm.com/v1"
+		if strings.Contains(crn, serviceCISint) {
+			cisURL = "https://api.int.cis.cloud.ibm.com/v1"
 		} else {
 			cisURL = "https://api.stage.cis.cloud.ibm.com/v1"
 		}
@@ -390,7 +383,7 @@ func validateCISConfigStructure(config map[string]string) error {
 	} else if validCrn, err := crn.ToCRN(crnValue); err != nil {
 		common.ErrorLogForCustomer(invalidCISInstanceCrn, logdna.Error07066, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07066, http.StatusBadRequest, invalidCISInstanceCrn)
-	} else if validCrn.ServiceName != "internet-svcs-ci" && validCrn.ServiceName != "internet-svcs" {
+	} else if validCrn.ServiceName != serviceCISint && validCrn.ServiceName != serviceCIS {
 		common.ErrorLogForCustomer(invalidCISInstanceCrn, logdna.Error07067, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07067, http.StatusBadRequest, invalidCISInstanceCrn)
 	}
