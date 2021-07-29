@@ -89,7 +89,11 @@ func NewCISDNSProvider(providerConfig map[string]string, smInstanceCrn string) *
 	})
 	var cisURL, iamURL string
 	if strings.Contains(crn, "staging") {
-		cisURL = "https://api.int.cis.cloud.ibm.com/v1"
+		if strings.Contains(crn, "internet-svcs-ci") {
+			cisURL = "https://api.cis.test.cloud.ibm.com/v1"
+		} else {
+			cisURL = "https://api.stage.cis.cloud.ibm.com/v1"
+		}
 		iamURL = "https://iam.test.cloud.ibm.com"
 	} else {
 		cisURL = "https://api.cis.cloud.ibm.com/v1"
