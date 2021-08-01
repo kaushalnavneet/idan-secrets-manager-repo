@@ -7,14 +7,14 @@ func GetDNSTypesAllowedValues() []interface{} {
 }
 
 //this function is used for dns config only
-func prepareDNSConfigToStore(p *ProviderConfig) error {
+func prepareDNSConfigToStore(p *ProviderConfig, smInstanceCrn string) error {
 	switch p.Type {
 	case dnsConfigTypeCIS:
-		err := validateCISConfigStructure(p.Config)
+		err := validateCISConfigStructure(p.Config, smInstanceCrn)
 		if err != nil {
 			return err
 		}
-		return NewCISDNSProvider(p.Config, p.smInstanceCrn).validateConfig()
+		return NewCISDNSProvider(p.Config).validateConfig()
 	default:
 		//TODO we won't support ALL providers, it should be locked list
 		_, err := dns.NewDNSChallengeProviderByName(p.Type)

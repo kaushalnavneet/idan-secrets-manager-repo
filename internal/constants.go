@@ -56,6 +56,7 @@ const (
 const (
 	dnsConfigCisCrn      = "CIS_CRN"
 	dnsConfigCisApikey   = "CIS_APIKEY"
+	dnsConfigSMCrn       = "SM_CRN"
 	caConfigPrivateKey   = "PRIVATE_KEY"
 	caConfigRegistration = "REGISTRATION"
 	caConfigEmail        = "EMAIL"

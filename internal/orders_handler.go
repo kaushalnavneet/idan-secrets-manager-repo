@@ -313,8 +313,6 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	if err != nil {
 		return err
 	}
-	//update current SM instance crn in dns config (for S2S communication)
-	dnsConfig.smInstanceCrn = oh.smInstanceCrn
 	//validate domains
 	domains := getNames(data.CommonName, data.AltName)
 	err = validateNames(domains)

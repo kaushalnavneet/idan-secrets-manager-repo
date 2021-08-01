@@ -68,9 +68,10 @@ type CISRequest struct {
 	TTL     int    `json:"ttl"`
 }
 
-func NewCISDNSProvider(providerConfig map[string]string, smInstanceCrn string) *CISDNSConfig {
+func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
 	cisCrn := providerConfig[dnsConfigCisCrn]
 	apikey := providerConfig[dnsConfigCisApikey]
+	smInstanceCrn := providerConfig[dnsConfigSMCrn]
 
 	//create resty client
 	cf := &rest_client_impl.RestClientFactory{}
@@ -376,7 +377,7 @@ func buildError(code, message string) error {
 	return fmt.Errorf(errorPattern, code, message)
 }
 
-func validateCISConfigStructure(config map[string]string) error {
+func validateCISConfigStructure(config map[string]string, smInstanceCrn string) error {
 	if crnValue, ok := config[dnsConfigCisCrn]; !ok {
 		message := fmt.Sprintf(configMissingField, providerTypeDNS, dnsConfigCisCrn)
 		common.ErrorLogForCustomer(message, logdna.Error07065, logdna.BadRequestErrorMessage, true)
@@ -394,6 +395,10 @@ func validateCISConfigStructure(config map[string]string) error {
 			common.ErrorLogForCustomer(message, logdna.Error07068, logdna.BadRequestErrorMessage, true)
 			return commonErrors.GenerateCodedError(logdna.Error07068, http.StatusBadRequest, message)
 		}
+	}
+	//if cis api key was not provided, add sm crn for s2s tokens
+	if _, ok := config[dnsConfigCisApikey]; !ok {
+		config[dnsConfigSMCrn] = smInstanceCrn
 	}
 	return nil
 }

@@ -470,12 +470,12 @@ func (ob *OrdersBackend) createConfigToStore(name string, providerType string, d
 	if !ok || config == nil {
 		return nil, fmt.Errorf("config field is not valid. It should be key-value map")
 	}
-	configToStore := NewProviderConfig(name, configType, config, ob.ordersHandler.smInstanceCrn)
+	configToStore := NewProviderConfig(name, configType, config)
 
 	if providerType == providerTypeCA {
 		err = prepareCAConfigToStore(configToStore)
 	} else {
-		err = prepareDNSConfigToStore(configToStore)
+		err = prepareDNSConfigToStore(configToStore, ob.ordersHandler.smInstanceCrn)
 	}
 	if err != nil {
 		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())

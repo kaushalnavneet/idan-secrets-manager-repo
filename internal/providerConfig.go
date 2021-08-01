@@ -1,18 +1,16 @@
 package publiccerts
 
 type ProviderConfig struct {
-	Name          string            `json:"name"`
-	Type          string            `json:"type"`
-	Config        map[string]string `json:"config"`
-	smInstanceCrn string
+	Name   string            `json:"name"`
+	Type   string            `json:"type"`
+	Config map[string]string `json:"config"`
 }
 
-func NewProviderConfig(name, configType string, config map[string]string, smInstanceCrn string) *ProviderConfig {
+func NewProviderConfig(name, configType string, config map[string]string) *ProviderConfig {
 	providerConfig := &ProviderConfig{
-		Name:          name,
-		Type:          configType,
-		Config:        config,
-		smInstanceCrn: smInstanceCrn,
+		Name:   name,
+		Type:   configType,
+		Config: config,
 	}
 	return providerConfig
 }
