@@ -3,13 +3,13 @@ package publiccerts
 import "github.com/go-acme/lego/v4/providers/dns"
 
 func GetDNSTypesAllowedValues() []interface{} {
-	return []interface{}{"cis"}
+	return []interface{}{dnsConfigTypeCIS}
 }
 
 //this function is used for dns config only
 func prepareDNSConfigToStore(p *ProviderConfig) error {
 	switch p.Type {
-	case "cis":
+	case dnsConfigTypeCIS:
 		err := validateCISConfigStructure(p.Config)
 		if err != nil {
 			return err

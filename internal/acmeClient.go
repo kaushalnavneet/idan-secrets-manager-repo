@@ -59,7 +59,7 @@ func (client *Client) setDNSProvider(dnsProvider *ProviderConfig, domains []stri
 		err := client.LegoClient.Challenge.SetDNS01Provider(NewPebbleDNSClient(host, port), challengeOption)
 		return err
 
-	} else if providerType == "cis" {
+	} else if providerType == dnsConfigTypeCIS {
 		err := client.LegoClient.Challenge.SetDNS01Provider(NewCISDNSProvider(providerConfiguration, dnsProvider.smInstanceCrn), challengeOption)
 		return err
 

@@ -10,6 +10,10 @@ import (
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
+	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
+	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
+	"net/http"
 )
 
 type CAUserConfig struct {
@@ -32,7 +36,7 @@ func init() {
 		CaTypeLetsEncryptStage: DirectoryLetsEncryptStage,
 	}
 	validCaProviders = make([]interface{}, 0, len(caProviders))
-	for k, _ := range caProviders {
+	for k := range caProviders {
 		validCaProviders = append(validCaProviders, k)
 	}
 }
@@ -131,6 +135,13 @@ func prepareCAConfigToStore(p *ProviderConfig) error {
 	//it's not expected to get this field
 	//we can fill it with constant LE root cert if needed
 	caCert := p.Config[caConfigCARootCert]
+	for k := range p.Config {
+		if k != caConfigPrivateKey {
+			message := fmt.Sprintf(invalidConfigStruct, providerTypeCA, p.Type, "["+caConfigPrivateKey+"]")
+			common.ErrorLogForCustomer(message, logdna.Error07023, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07023, http.StatusBadRequest, message)
+		}
+	}
 	ca, err := NewCAUserConfig(p.Type, privateKeyPEM, caCert, email)
 	if err != nil {
 		return err

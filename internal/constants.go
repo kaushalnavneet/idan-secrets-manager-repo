@@ -63,6 +63,7 @@ const (
 	caConfigCARootCert   = "CA_ROOT_CERT"
 	serviceCISint        = "internet-svcs-ci"
 	serviceCIS           = "internet-svcs"
+	dnsConfigTypeCIS     = "cis"
 )
 
 var (
