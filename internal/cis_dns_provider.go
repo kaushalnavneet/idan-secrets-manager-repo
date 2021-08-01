@@ -69,8 +69,8 @@ type CISRequest struct {
 }
 
 func NewCISDNSProvider(providerConfig map[string]string, smInstanceCrn string) *CISDNSConfig {
-	crn := providerConfig[cisCrn]
-	apikey := providerConfig[cisApikey]
+	crn := providerConfig[dnsConfigCisCrn]
+	apikey := providerConfig[dnsConfigCisApikey]
 
 	//create resty client
 	cf := &rest_client_impl.RestClientFactory{}
@@ -377,7 +377,7 @@ func buildError(code, message string) error {
 }
 
 func validateCISConfigStructure(config map[string]string) error {
-	if crnValue, ok := config[cisCrn]; !ok {
+	if crnValue, ok := config[dnsConfigCisCrn]; !ok {
 		common.ErrorLogForCustomer(missingCISInstanceCrn, logdna.Error07065, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07065, http.StatusBadRequest, missingCISInstanceCrn)
 	} else if validCrn, err := crn.ToCRN(crnValue); err != nil {
@@ -388,7 +388,7 @@ func validateCISConfigStructure(config map[string]string) error {
 		return commonErrors.GenerateCodedError(logdna.Error07067, http.StatusBadRequest, invalidCISInstanceCrn)
 	}
 	for k, _ := range config {
-		if k != cisCrn && k != cisApikey {
+		if k != dnsConfigCisCrn && k != dnsConfigCisApikey {
 			common.ErrorLogForCustomer(invalidCISConfigStruct, logdna.Error07068, logdna.BadRequestErrorMessage, true)
 			return commonErrors.GenerateCodedError(logdna.Error07068, http.StatusBadRequest, invalidCISConfigStruct)
 		}

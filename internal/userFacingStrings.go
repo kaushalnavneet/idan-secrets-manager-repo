@@ -14,6 +14,23 @@ const (
 	invalidCISConfigStruct = "DNS provider configuration of type 'cis' has a wrong structure. It may contain only properties CIS_CRN and CIS_APIKEY."
 )
 
+//errors in Configs
+const (
+	providerTypeCA    = "Certificate Authority"
+	providerTypeDNS   = "DNS Provider"
+	reachedTheMaximum = "This %s configuration couldn't be added because you have reached the maximum number of configurations (%d)"
+	nameAlreadyExists = "%s configuration with name '%s' already exists"
+	configNotFound    = "%s configuration with name '%s' was not found"
+	missingField      = "property %s is missing in config"
+)
+
+//activity tracker actions
+const (
+	atSetConfigAction    = "Set secret engine configuration"
+	atGetConfigAction    = "Get secret engine configuration"
+	atDeleteConfigAction = "Delete secret engine configuration"
+)
+
 //Validation errors
 const (
 	commonNameTooLong            = "A primary domain name cannot be longer than 64 bytes"
@@ -35,6 +52,10 @@ const (
 	GetRootConfigOpDesc    = "Get all the configuration values"
 	GetRootConfigHelpSyn   = "Read the root configuration."
 	GetRootConfigHelpDesc  = "Read the root configuration."
+	caConfigSyn            = "Read and Update the CA configuration."
+	caConfigDesc           = "Read and Update the CA configuration."
+	dnsConfigSyn           = "Read and Update the dns provider configuration."
+	dnsConfigDesc          = "Read and Update the dns provider configuration."
 )
 
 //api operations descriptions
