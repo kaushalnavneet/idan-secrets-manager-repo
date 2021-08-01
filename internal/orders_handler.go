@@ -162,9 +162,9 @@ func (oh *OrdersHandler) MapSecretEntry(entry *secretentry.SecretEntry, operatio
 // UpdateSecretEntryMetadata Update secret entry metadata
 func (oh *OrdersHandler) UpdateSecretEntryMetadata(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry) (*logical.Response, error) {
 	// update name
-	newNameRaw, ok := data.GetOk(secretentry.FieldName)
+	newNameRaw, ok := data.GetOk(FieldName)
 	if !ok {
-		msg := fmt.Sprintf("Invalid %s parameter", secretentry.FieldName)
+		msg := fmt.Sprintf("Invalid %s parameter", FieldName)
 		common.ErrorLogForCustomer(msg, logdna.Error01035, logdna.BadRequestErrorMessage, true)
 		return nil, logical.CodedError(http.StatusBadRequest, msg)
 	}
@@ -295,16 +295,21 @@ func (oh *OrdersHandler) mapSecretVersionForVersionsList(version *secretentry.Se
 
 //builds work item (with validation) and save it in memory
 func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.Request, data *certificate.CertificateMetadata, privateKey []byte) error {
+	err := oh.configureIamIfNeeded(ctx, req)
+	if err != nil {
+		return err
+	}
+
 	caConfigName := data.IssuanceInfo[FieldCAConfig].(string)
 	dnsConfigName := data.IssuanceInfo[FieldDNSConfig].(string)
 	isBundle := data.IssuanceInfo[FieldBundleCert].(bool)
 	//get ca config from the storage
-	caConfig, err := getCAConfigByName(ctx, req, caConfigName)
+	caConfig, err := getConfigByName(caConfigName, providerTypeCA, ctx, req)
 	if err != nil {
 		return err
 	}
 	//get dns config from the storage
-	dnsConfig, err := getDNSConfigByName(ctx, req, dnsConfigName)
+	dnsConfig, err := getConfigByName(dnsConfigName, providerTypeDNS, ctx, req)
 	if err != nil {
 		return err
 	}
@@ -317,19 +322,18 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 		return err
 	}
 
-	block, _ := pem.Decode([]byte(caConfig.PrivateKey))
+	block, _ := pem.Decode([]byte(caConfig.Config[caConfigPrivateKey]))
 	caPrivKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
 		return err
 	}
 
 	ca := &CAUserConfig{
-		Name:         caConfig.Name,
-		CARootCert:   caConfig.CARootCert,
-		DirectoryURL: caConfig.DirectoryURL,
-		Email:        caConfig.Email,
+		CARootCert:   caConfig.Config[caConfigCARootCert],
+		DirectoryURL: caConfig.Config[caConfigDirectoryUrl],
+		Email:        caConfig.Config[caConfigEmail],
 		Registration: &registration.Resource{
-			URI: caConfig.RegistrationURL,
+			URI: caConfig.Config[caConfigRegistration],
 		},
 		key: caPrivKey,
 	}
@@ -339,10 +343,7 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	if err != nil {
 		return err
 	}
-	err = oh.configureIamIfNeeded(ctx, req)
-	if err != nil {
-		return err
-	}
+
 	workItem := WorkItem{
 		storage:    req.Storage,
 		userConfig: ca,
@@ -467,7 +468,6 @@ func (oh *OrdersHandler) getOrderResponse(entry *secretentry.SecretEntry) map[st
 
 func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.Request) error {
 	storage := req.Storage
-	//todo add lock
 	if oh.iamConfig == nil {
 		authConfig, err := common.ObtainAuthConfigFromStorage(ctx, storage)
 		if err != nil {

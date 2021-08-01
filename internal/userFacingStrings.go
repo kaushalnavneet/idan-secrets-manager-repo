@@ -2,16 +2,33 @@ package publiccerts
 
 //Errors in communication with CIS
 const (
-	domainIsNotFoundInCIS  = "Domain %s is not found in the IBM Cloud Internet Services instance"
-	authorizationErrorCIS  = "Authorization error when trying %s the IBM Cloud Internet Services instance"
-	errorResponseFromCIS   = "IBM Cloud Internet Services responded with an error"
-	internalServerError    = "Internal server Error"
-	unavailableCISError    = "Couldn't call IBM Cloud Internet Services API. Try again later"
-	obtainTokenError       = "Couldn't obtain IAM token for provided ApiKey in order to access IBM Cloud Internet Services"
-	obtainCRNTokenError    = "Couldn't obtain IAM S2S token in order to access IBM Cloud Internet Services"
-	missingCISInstanceCrn  = "Property CIS_CRN is missing in dns provider config"
-	invalidCISInstanceCrn  = "IBM Cloud Internet Services instance crn is not valid"
-	invalidCISConfigStruct = "DNS provider configuration of type 'cis' has a wrong structure. It may contain only properties CIS_CRN and CIS_APIKEY."
+	domainIsNotFoundInCIS = "Domain %s is not found in the IBM Cloud Internet Services instance"
+	authorizationErrorCIS = "Authorization error when trying %s the IBM Cloud Internet Services instance"
+	errorResponseFromCIS  = "IBM Cloud Internet Services responded with an error"
+	internalServerError   = "Internal server Error"
+	unavailableCISError   = "Couldn't call IBM Cloud Internet Services API. Try again later"
+	obtainTokenError      = "Couldn't obtain IAM token for provided ApiKey in order to access IBM Cloud Internet Services"
+	obtainCRNTokenError   = "Couldn't obtain IAM S2S token in order to access IBM Cloud Internet Services"
+	missingCISInstanceCrn = "Property CIS_CRN is missing in dns provider config"
+	invalidCISInstanceCrn = "IBM Cloud Internet Services instance crn is not valid"
+	invalidConfigStruct   = "%s configuration of type '%s' has a wrong structure. It may contain only properties %s."
+)
+
+//errors in Configs
+const (
+	providerTypeCA    = "Certificate Authority"
+	providerTypeDNS   = "DNS Provider"
+	reachedTheMaximum = "This %s configuration couldn't be added because you have reached the maximum number of configurations (%d)"
+	nameAlreadyExists = "%s configuration with name '%s' already exists"
+	configNotFound    = "%s configuration with name '%s' was not found"
+	missingField      = "property %s is missing in config"
+)
+
+//activity tracker actions
+const (
+	atSetConfigAction    = "Set secret engine configuration"
+	atGetConfigAction    = "Get secret engine configuration"
+	atDeleteConfigAction = "Delete secret engine configuration"
 )
 
 //Validation errors
@@ -35,6 +52,10 @@ const (
 	GetRootConfigOpDesc    = "Get all the configuration values"
 	GetRootConfigHelpSyn   = "Read the root configuration."
 	GetRootConfigHelpDesc  = "Read the root configuration."
+	caConfigSyn            = "Read and Update the CA configuration."
+	caConfigDesc           = "Read and Update the CA configuration."
+	dnsConfigSyn           = "Read and Update the dns provider configuration."
+	dnsConfigDesc          = "Read and Update the dns provider configuration."
 )
 
 //api operations descriptions

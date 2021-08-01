@@ -3,12 +3,11 @@ package publiccerts
 import (
 	"context"
 	"github.com/hashicorp/vault/sdk/logical"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 )
 
 type RootConfig struct {
-	CaConfigs       []*CAUserConfigToStore `json:"certificate_authorities"`
-	ProviderConfigs []*DnsProviderConfig   `json:"dns_providers"`
+	CaConfigs  []*ProviderConfig `json:"certificate_authorities"`
+	DnsConfigs []*ProviderConfig `json:"dns_providers"`
 }
 
 func getRootConfig(ctx context.Context, req *logical.Request) (*RootConfig, error) {
@@ -18,7 +17,7 @@ func getRootConfig(ctx context.Context, req *logical.Request) (*RootConfig, erro
 	}
 	config := &RootConfig{}
 	if entry == nil {
-		return config, nil
+		return &RootConfig{CaConfigs: make([]*ProviderConfig, 0), DnsConfigs: make([]*ProviderConfig, 0)}, nil
 	}
 	if err = entry.DecodeJSON(config); err != nil {
 		return nil, err
@@ -26,10 +25,36 @@ func getRootConfig(ctx context.Context, req *logical.Request) (*RootConfig, erro
 	return config, nil
 }
 
-func putRootConfig(ctx context.Context, req *logical.Request, config *RootConfig) error {
+func (rc *RootConfig) getConfigsByProviderType(providerType string) []*ProviderConfig {
+	if providerType == providerTypeCA {
+		return rc.CaConfigs
+	} else if providerType == providerTypeDNS {
+		return rc.DnsConfigs
+	}
+	return nil
+}
+
+func (rc *RootConfig) setConfigsByProviderType(providerType string, configs []*ProviderConfig) {
+	if providerType == providerTypeCA {
+		rc.CaConfigs = configs
+	} else if providerType == providerTypeDNS {
+		rc.DnsConfigs = configs
+	}
+}
+
+func (rc *RootConfig) getConfigsAsMap(providerType string) []map[string]interface{} {
+	confArray := rc.getConfigsByProviderType(providerType)
+	result := make([]map[string]interface{}, len(confArray))
+	for i, conf := range confArray {
+		result[i] = conf.getProviderConfigMetadata()
+	}
+	return result
+}
+
+func (rc *RootConfig) save(ctx context.Context, req *logical.Request) error {
 	// Store the configuration to the backend storage
 	// Generate a new storage entry
-	entry, err := logical.StorageEntryJSON(ConfigRootPath, config)
+	entry, err := logical.StorageEntryJSON(ConfigRootPath, rc)
 	if err != nil {
 		return err
 	}
@@ -38,24 +63,4 @@ func putRootConfig(ctx context.Context, req *logical.Request, config *RootConfig
 		return err
 	}
 	return nil
-}
-
-func getCAConfigsAsMap(config *RootConfig) []map[string]string {
-	confArray := make([]map[string]string, len(config.CaConfigs))
-	for i, caConfig := range config.CaConfigs {
-		confArray[i] = make(map[string]string)
-		confArray[i][secretentry.FieldName] = caConfig.Name
-		confArray[i][FieldCAType] = caConfig.CAType
-	}
-	return confArray
-}
-
-func getDNSConfigsAsMap(config *RootConfig) []map[string]string {
-	confArray := make([]map[string]string, len(config.ProviderConfigs))
-	for i, dnsConfig := range config.ProviderConfigs {
-		confArray[i] = make(map[string]string)
-		confArray[i][secretentry.FieldName] = dnsConfig.Name
-		confArray[i][FieldType] = dnsConfig.Type
-	}
-	return confArray
 }

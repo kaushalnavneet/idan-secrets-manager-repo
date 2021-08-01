@@ -2,16 +2,13 @@ package publiccerts
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"strings"
 	"time"
 )
@@ -85,14 +82,4 @@ func (ob *OrdersBackend) validateStringField(data *framework.FieldData, fieldNam
 		return "", e
 	}
 	return field, nil
-}
-
-func (ob *OrdersBackend) validateConfigName(d *framework.FieldData) (string, error) {
-	name, err := ob.validateStringField(d, secretentry.FieldName, "min=2,max=256", "length should be 2 to 256 chars")
-	if err != nil {
-		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
-		common.ErrorLogForCustomer(errorMessage, logdna.Error07052, logdna.BadRequestErrorMessage, true)
-		return "", errors.New(errorMessage)
-	}
-	return name, nil
 }

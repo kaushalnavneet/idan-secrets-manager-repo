@@ -35,7 +35,7 @@ type WorkItem struct {
 	requestID uuid.UUID //to identify order request in worker pool
 	//order data
 	userConfig *CAUserConfig
-	dnsConfig  *DnsProviderConfig
+	dnsConfig  *ProviderConfig
 	keyType    certcrypto.KeyType
 	privateKey []byte
 	csr        *x509.CertificateRequest

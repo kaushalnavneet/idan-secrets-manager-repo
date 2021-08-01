@@ -1,22 +1,20 @@
 package publiccerts
 
 import (
+	"github.com/hashicorp/vault/sdk/framework"
 	"time"
 )
 
 //todo move to common
 const (
-	PluginMountPath      = "/v1/ibmcloud/public_cert/"
-	FieldRegistrationUrl = "registration_uri"
-	FieldCAType          = "type"
-	FieldCaCert          = "ca-cert"
-	FieldEmail           = "email"
-	FieldConfig          = "config"
-	FieldType            = "type"
-	FieldCAConfig        = "ca"
-	FieldDNSConfig       = "dns"
-	FieldBundleCert      = "bundle_certs"
-	FieldRotation        = "rotation"
+	PluginMountPath = "/v1/ibmcloud/public_cert/"
+	FieldName       = "name"
+	FieldConfig     = "config"
+	FieldType       = "type"
+	FieldCAConfig   = "ca"
+	FieldDNSConfig  = "dns"
+	FieldBundleCert = "bundle_certs"
+	FieldRotation   = "rotation"
 
 	FieldOrderedOn    = "ordered_on"
 	FieldErrorCode    = "error_code"
@@ -45,19 +43,45 @@ const (
 	ConfigDNSPath  = "config/" + DNS
 	ConfigRootPath = "config/" + Root
 
-	MaxNumberCAConfigs             = 10
-	MaxNumberDNSConfigs            = 10
-	DirectoryLetsEncryptProdAlias  = "letsencrypt"
-	DirectoryLetsEncryptStageAlias = "letsencrypt-stage"
-	DirectoryLetsEncryptProd       = "https://acme-v02.api.letsencrypt.org/directory"
-	DirectoryLetsEncryptStage      = "https://acme-staging-v02.api.letsencrypt.org/directory"
+	PropagationTimeout = 5 * time.Minute
+	PollingInterval    = 2 * time.Second
+	MaxNumberConfigs   = 10
+
+	CATypeLetsEncryptProd     = "letsencrypt"
+	CaTypeLetsEncryptStage    = "letsencrypt-stage"
+	DirectoryLetsEncryptProd  = "https://acme-v02.api.letsencrypt.org/directory"
+	DirectoryLetsEncryptStage = "https://acme-staging-v02.api.letsencrypt.org/directory"
 )
 
 const (
-	cisCrn             = "CIS_CRN"
-	cisApikey          = "CIS_APIKEY"
-	PropagationTimeout = 5 * time.Minute
-	PollingInterval    = 2 * time.Second
-	serviceCISint      = "internet-svcs-ci"
-	serviceCIS         = "internet-svcs"
+	dnsConfigCisCrn      = "CIS_CRN"
+	dnsConfigCisApikey   = "CIS_APIKEY"
+	caConfigPrivateKey   = "PRIVATE_KEY"
+	caConfigRegistration = "REGISTRATION"
+	caConfigEmail        = "EMAIL"
+	caConfigDirectoryUrl = "DIRECTORY_URL"
+	caConfigCARootCert   = "CA_ROOT_CERT"
+	serviceCISint        = "internet-svcs-ci"
+	serviceCIS           = "internet-svcs"
+	dnsConfigTypeCIS     = "cis"
+)
+
+var (
+	configFields = map[string]*framework.FieldSchema{
+		FieldName: {
+			Type:        framework.TypeString,
+			Description: "Specifies the config name.",
+			Required:    true,
+		},
+		FieldType: {
+			Type:        framework.TypeString,
+			Description: "Specifies the provider type.",
+			Required:    true,
+		},
+		FieldConfig: {
+			Type:        framework.TypeKVPairs,
+			Description: "Specifies the set of config properties.",
+			Required:    true,
+		},
+	}
 )

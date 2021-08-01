@@ -43,7 +43,7 @@ func NewACMEClientWithCustomHttpClient(CAUserConfig *CAUserConfig, keyType certc
 	return &Client{LegoClient: legoClient}, nil
 }
 
-func (client *Client) setDNSProvider(dnsProvider *DnsProviderConfig, domains []string, challengeOption dns01.ChallengeOption) error {
+func (client *Client) setDNSProvider(dnsProvider *ProviderConfig, domains []string, challengeOption dns01.ChallengeOption) error {
 	providerType := dnsProvider.Type
 	providerConfiguration := dnsProvider.Config
 	if providerType == "pebble" {
@@ -59,7 +59,7 @@ func (client *Client) setDNSProvider(dnsProvider *DnsProviderConfig, domains []s
 		err := client.LegoClient.Challenge.SetDNS01Provider(NewPebbleDNSClient(host, port), challengeOption)
 		return err
 
-	} else if providerType == "cis" {
+	} else if providerType == dnsConfigTypeCIS {
 		err := client.LegoClient.Challenge.SetDNS01Provider(NewCISDNSProvider(providerConfiguration, dnsProvider.smInstanceCrn), challengeOption)
 		return err
 
@@ -79,7 +79,7 @@ func (client *Client) setDNSProvider(dnsProvider *DnsProviderConfig, domains []s
 	}
 }
 
-func (client *Client) SetChallengeProviders(dnsProvider *DnsProviderConfig, domains []string) error {
+func (client *Client) SetChallengeProviders(dnsProvider *ProviderConfig, domains []string) error {
 	challengeOption := dns01.DisableCompletePropagationRequirement()
 	err := client.setDNSProvider(dnsProvider, domains, challengeOption)
 	return err

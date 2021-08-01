@@ -10,6 +10,10 @@ import (
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
+	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
+	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
+	"net/http"
 )
 
 type CAUserConfig struct {
@@ -23,26 +27,16 @@ type CAUserConfig struct {
 	byoa         bool
 }
 
-type CAUserConfigToStore struct {
-	Name            string `json:"name"`
-	CAType          string `json:"type"`
-	CARootCert      string `json:"ca_cert"`
-	DirectoryURL    string `json:"directory_url"`
-	Email           string `json:"email"`
-	RegistrationURL string `json:"registration_url"`
-	PrivateKey      string `json:"private_key"`
-}
-
 var caProviders map[string]string
 var validCaProviders []interface{}
 
 func init() {
 	caProviders = map[string]string{
-		DirectoryLetsEncryptProdAlias:  DirectoryLetsEncryptProd,
-		DirectoryLetsEncryptStageAlias: DirectoryLetsEncryptStage,
+		CATypeLetsEncryptProd:  DirectoryLetsEncryptProd,
+		CaTypeLetsEncryptStage: DirectoryLetsEncryptStage,
 	}
 	validCaProviders = make([]interface{}, 0, len(caProviders))
-	for k, _ := range caProviders {
+	for k := range caProviders {
 		validCaProviders = append(validCaProviders, k)
 	}
 }
@@ -63,7 +57,8 @@ func (u *CAUserConfig) GetPrivateKey() crypto.PrivateKey {
 	return u.key
 }
 
-func NewCAAccountConfig(name, caType, caRootCertPath, privateKeyPEM, email string) (*CAUserConfig, error) {
+func NewCAUserConfig(caType, privateKeyPEM, caRootCertPath, email string) (*CAUserConfig, error) {
+	//set directory url according to ca
 	directoryUrl, ok := caProviders[caType]
 	if !ok { //should not happen because of input validation
 		return nil, fmt.Errorf("%s is not valid CA. Should be one of %s", caType, validCaProviders)
@@ -72,6 +67,7 @@ func NewCAAccountConfig(name, caType, caRootCertPath, privateKeyPEM, email strin
 	var err error
 	byoa := privateKeyPEM != ""
 	if byoa {
+		//validate private key
 		privateKey, err = DecodePrivateKey(privateKeyPEM)
 	} else {
 		// Create a user. New accounts need an email and private key to start.
@@ -82,7 +78,6 @@ func NewCAAccountConfig(name, caType, caRootCertPath, privateKeyPEM, email strin
 		return nil, err
 	}
 	userConfig := &CAUserConfig{
-		Name:         name,
 		CAType:       caType,
 		Email:        email,
 		key:          privateKey,
@@ -94,15 +89,13 @@ func NewCAAccountConfig(name, caType, caRootCertPath, privateKeyPEM, email strin
 }
 
 func (u *CAUserConfig) initCAAccount() error {
-	// Note - This client is used only for registering the user
-	// and the keyType does not matter (keyType relevant only when issuing certificates).
-	// Lego internally uses a default value of RSA2048, hence use that.
 	client, err := NewACMEClient(u, certcrypto.RSA2048)
 	if err != nil {
 		return err
 	}
 
 	if u.byoa {
+		//retrieve the account information and fill fields in u
 		err = client.RegisterUserWithKey(u)
 	} else {
 		err = client.RegisterUser(u)
@@ -114,24 +107,58 @@ func (u *CAUserConfig) initCAAccount() error {
 	return nil
 }
 
-func (u *CAUserConfig) getConfigToStore() (*CAUserConfigToStore, error) {
-
-	storageEntry := &CAUserConfigToStore{}
+func (u *CAUserConfig) getConfigToStore() (map[string]string, error) {
 	x509Encoded, err := x509.MarshalPKCS8PrivateKey(u.key)
 	if err != nil {
-		return storageEntry, err
+		return nil, err
 	}
 	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509Encoded})
 
-	storageEntry = &CAUserConfigToStore{
-		Name:            u.Name,
-		CAType:          u.CAType,
-		RegistrationURL: u.Registration.URI,
-		Email:           u.Email,
-		PrivateKey:      string(pemEncoded),
-		DirectoryURL:    u.DirectoryURL,
-		CARootCert:      u.CARootCert,
+	storageEntry := map[string]string{
+		caConfigRegistration: u.Registration.URI,
+		caConfigEmail:        u.Email,
+		caConfigPrivateKey:   string(pemEncoded),
+		caConfigDirectoryUrl: u.DirectoryURL,
+		caConfigCARootCert:   u.CARootCert,
 	}
-
 	return storageEntry, nil
+}
+
+//providerConfig type in this case maybe letsencrypt or letsencrypt-stage
+func prepareCAConfigToStore(p *ProviderConfig) error {
+	var err error
+	privateKeyPEM, ok := p.Config[caConfigPrivateKey]
+	if !ok || len(privateKeyPEM) == 0 {
+		return fmt.Errorf(missingField, caConfigPrivateKey)
+	}
+	email := p.Config[caConfigEmail]
+	//it's not expected to get this field
+	//we can fill it with constant LE root cert if needed
+	caCert := p.Config[caConfigCARootCert]
+	for k := range p.Config {
+		if k != caConfigPrivateKey {
+			message := fmt.Sprintf(invalidConfigStruct, providerTypeCA, p.Type, "["+caConfigPrivateKey+"]")
+			common.ErrorLogForCustomer(message, logdna.Error07023, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07023, http.StatusBadRequest, message)
+		}
+	}
+	ca, err := NewCAUserConfig(p.Type, privateKeyPEM, caCert, email)
+	if err != nil {
+		return err
+	}
+	err = ca.initCAAccount()
+	if err != nil {
+		return err
+	}
+	p.Config, err = ca.getConfigToStore()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getCAConfigForResponse(p *ProviderConfig) map[string]string {
+	result := make(map[string]string)
+	result[caConfigPrivateKey] = p.Config[caConfigPrivateKey]
+	return result
 }
