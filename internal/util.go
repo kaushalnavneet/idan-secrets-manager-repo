@@ -195,7 +195,7 @@ func validateNames(names []string) error {
 		// https://tools.ietf.org/html/rfc5280#section-7
 		converted, err := idnaValidator.ToASCII(sanitizedName)
 		if err != nil {
-			msg := fmt.Sprintf(domainCantBeConvertedToASCII, sanitizedName)
+			msg := fmt.Sprintf(invalidDomain, sanitizedName)
 			common.ErrorLogForCustomer(msg, logdna.Error07106, logdna.BadRequestErrorMessage, true)
 			return commonErrors.GenerateCodedError(logdna.Error07106, http.StatusBadRequest, msg)
 		}

@@ -56,6 +56,7 @@ const (
 const (
 	dnsConfigCisCrn      = "CIS_CRN"
 	dnsConfigCisApikey   = "CIS_APIKEY"
+	dnsConfigSMCrn       = "SM_CRN"
 	caConfigPrivateKey   = "PRIVATE_KEY"
 	caConfigRegistration = "REGISTRATION"
 	caConfigEmail        = "EMAIL"
@@ -64,6 +65,12 @@ const (
 	serviceCISint        = "internet-svcs-ci"
 	serviceCIS           = "internet-svcs"
 	dnsConfigTypeCIS     = "cis"
+)
+
+//internal errors
+const (
+	failedToSaveConfigError = "Failed to save configuration to the storage: %s"
+	failedToGetConfigError  = "Failed to get configuration from the storage: %s"
 )
 
 var (

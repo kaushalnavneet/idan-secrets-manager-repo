@@ -68,9 +68,10 @@ type CISRequest struct {
 	TTL     int    `json:"ttl"`
 }
 
-func NewCISDNSProvider(providerConfig map[string]string, smInstanceCrn string) *CISDNSConfig {
+func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
 	cisCrn := providerConfig[dnsConfigCisCrn]
 	apikey := providerConfig[dnsConfigCisApikey]
+	smInstanceCrn := providerConfig[dnsConfigSMCrn]
 
 	//create resty client
 	cf := &rest_client_impl.RestClientFactory{}
@@ -376,10 +377,11 @@ func buildError(code, message string) error {
 	return fmt.Errorf(errorPattern, code, message)
 }
 
-func validateCISConfigStructure(config map[string]string) error {
+func validateCISConfigStructure(config map[string]string, smInstanceCrn string) error {
 	if crnValue, ok := config[dnsConfigCisCrn]; !ok {
-		common.ErrorLogForCustomer(missingCISInstanceCrn, logdna.Error07065, logdna.BadRequestErrorMessage, true)
-		return commonErrors.GenerateCodedError(logdna.Error07065, http.StatusBadRequest, missingCISInstanceCrn)
+		message := fmt.Sprintf(configMissingField, providerTypeDNS, dnsConfigCisCrn)
+		common.ErrorLogForCustomer(message, logdna.Error07065, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07065, http.StatusBadRequest, message)
 	} else if validCrn, err := crn.ToCRN(crnValue); err != nil {
 		common.ErrorLogForCustomer(invalidCISInstanceCrn, logdna.Error07066, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07066, http.StatusBadRequest, invalidCISInstanceCrn)
@@ -393,6 +395,10 @@ func validateCISConfigStructure(config map[string]string) error {
 			common.ErrorLogForCustomer(message, logdna.Error07068, logdna.BadRequestErrorMessage, true)
 			return commonErrors.GenerateCodedError(logdna.Error07068, http.StatusBadRequest, message)
 		}
+	}
+	//if cis api key was not provided, add sm crn for s2s tokens
+	if _, ok := config[dnsConfigCisApikey]; !ok {
+		config[dnsConfigSMCrn] = smInstanceCrn
 	}
 	return nil
 }
