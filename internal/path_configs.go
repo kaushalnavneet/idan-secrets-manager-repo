@@ -2,7 +2,6 @@ package publiccerts
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/locksutil"
@@ -189,10 +188,9 @@ func (ob *OrdersBackend) pathConfigCreate(ctx context.Context, req *logical.Requ
 	// Get the storage entry
 	rootConfig, err := getRootConfig(ctx, req)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
-		common.Logger().Error(errorMessage)
+		common.Logger().Error(fmt.Sprintf(failedToGetConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07012, logdna.InternalErrorMessage, false)
-		return nil, commonErrors.GenerateCodedError(logdna.Error07012, http.StatusInternalServerError, logdna.InternalErrorMessage)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07012, http.StatusInternalServerError, internalServerError)
 	}
 	//get array of providers by type (ca or dns)
 	allConfigs := rootConfig.getConfigsByProviderType(providerType)
@@ -209,7 +207,10 @@ func (ob *OrdersBackend) pathConfigCreate(ctx context.Context, req *logical.Requ
 			return nil, logical.CodedError(http.StatusBadRequest, errorMessage)
 		}
 	}
-	ob.ordersHandler.configureIamIfNeeded(ctx, req)
+	err = ob.ordersHandler.configureIamIfNeeded(ctx, req)
+	if err != nil {
+		return nil, err
+	}
 	//create config to store
 	configToStore, err := ob.createConfigToStore(name, providerType, d)
 	if err != nil {
@@ -221,10 +222,9 @@ func (ob *OrdersBackend) pathConfigCreate(ctx context.Context, req *logical.Requ
 	//save root config
 	err = rootConfig.save(ctx, req)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to save configuration to the storage: %s", err.Error())
-		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error07015, logdna.InternalErrorMessage, false)
-		return nil, errors.New(errorMessage)
+		common.Logger().Error(fmt.Sprintf(failedToSaveConfigError, err.Error()))
+		common.ErrorLogForCustomer(internalServerError, logdna.Error07015, logdna.InternalErrorMessage, false)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07015, http.StatusInternalServerError, internalServerError)
 	}
 	respData := make(map[string]interface{})
 	respData[FieldName] = configToStore.Name
@@ -259,15 +259,17 @@ func (ob *OrdersBackend) pathConfigUpdate(ctx context.Context, req *logical.Requ
 	// Get the storage entry
 	rootConfig, err := getRootConfig(ctx, req)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
-		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer(internalServerError, logdna.Error07012, logdna.InternalErrorMessage, false)
-		return nil, commonErrors.GenerateCodedError(logdna.Error07012, http.StatusInternalServerError, logdna.InternalErrorMessage)
+		common.Logger().Error(fmt.Sprintf(failedToGetConfigError, err.Error()))
+		common.ErrorLogForCustomer(internalServerError, logdna.Error07016, logdna.InternalErrorMessage, false)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07016, http.StatusInternalServerError, internalServerError)
 	}
 	//get array of providers by type (ca or dns)
 	allConfigs := rootConfig.getConfigsByProviderType(providerType)
 	//for dns provider validation we may need configured iam
-	ob.ordersHandler.configureIamIfNeeded(ctx, req)
+	err = ob.ordersHandler.configureIamIfNeeded(ctx, req)
+	if err != nil {
+		return nil, err
+	}
 	//create config to store
 	configToStore, err := ob.createConfigToStore(name, providerType, d)
 	if err != nil {
@@ -292,8 +294,7 @@ func (ob *OrdersBackend) pathConfigUpdate(ctx context.Context, req *logical.Requ
 	//save root config
 	err = rootConfig.save(ctx, req)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to save configuration to the storage: %s", err.Error())
-		common.Logger().Error(errorMessage)
+		common.Logger().Error(fmt.Sprintf(failedToSaveConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07021, logdna.InternalErrorMessage, false)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07021, http.StatusInternalServerError, internalServerError)
 	}
@@ -331,10 +332,9 @@ func (ob *OrdersBackend) pathConfigDelete(ctx context.Context, req *logical.Requ
 	// Get the storage entry
 	rootConfig, err := getRootConfig(ctx, req)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
-		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer(internalServerError, logdna.Error07012, logdna.InternalErrorMessage, false)
-		return nil, commonErrors.GenerateCodedError(logdna.Error07012, http.StatusInternalServerError, logdna.InternalErrorMessage)
+		common.Logger().Error(fmt.Sprintf(failedToGetConfigError, err.Error()))
+		common.ErrorLogForCustomer(internalServerError, logdna.Error07017, logdna.InternalErrorMessage, false)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07017, http.StatusInternalServerError, internalServerError)
 	}
 	//get array of providers by type (ca or dns)
 	allConfigs := rootConfig.getConfigsByProviderType(providerType)
@@ -358,8 +358,7 @@ func (ob *OrdersBackend) pathConfigDelete(ctx context.Context, req *logical.Requ
 	//save root config
 	err = rootConfig.save(ctx, req)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to save configuration to the storage: %s", err.Error())
-		common.Logger().Error(errorMessage)
+		common.Logger().Error(fmt.Sprintf(failedToSaveConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07032, logdna.InternalErrorMessage, false)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07032, http.StatusInternalServerError, internalServerError)
 	}
@@ -411,8 +410,7 @@ func (ob *OrdersBackend) pathConfigList(ctx context.Context, req *logical.Reques
 	// Get the storage entry
 	rootConfig, err := getRootConfig(ctx, req)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
-		common.Logger().Error(errorMessage)
+		common.Logger().Error(fmt.Sprintf(failedToGetConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07027, logdna.InternalErrorMessage, false)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07027, http.StatusInternalServerError, internalServerError)
 	}
@@ -439,8 +437,7 @@ func (ob *OrdersBackend) pathRootConfigRead(ctx context.Context, req *logical.Re
 	// Get the storage entry
 	rootConfig, err := getRootConfig(ctx, req)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
-		common.Logger().Error(errorMessage)
+		common.Logger().Error(fmt.Sprintf(failedToGetConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07004, logdna.InternalErrorMessage, false)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07004, http.StatusInternalServerError, internalServerError)
 	}
@@ -512,10 +509,9 @@ func getConfigByName(name string, providerType string, ctx context.Context, req 
 	// Get the storage entry
 	rootConfig, err := getRootConfig(ctx, req)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to get configuration from the storage: %s", err.Error())
-		common.Logger().Error(errorMessage)
-		common.ErrorLogForCustomer("Internal server error", logdna.Error07024, logdna.InternalErrorMessage, false)
-		return nil, errors.New(errorMessage)
+		common.Logger().Error(fmt.Sprintf(failedToGetConfigError, err.Error()))
+		common.ErrorLogForCustomer(internalServerError, logdna.Error07024, logdna.InternalErrorMessage, false)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07024, http.StatusInternalServerError, internalServerError)
 	}
 	//get array of providers by type (ca or dns)
 	allConfigs := rootConfig.getConfigsByProviderType(providerType)
@@ -529,7 +525,7 @@ func getConfigByName(name string, providerType string, ctx context.Context, req 
 		}
 	}
 	if foundConfig == nil {
-		errorMessage := fmt.Sprintf("CA configuration with name '%s' was not found", name)
+		errorMessage := fmt.Sprintf(configNotFound, providerType, name)
 		common.ErrorLogForCustomer(errorMessage, logdna.Error07025, logdna.NotFoundErrorMessage, true)
 		return nil, logical.CodedError(http.StatusNotFound, errorMessage)
 	}

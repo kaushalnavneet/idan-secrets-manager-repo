@@ -10,10 +10,6 @@ import (
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
-	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
-	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
-	"net/http"
 )
 
 type CAUserConfig struct {
@@ -129,7 +125,7 @@ func prepareCAConfigToStore(p *ProviderConfig) error {
 	var err error
 	privateKeyPEM, ok := p.Config[caConfigPrivateKey]
 	if !ok || len(privateKeyPEM) == 0 {
-		return fmt.Errorf(missingField, caConfigPrivateKey)
+		return fmt.Errorf(configMissingField, providerTypeCA, caConfigPrivateKey)
 	}
 	email := p.Config[caConfigEmail]
 	//it's not expected to get this field
@@ -137,9 +133,7 @@ func prepareCAConfigToStore(p *ProviderConfig) error {
 	caCert := p.Config[caConfigCARootCert]
 	for k := range p.Config {
 		if k != caConfigPrivateKey {
-			message := fmt.Sprintf(invalidConfigStruct, providerTypeCA, p.Type, "["+caConfigPrivateKey+"]")
-			common.ErrorLogForCustomer(message, logdna.Error07023, logdna.BadRequestErrorMessage, true)
-			return commonErrors.GenerateCodedError(logdna.Error07023, http.StatusBadRequest, message)
+			return fmt.Errorf(invalidConfigStruct, providerTypeCA, p.Type, "["+caConfigPrivateKey+"]")
 		}
 	}
 	ca, err := NewCAUserConfig(p.Type, privateKeyPEM, caCert, email)

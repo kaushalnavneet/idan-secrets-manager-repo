@@ -66,6 +66,12 @@ const (
 	dnsConfigTypeCIS     = "cis"
 )
 
+//internal errors
+const (
+	failedToSaveConfigError = "Failed to save configuration to the storage: %s"
+	failedToGetConfigError  = "Failed to get configuration from the storage: %s"
+)
+
 var (
 	configFields = map[string]*framework.FieldSchema{
 		FieldName: {

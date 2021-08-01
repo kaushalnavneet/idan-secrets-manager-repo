@@ -378,8 +378,9 @@ func buildError(code, message string) error {
 
 func validateCISConfigStructure(config map[string]string) error {
 	if crnValue, ok := config[dnsConfigCisCrn]; !ok {
-		common.ErrorLogForCustomer(missingCISInstanceCrn, logdna.Error07065, logdna.BadRequestErrorMessage, true)
-		return commonErrors.GenerateCodedError(logdna.Error07065, http.StatusBadRequest, missingCISInstanceCrn)
+		message := fmt.Sprintf(configMissingField, providerTypeDNS, dnsConfigCisCrn)
+		common.ErrorLogForCustomer(message, logdna.Error07065, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07065, http.StatusBadRequest, message)
 	} else if validCrn, err := crn.ToCRN(crnValue); err != nil {
 		common.ErrorLogForCustomer(invalidCISInstanceCrn, logdna.Error07066, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07066, http.StatusBadRequest, invalidCISInstanceCrn)

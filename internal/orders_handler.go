@@ -487,7 +487,7 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.
 		oh.iamConfig = config
 		err = iam.Configure(config)
 		if err != nil {
-			common.Logger().Error("Failed to configure iam", "error", err)
+			common.Logger().Error("Failed to configure iam: " + err.Error())
 			return commonErrors.GenerateCodedError(logdna.Error07093, http.StatusInternalServerError, internalServerError)
 		}
 		oh.smInstanceCrn = authConfig.Service.Instance.CRN
