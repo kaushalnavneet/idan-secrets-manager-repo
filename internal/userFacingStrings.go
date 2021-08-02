@@ -1,11 +1,18 @@
 package publiccerts
 
-//Errors in communication with CIS
+//Errors in communication with DNS providers
 const (
-	domainIsNotFoundInCIS = "Domain %s is not found in the IBM Cloud Internet Services instance"
-	authorizationErrorCIS = "Authorization error when trying %s the IBM Cloud Internet Services instance"
-	errorResponseFromCIS  = "IBM Cloud Internet Services responded with an error"
-	unavailableCISError   = "Couldn't call IBM Cloud Internet Services API. Try again later"
+	dnsProviderCISInstance      = "the IBM Cloud Internet Services instance"
+	dnsProviderSoftLayerAccount = "the SoftLayer account"
+	dnsProviderCIS              = "IBM Cloud Internet Services"
+	dnsProviderSoftLayer        = "SoftLayer"
+
+	domainIsNotFound     = "Domain %s is not found in %s"
+	authorizationError   = "Authorization error when trying %s %s"
+	errorResponseFromDNS = "%s responded with an error"
+	unavailableDNSError  = "Couldn't call %s. Try again later"
+
+	//specific CIS
 	obtainTokenError      = "Couldn't obtain IAM token for provided ApiKey in order to access IBM Cloud Internet Services"
 	obtainCRNTokenError   = "Couldn't obtain IAM S2S token in order to access IBM Cloud Internet Services"
 	invalidCISInstanceCrn = "IBM Cloud Internet Services instance crn is not valid"
@@ -21,6 +28,7 @@ const (
 	configNotFound      = "%s configuration with name '%s' was not found"
 	configMissingField  = "%s configuration missing property %s"
 	invalidConfigStruct = "%s configuration of type '%s' has a wrong structure. It may contain only properties %s"
+	validationError     = "Parameters validation error: %s"
 )
 
 //activity tracker actions

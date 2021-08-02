@@ -5,17 +5,15 @@ import (
 	"time"
 )
 
-//todo move to common
 const (
-	PluginMountPath = "/v1/ibmcloud/public_cert/"
-	FieldName       = "name"
-	FieldConfig     = "config"
-	FieldType       = "type"
-	FieldCAConfig   = "ca"
-	FieldDNSConfig  = "dns"
-	FieldBundleCert = "bundle_certs"
-	FieldRotation   = "rotation"
-
+	PluginMountPath   = "/v1/ibmcloud/public_cert/"
+	FieldName         = "name"
+	FieldConfig       = "config"
+	FieldType         = "type"
+	FieldCAConfig     = "ca"
+	FieldDNSConfig    = "dns"
+	FieldBundleCert   = "bundle_certs"
+	FieldRotation     = "rotation"
 	FieldOrderedOn    = "ordered_on"
 	FieldErrorCode    = "error_code"
 	FieldErrorMessage = "error_message"
@@ -34,37 +32,55 @@ const (
 	RenewalThreshold       time.Duration = 30 * 24 //((365 * 24 * 5) + 24) to always renew every renewal period
 )
 
-//configs
+//cofigs common
 const (
-	CA             = "certificate_authorities"
-	DNS            = "dns_providers"
-	Root           = "root"
-	ConfigCAPath   = "config/" + CA
-	ConfigDNSPath  = "config/" + DNS
-	ConfigRootPath = "config/" + Root
-
-	PropagationTimeout = 5 * time.Minute
-	PollingInterval    = 2 * time.Second
-	MaxNumberConfigs   = 10
-
-	CATypeLetsEncryptProd     = "letsencrypt"
-	CaTypeLetsEncryptStage    = "letsencrypt-stage"
-	DirectoryLetsEncryptProd  = "https://acme-v02.api.letsencrypt.org/directory"
-	DirectoryLetsEncryptStage = "https://acme-staging-v02.api.letsencrypt.org/directory"
+	Root             = "root"
+	ConfigRootPath   = "config/" + Root
+	MaxNumberConfigs = 10
 )
 
+//CA configuration
 const (
-	dnsConfigCisCrn      = "CIS_CRN"
-	dnsConfigCisApikey   = "CIS_APIKEY"
-	dnsConfigSMCrn       = "SM_CRN"
+	CA           = "certificate_authorities"
+	ConfigCAPath = "config/" + CA
+
+	caConfigTypeLEProd  = "letsencrypt"
+	caConfigTypeLEStage = "letsencrypt-stage"
+
 	caConfigPrivateKey   = "PRIVATE_KEY"
 	caConfigRegistration = "REGISTRATION"
 	caConfigEmail        = "EMAIL"
 	caConfigDirectoryUrl = "DIRECTORY_URL"
 	caConfigCARootCert   = "CA_ROOT_CERT"
-	serviceCISint        = "internet-svcs-ci"
-	serviceCIS           = "internet-svcs"
-	dnsConfigTypeCIS     = "cis"
+
+	UrlLetsEncryptProd  = "https://acme-v02.api.letsencrypt.org/directory"
+	UrlLetsEncryptStage = "https://acme-staging-v02.api.letsencrypt.org/directory"
+)
+
+//dns configuration
+const (
+	DNS           = "dns_providers"
+	ConfigDNSPath = "config/" + DNS
+
+	dnsConfigTypeCIS   = "cis"
+	dnsConfigCisCrn    = "CIS_CRN"
+	dnsConfigCisApikey = "CIS_APIKEY"
+	dnsConfigSMCrn     = "SM_CRN"
+	serviceCISint      = "internet-svcs-ci"
+	serviceCIS         = "internet-svcs"
+	urlCISIntegration  = "https://api.int.cis.cloud.ibm.com/v1"
+	urlCISStage        = "https://api.stage.cis.cloud.ibm.com/v1"
+	urlCISProd         = "https://api.cis.cloud.ibm.com/v1"
+	urlIamStage        = "https://iam.test.cloud.ibm.com"
+	urlIamProd         = "https://iam.cloud.ibm.com"
+
+	dnsConfigTypeSoftLayer = "softlayer"
+	dnsConfigSLUser        = "SOFTLAYER_USER"
+	dnsConfigSLPassword    = "SOFTLAYER_PASSWORD"
+	urlSLApi               = "https://api.softlayer.com/rest/v3"
+
+	PropagationTimeout = 5 * time.Minute
+	PollingInterval    = 2 * time.Second
 )
 
 //internal errors

@@ -478,7 +478,7 @@ func (ob *OrdersBackend) createConfigToStore(name string, providerType string, d
 		err = prepareDNSConfigToStore(configToStore, ob.ordersHandler.smInstanceCrn)
 	}
 	if err != nil {
-		errorMessage := fmt.Sprintf("Parameters validation error: %s", err.Error())
+		errorMessage := fmt.Sprintf(validationError, err.Error())
 		common.ErrorLogForCustomer(errorMessage, logdna.Error07014, logdna.BadRequestErrorMessage, true)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07014, http.StatusBadRequest, errorMessage)
 	}
