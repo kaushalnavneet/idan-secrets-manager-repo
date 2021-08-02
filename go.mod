@@ -10,13 +10,13 @@ replace github.com/labstack/echo/v4 => github.com/labstack/echo/v4 v4.4.0
 
 require (
 	github.com/go-acme/lego/v4 v4.4.0
-	github.com/go-playground/validator/v10 v10.7.0
+	github.com/go-playground/validator/v10 v10.8.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-hclog v0.16.2
 	github.com/hashicorp/vault/sdk v0.2.1
 	github.ibm.com/project-fortress/vault-client-golang v0.0.4
-	github.ibm.com/security-services/secrets-manager-common-utils v0.0.7110
+	github.ibm.com/security-services/secrets-manager-common-utils v0.0.7213
 	github.ibm.com/security-services/secrets-manager-iam v0.0.7012
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.7117
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.7217
 	golang.org/x/net v0.0.0-20210716203947-853a461950ff
 )
