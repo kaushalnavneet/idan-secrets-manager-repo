@@ -111,6 +111,7 @@ func NewSoftlayerDNSProvider(providerConfig map[string]string) *SoftlayerDNSConf
 
 // Present Implements dns provider interface
 func (c *SoftlayerDNSConfig) Present(domain, token, keyAuth string) error {
+	common.Logger().Info("SoftLayer Present: " + domain + " Trying to set challenge")
 	currentDomain, err := c.getDomainData(domain, domain, keyAuth)
 	if err != nil {
 		return err
@@ -121,6 +122,7 @@ func (c *SoftlayerDNSConfig) Present(domain, token, keyAuth string) error {
 	}
 	currentDomain.txtRecordId = recordId
 	c.Domains[domain] = currentDomain
+	common.Logger().Info("SoftLayer Present: " + domain + " Challenge was set successfully")
 	return nil
 }
 
@@ -128,6 +130,7 @@ func (c *SoftlayerDNSConfig) Present(domain, token, keyAuth string) error {
 func (c *SoftlayerDNSConfig) CleanUp(domain, token, keyAuth string) error {
 	currentDomain, ok := c.Domains[domain]
 	if !ok {
+		common.Logger().Info("SoftLayer Cleanup: " + domain + " The domain is not updated in the list of current domains, retrieving its data in order to remove txt record")
 		var err error
 		currentDomain, err = c.getDomainData(domain, domain, keyAuth)
 		if err != nil {
@@ -139,11 +142,13 @@ func (c *SoftlayerDNSConfig) CleanUp(domain, token, keyAuth string) error {
 		}
 		currentDomain.txtRecordId = recordId
 	}
+	common.Logger().Info("SoftLayer Cleanup: " + domain + " Trying to remove the challenge from domain")
 	err := c.removeChallenge(currentDomain)
 	if err != nil {
 		return err
 	}
 	delete(c.Domains, domain)
+	common.Logger().Info("SoftLayer Cleanup:  " + domain + " The domain was successfully cleaned up")
 	return nil
 }
 
@@ -197,7 +202,7 @@ func (c *SoftlayerDNSConfig) getZoneIdByDomain(domain string) (int, error) {
 }
 
 func (c *SoftlayerDNSConfig) setChallenge(domain *SLDomainData) (int, error) {
-	requestBody, err := createTxtRecordBody(domain)
+	requestBody, err := createTxtRecordBody(domain, c.TTL)
 	if err != nil {
 		common.Logger().Error("Couldn't build txt record body: " + err.Error())
 		return -1, buildOrderError(logdna.Error07075, internalServerError)
@@ -314,12 +319,12 @@ func (c *SoftlayerDNSConfig) validateConfig() error {
 	return errors.New(message)
 }
 
-func createTxtRecordBody(domain *SLDomainData) (*bytes.Buffer, error) {
+func createTxtRecordBody(domain *SLDomainData, ttl int) (*bytes.Buffer, error) {
 	postBody := &SLRequest{
 		Parameters: []SLDNSRecord{{
 			Host:     domain.txtRecordName,
 			Data:     domain.txtRecordValue,
-			Ttl:      120,
+			Ttl:      ttl,
 			Type:     "txt",
 			DomainId: domain.domainId,
 		}}}

@@ -106,6 +106,7 @@ func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
 
 // Present Implements dns provider interface
 func (c *CISDNSConfig) Present(domain, token, keyAuth string) error {
+	common.Logger().Info("CIS Present: " + domain + " Trying to set the challenge")
 	currentDomain, err := c.getDomainData(domain, domain, keyAuth)
 	if err != nil {
 		return err
@@ -116,6 +117,7 @@ func (c *CISDNSConfig) Present(domain, token, keyAuth string) error {
 	}
 	currentDomain.txtRecordId = recordId
 	c.Domains[domain] = currentDomain
+	common.Logger().Info("CIS Present: " + domain + " Challenge was set successfully")
 	return nil
 }
 
@@ -123,6 +125,7 @@ func (c *CISDNSConfig) Present(domain, token, keyAuth string) error {
 func (c *CISDNSConfig) CleanUp(domain, token, keyAuth string) error {
 	currentDomain, ok := c.Domains[domain]
 	if !ok {
+		common.Logger().Info("CIS Cleanup: " + domain + " The domain is not updated in the list of current domains, retrieving its data in order to remove txt record")
 		var err error
 		currentDomain, err = c.getDomainData(domain, domain, keyAuth)
 		if err != nil {
@@ -134,11 +137,13 @@ func (c *CISDNSConfig) CleanUp(domain, token, keyAuth string) error {
 		}
 		currentDomain.txtRecordId = recordId
 	}
+	common.Logger().Info("CIS Cleanup: " + domain + " Trying to remove the challenge from domain")
 	err := c.removeChallenge(currentDomain)
 	if err != nil {
 		return err
 	}
 	delete(c.Domains, domain)
+	common.Logger().Info("CIS Cleanup:  " + domain + " The domain was successfully cleaned up")
 	return nil
 }
 
@@ -151,7 +156,9 @@ func (c *CISDNSConfig) getDomainData(originalDomain, domainToSetChallenge, keyAu
 			domainParts := strings.Split(domainToSetChallenge, ".")
 			if len(domainParts) == 2 {
 				//we can't dive anymore, return error
-				return nil, buildOrderError(logdna.Error07072, fmt.Sprintf(domainIsNotFound, originalDomain, dnsProviderCISInstance))
+				message := fmt.Sprintf(domainIsNotFound, originalDomain, dnsProviderCISInstance)
+				common.Logger().Error(message)
+				return nil, buildOrderError(logdna.Error07072, message)
 			}
 			parentDomain := strings.Join(domainParts[1:], ".")
 			return c.getDomainData(originalDomain, parentDomain, keyAuth)
@@ -184,7 +191,9 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 			return response.Result[0].ID, nil
 		} else {
 			//it can happen for subdomains
-			return "", buildOrderError(logdna.Error07072, fmt.Sprintf(domainIsNotFound, domain, dnsProviderCISInstance))
+			message := fmt.Sprintf(domainIsNotFound, domain, dnsProviderCISInstance)
+			common.Logger().Warn(message + " We will try to find its parent if it's possible")
+			return "", buildOrderError(logdna.Error07072, message)
 		}
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
 		common.Logger().Error("Couldn't get zone by domain name: Authorization error ")
@@ -235,7 +244,6 @@ func (c *CISDNSConfig) setChallenge(domain *CISDomainData) (string, error) {
 }
 
 func (c *CISDNSConfig) removeChallenge(domain *CISDomainData) error {
-	//todo if domain.txtRecordId is nil, try to get it
 	reqUrl := fmt.Sprintf(`%s/%s/zones/%s/dns_records/%s`, c.CISEndpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordId))
 	headers, err := c.buildRequestHeader()
 	if err != nil {
@@ -259,7 +267,6 @@ func (c *CISDNSConfig) removeChallenge(domain *CISDomainData) error {
 	cisError := getCISErrors(response.Errors)
 	common.Logger().Error("Couldn't remove txt record for domain " + domain.name + ": " + cisError)
 	return buildOrderError(logdna.Error07081, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
-
 }
 
 func (c *CISDNSConfig) getChallengeRecordId(domain *CISDomainData) (string, error) {
