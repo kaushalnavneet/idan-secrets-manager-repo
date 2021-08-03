@@ -63,6 +63,10 @@ func (client *Client) setDNSProvider(dnsProvider *ProviderConfig, domains []stri
 		err := client.LegoClient.Challenge.SetDNS01Provider(NewCISDNSProvider(providerConfiguration), challengeOption)
 		return err
 
+	} else if providerType == dnsConfigTypeSoftLayer {
+		err := client.LegoClient.Challenge.SetDNS01Provider(NewSoftlayerDNSProvider(providerConfiguration), challengeOption)
+		return err
+
 	} else {
 		//TODO: Consider a more secure alternative of writing to file instead of env
 		err := CreateEnvVariable(providerConfiguration)
@@ -80,7 +84,7 @@ func (client *Client) setDNSProvider(dnsProvider *ProviderConfig, domains []stri
 }
 
 func (client *Client) SetChallengeProviders(dnsProvider *ProviderConfig, domains []string) error {
-	challengeOption := dns01.DisableCompletePropagationRequirement()
+	challengeOption := dns01.WrapPreCheck(nil)
 	err := client.setDNSProvider(dnsProvider, domains, challengeOption)
 	return err
 }

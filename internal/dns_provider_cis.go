@@ -25,13 +25,13 @@ type CISDNSConfig struct {
 	IAMEndpoint   string
 	APIKey        string
 	TTL           int
-	Domains       map[string]*Domain
+	Domains       map[string]*CISDomainData
 	restClient    rest_client.RestClientFactory
 	smInstanceCrn string
 	iamToken      string
 }
 
-type Domain struct {
+type CISDomainData struct {
 	name           string
 	zoneId         string
 	txtRecordName  string
@@ -98,7 +98,7 @@ func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
 		IAMEndpoint:   iamURL,
 		APIKey:        apikey,
 		TTL:           120, //for TXT records
-		Domains:       make(map[string]*Domain),
+		Domains:       make(map[string]*CISDomainData),
 		restClient:    cf,
 		smInstanceCrn: smInstanceCrn,
 	}
@@ -142,7 +142,7 @@ func (c *CISDNSConfig) CleanUp(domain, token, keyAuth string) error {
 	return nil
 }
 
-func (c *CISDNSConfig) getDomainData(originalDomain, domainToSetChallenge, keyAuth string) (*Domain, error) {
+func (c *CISDNSConfig) getDomainData(originalDomain, domainToSetChallenge, keyAuth string) (*CISDomainData, error) {
 	zoneId, err := c.getZoneIdByDomain(domainToSetChallenge)
 	if err != nil {
 		//if domain was not found in CIS
@@ -159,7 +159,7 @@ func (c *CISDNSConfig) getDomainData(originalDomain, domainToSetChallenge, keyAu
 		return nil, err
 	}
 	// Compute the challenge response FQDN and TXT value for the domainToSetChallenge based  on the keyAuth.
-	currentDomain := &Domain{name: domainToSetChallenge}
+	currentDomain := &CISDomainData{name: domainToSetChallenge}
 	currentDomain.zoneId = zoneId
 	currentDomain.txtRecordName, currentDomain.txtRecordValue = dns01.GetRecord(originalDomain, keyAuth)
 	return currentDomain, nil
@@ -196,7 +196,7 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 
 }
 
-func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
+func (c *CISDNSConfig) setChallenge(domain *CISDomainData) (string, error) {
 	requestBody, err := createCISTxtRecordBody(domain.txtRecordName, domain.txtRecordValue, c.TTL)
 	if err != nil {
 		common.Logger().Error("Couldn't build txt record body: " + err.Error())
@@ -234,7 +234,7 @@ func (c *CISDNSConfig) setChallenge(domain *Domain) (string, error) {
 	return "", buildOrderError(logdna.Error07078, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 }
 
-func (c *CISDNSConfig) removeChallenge(domain *Domain) error {
+func (c *CISDNSConfig) removeChallenge(domain *CISDomainData) error {
 	//todo if domain.txtRecordId is nil, try to get it
 	reqUrl := fmt.Sprintf(`%s/%s/zones/%s/dns_records/%s`, c.CISEndpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordId))
 	headers, err := c.buildRequestHeader()
@@ -262,7 +262,7 @@ func (c *CISDNSConfig) removeChallenge(domain *Domain) error {
 
 }
 
-func (c *CISDNSConfig) getChallengeRecordId(domain *Domain) (string, error) {
+func (c *CISDNSConfig) getChallengeRecordId(domain *CISDomainData) (string, error) {
 	reqUrl := fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&content=%s`, c.CISEndpoint, url.QueryEscape(c.CRN),
 		url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordName), url.QueryEscape(domain.txtRecordValue))
 	headers, err := c.buildRequestHeader()

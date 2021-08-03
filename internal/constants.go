@@ -79,7 +79,7 @@ const (
 	dnsConfigSLPassword    = "SOFTLAYER_PASSWORD"
 	urlSLApi               = "https://api.softlayer.com/rest/v3"
 
-	PropagationTimeout = 5 * time.Minute
+	PropagationTimeout = 25 * time.Minute
 	PollingInterval    = 2 * time.Second
 )
 
