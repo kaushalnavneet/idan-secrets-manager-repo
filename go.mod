@@ -11,6 +11,7 @@ replace github.com/labstack/echo/v4 => github.com/labstack/echo/v4 v4.4.0
 require (
 	github.com/go-acme/lego/v4 v4.4.0
 	github.com/go-playground/validator/v10 v10.8.0
+	github.com/go-resty/resty/v2 v2.6.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-hclog v0.16.2
 	github.com/hashicorp/vault/sdk v0.2.1

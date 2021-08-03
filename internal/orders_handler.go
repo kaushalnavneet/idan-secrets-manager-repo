@@ -112,7 +112,7 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 		Labels:      csp.Labels,
 		Type:        secretentry.SecretTypePublicCert,
 		ExtraData:   certMetadata,
-		VersionData: certMetadata,
+		VersionData: "",
 		VersionExtraData: map[string]interface{}{
 			secretentry.FieldCommonName: certMetadata.CommonName,
 			secretentry.FieldAltNames:   certMetadata.AltName,

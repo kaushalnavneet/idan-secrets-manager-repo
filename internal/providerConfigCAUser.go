@@ -28,8 +28,8 @@ var validCaProviders []interface{}
 
 func init() {
 	caProviders = map[string]string{
-		CATypeLetsEncryptProd:  DirectoryLetsEncryptProd,
-		CaTypeLetsEncryptStage: DirectoryLetsEncryptStage,
+		caConfigTypeLEProd:  UrlLetsEncryptProd,
+		caConfigTypeLEStage: UrlLetsEncryptStage,
 	}
 	validCaProviders = make([]interface{}, 0, len(caProviders))
 	for k := range caProviders {
