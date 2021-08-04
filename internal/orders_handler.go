@@ -55,23 +55,18 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 	}
 
 	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
+	if err != nil {
+		return nil, err
+	}
+	//update issuance info only if it passed all validation
 	metadata.IssuanceInfo[FieldOrderedOn] = time.Now().UTC().Format(time.RFC3339)
 	metadata.IssuanceInfo[FieldAutoRotated] = false
-	if err != nil {
-		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
-		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
-		metadata.IssuanceInfo[FieldErrorCode] = "RenewError"
-		metadata.IssuanceInfo[FieldErrorMessage] = err.Error()
-		entry.ExtraData = metadata
-		return nil, err
-	} else {
-		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
-		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
-		delete(metadata.IssuanceInfo, FieldErrorCode)
-		delete(metadata.IssuanceInfo, FieldErrorMessage)
-		entry.ExtraData = metadata
-		return nil, nil
-	}
+	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
+	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
+	delete(metadata.IssuanceInfo, FieldErrorCode)
+	delete(metadata.IssuanceInfo, FieldErrorMessage)
+	entry.ExtraData = metadata
+	return nil, nil
 }
 
 // ExtraValidation Perform Extra validation according to the request.
@@ -122,7 +117,9 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 		GroupID:     csp.GroupId, //state
 	}
 	err = secretParams.Policies.UpdateRotationPolicy(rotation, csp.UserId, csp.CRN)
-
+	if err != nil {
+		return nil, nil, err
+	}
 	return &secretParams, nil, nil
 }
 
@@ -323,7 +320,9 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	block, _ := pem.Decode([]byte(caConfig.Config[caConfigPrivateKey]))
 	caPrivKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
-		return err
+		message := fmt.Sprintf(invalidKey, err.Error())
+		common.ErrorLogForCustomer(message, logdna.Error07039, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07039, http.StatusBadRequest, message)
 	}
 
 	ca := &CAUserConfig{
@@ -353,7 +352,9 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	if privateKey != nil && len(privateKey) > 0 {
 		certPrivKey, err := certcrypto.ParsePEMPrivateKey(privateKey)
 		if err != nil {
-			//can't happen
+			message := fmt.Sprintf(invalidKey, err.Error())
+			common.ErrorLogForCustomer(message, logdna.Error07041, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07041, http.StatusBadRequest, message)
 		}
 		//need to reuse the same key
 		csrAsDER, _ := certcrypto.GenerateCSR(certPrivKey, data.CommonName, data.AltName, false)
@@ -364,7 +365,9 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 
 	orderKey := getOrderID(domains)
 	if _, ok := oh.runningOrders[orderKey]; ok {
-		return errors.New("order for these domains is in process")
+		message := orderAlreadyInProcess
+		common.ErrorLogForCustomer(message, logdna.Error07042, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07042, http.StatusBadRequest, message)
 	}
 	oh.beforeOrders[orderKey] = workItem
 	return nil

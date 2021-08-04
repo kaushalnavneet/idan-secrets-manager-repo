@@ -10,6 +10,10 @@ import (
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
+	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
+	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
+	"net/http"
 )
 
 type CAUserConfig struct {
@@ -57,7 +61,9 @@ func NewCAUserConfig(caType, privateKeyPEM, caRootCertPath, email string) (*CAUs
 	//set directory url according to ca
 	directoryUrl, ok := caProviders[caType]
 	if !ok { //should not happen because of input validation
-		return nil, fmt.Errorf("%s is not valid CA. Should be one of %s", caType, validCaProviders)
+		message := fmt.Sprintf(invalidConfigType, validCaProviders)
+		common.ErrorLogForCustomer(message, logdna.Error07020, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07020, http.StatusBadRequest, message)
 	}
 	var privateKey crypto.PrivateKey
 	var err error
@@ -71,7 +77,9 @@ func NewCAUserConfig(caType, privateKeyPEM, caRootCertPath, email string) (*CAUs
 		privateKey, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	}
 	if err != nil {
-		return nil, err
+		message := fmt.Sprintf(invalidKey, err.Error())
+		common.ErrorLogForCustomer(message, logdna.Error07021, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07021, http.StatusBadRequest, message)
 	}
 	userConfig := &CAUserConfig{
 		CAType:       caType,
@@ -87,7 +95,10 @@ func NewCAUserConfig(caType, privateKeyPEM, caRootCertPath, email string) (*CAUs
 func (u *CAUserConfig) initCAAccount() error {
 	client, err := NewACMEClient(u, certcrypto.RSA2048)
 	if err != nil {
-		return err
+		message := fmt.Sprintf("Failed to configure HTTP Client: %s", err.Error())
+		common.Logger().Error(message)
+		common.ErrorLogForCustomer(internalServerError, logdna.Error07022, logdna.InternalErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07022, http.StatusBadRequest, internalServerError)
 	}
 
 	if u.byoa {
@@ -97,16 +108,19 @@ func (u *CAUserConfig) initCAAccount() error {
 		err = client.RegisterUser(u)
 	}
 	if err != nil {
-		return err
+		message := fmt.Sprintf(wrongCAAccount, err.Error())
+		common.ErrorLogForCustomer(message, logdna.Error07023, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07023, http.StatusBadRequest, message)
 	}
-
 	return nil
 }
 
 func (u *CAUserConfig) getConfigToStore() (map[string]string, error) {
 	x509Encoded, err := x509.MarshalPKCS8PrivateKey(u.key)
 	if err != nil {
-		return nil, err
+		message := fmt.Sprintf(invalidKey, err.Error())
+		common.ErrorLogForCustomer(message, logdna.Error07024, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07024, http.StatusBadRequest, message)
 	}
 	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509Encoded})
 
@@ -125,15 +139,19 @@ func prepareCAConfigToStore(p *ProviderConfig) error {
 	var err error
 	privateKeyPEM, ok := p.Config[caConfigPrivateKey]
 	if !ok || len(privateKeyPEM) == 0 {
-		return fmt.Errorf(configMissingField, providerTypeCA, caConfigPrivateKey)
+		message := fmt.Sprintf(configMissingField, providerTypeCA, caConfigPrivateKey)
+		common.ErrorLogForCustomer(message, logdna.Error07018, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07018, http.StatusBadRequest, message)
 	}
 	email := p.Config[caConfigEmail]
-	//it's not expected to get this field
-	//we can fill it with constant LE root cert if needed
+	//it's not expected to get this field we can fill it with constant LE root cert if needed
 	caCert := p.Config[caConfigCARootCert]
 	for k := range p.Config {
+		// for now, we expect only 1 field - Private key
 		if k != caConfigPrivateKey {
-			return fmt.Errorf(invalidConfigStruct, providerTypeCA, p.Type, "["+caConfigPrivateKey+"]")
+			message := fmt.Sprintf(invalidConfigStruct, providerTypeCA, p.Type, "["+caConfigPrivateKey+"]")
+			common.ErrorLogForCustomer(message, logdna.Error07019, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07019, http.StatusBadRequest, message)
 		}
 	}
 	ca, err := NewCAUserConfig(p.Type, privateKeyPEM, caCert, email)

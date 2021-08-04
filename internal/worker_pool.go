@@ -114,7 +114,7 @@ func (w *WorkerPool) startCertificateRequest(cancelChan chan struct{}, workItem 
 		w.handler.saveOrderResultToStorage(result)
 
 	case <-time.After(timeout):
-		common.Logger().Debug("timeout")
+		common.Logger().Debug("Order request reached timeout")
 		result := Result{
 			workItem:    workItem,
 			Error:       errors.New("timeout"),

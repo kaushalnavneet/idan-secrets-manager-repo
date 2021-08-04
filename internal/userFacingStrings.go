@@ -20,15 +20,18 @@ const (
 
 //errors in Configs
 const (
-	internalServerError = "Internal server Error"
-	providerTypeCA      = "Certificate Authority"
-	providerTypeDNS     = "DNS Provider"
-	reachedTheMaximum   = "%s configuration couldn't be added because you have reached the maximum number of configurations (%d)"
-	nameAlreadyExists   = "%s configuration with name '%s' already exists"
-	configNotFound      = "%s configuration with name '%s' was not found"
-	configMissingField  = "%s configuration missing property %s"
-	invalidConfigStruct = "%s configuration of type '%s' has a wrong structure. It may contain only properties %s"
-	validationError     = "Parameters validation error: %s"
+	internalServerError  = "Internal server Error"
+	providerTypeCA       = "Certificate Authority"
+	providerTypeDNS      = "DNS Provider"
+	reachedTheMaximum    = "%s configuration couldn't be added because you have reached the maximum number of configurations (%d)"
+	nameAlreadyExists    = "%s configuration with name '%s' already exists"
+	configNotFound       = "%s configuration with name '%s' was not found"
+	configMissingField   = "%s configuration missing property %s"
+	invalidConfigStruct  = "%s configuration of type '%s' has a wrong structure. It may contain only properties %s"
+	invalidKey           = "Certificate Authority Private Key is not valid : %s"
+	configWrongStructure = "config field is not valid. It should be key-value map"
+	invalidConfigType    = "Config type should be one of [%s]"
+	wrongCAAccount       = "Failed to retrieve the CA account information: %s"
 )
 
 //activity tracker actions
@@ -40,10 +43,12 @@ const (
 
 //Order validation errors
 const (
-	commonNameTooLong = "A primary domain name cannot be longer than 64 bytes"
-	redundantDomain   = "At least one of the domains is redundant with a wildcard domain in the same certificate. Remove one or the other from the certificate order."
-	invalidDomain     = "Domain %s is not valid"
-	duplicateDomain   = "Domain %s is duplicated"
+	commonNameTooLong     = "A primary domain name cannot be longer than 64 bytes"
+	redundantDomain       = "At least one of the domains is redundant with a wildcard domain in the same certificate. Remove one or the other from the certificate order."
+	invalidDomain         = "Domain %s is not valid"
+	duplicateDomain       = "Domain %s is duplicated"
+	invalidKeyAlgorithm   = "Key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384"
+	orderAlreadyInProcess = "Order for these domains is already in process"
 )
 
 //Fields description

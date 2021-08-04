@@ -236,7 +236,8 @@ var keyTypes = map[string]certcrypto.KeyType{
 func getKeyType(keyAlgorithm string) (certcrypto.KeyType, error) {
 	keyType, ok := keyTypes[keyAlgorithm]
 	if !ok {
-		return "", errors.New("key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384")
+		common.ErrorLogForCustomer(invalidKeyAlgorithm, logdna.Error07040, logdna.BadRequestErrorMessage, true)
+		return "", commonErrors.GenerateCodedError(logdna.Error07040, http.StatusBadRequest, invalidKeyAlgorithm)
 	}
 	return keyType, nil
 }

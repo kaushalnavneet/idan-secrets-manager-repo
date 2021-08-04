@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.com/go-resty/resty/v2"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
+	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"net/http"
 	"net/url"
@@ -300,23 +300,23 @@ func (c *SoftlayerDNSConfig) validateConfig() error {
 	headers := c.buildRequestHeader()
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, nil)
 	if err != nil {
-		common.Logger().Error("Couldn't access  account: " + err.Error())
 		message := fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer)
-		return errors.New(message)
+		common.ErrorLogForCustomer("Couldn't access SoftLayer: "+err.Error(), logdna.Error07036, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07036, http.StatusBadRequest, message)
 	}
 	//success
 	if resp.StatusCode() == http.StatusOK {
 		return nil
 	}
 	if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-		common.Logger().Error("Couldn't access account: Authorization error ")
 		message := fmt.Sprintf(authorizationError, "to access", dnsProviderSoftLayerAccount)
-		return errors.New(message)
+		common.ErrorLogForCustomer(message, logdna.Error07037, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07037, http.StatusBadRequest, message)
 	}
-	//	softlayerError := getSoftlayerErrors(response.Errors)
-	common.Logger().Error("Couldn't access account: ") //+ softlayerError)
+	softlayerError := getSoftlayerErrors(resp)
 	message := fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer)
-	return errors.New(message)
+	common.ErrorLogForCustomer("Couldn't access SoftLayer: "+softlayerError, logdna.Error07038, logdna.BadRequestErrorMessage, true)
+	return commonErrors.GenerateCodedError(logdna.Error07038, http.StatusBadRequest, message)
 }
 
 func createTxtRecordBody(domain *SLDomainData, ttl int) (*bytes.Buffer, error) {
@@ -350,17 +350,19 @@ func getSoftlayerErrors(resp *resty.Response) string {
 func validateSoftLayerStructure(config map[string]string) error {
 	if user, ok := config[dnsConfigSLUser]; !ok || len(user) < 2 {
 		message := fmt.Sprintf(configMissingField, providerTypeDNS, dnsConfigSLUser)
-		return errors.New(message)
+		common.ErrorLogForCustomer(message, logdna.Error07033, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07033, http.StatusBadRequest, message)
 	}
 	if password, ok := config[dnsConfigSLPassword]; !ok || len(password) < 2 {
 		message := fmt.Sprintf(configMissingField, providerTypeDNS, dnsConfigSLPassword)
-		return errors.New(message)
+		common.ErrorLogForCustomer(message, logdna.Error07034, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07034, http.StatusBadRequest, message)
 	}
 	for k, _ := range config {
 		if k != dnsConfigSLUser && k != dnsConfigSLPassword {
-			common.Logger().Error("DNS config contains field " + k + " that is not valid")
 			message := fmt.Sprintf(invalidConfigStruct, providerTypeDNS, dnsConfigTypeCIS, "["+dnsConfigSLUser+","+dnsConfigSLPassword+"]")
-			return errors.New(message)
+			common.ErrorLogForCustomer(message, logdna.Error07035, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07035, http.StatusBadRequest, message)
 		}
 	}
 	return nil
