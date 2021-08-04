@@ -27,7 +27,7 @@ const (
 const (
 	MaxWorkers                           = 1
 	MaxCertRequest                       = 50
-	CertRequestTimeout     time.Duration = 600
+	CertRequestTimeout     time.Duration = 6000
 	RenewalExecutionPeriod time.Duration = 3
 	RenewalThreshold       time.Duration = 30 * 24 //((365 * 24 * 5) + 24) to always renew every renewal period
 )

@@ -11,6 +11,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-iam/pkg/crn"
 	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
+	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"net/http"
 	"net/url"
@@ -335,29 +336,30 @@ func (c *CISDNSConfig) validateConfig() error {
 	reqUrl := fmt.Sprintf(`%s/%s/zones?per_page=5`, c.CISEndpoint, url.QueryEscape(c.CRN))
 	headers, err := c.buildRequestHeader()
 	if err != nil {
-		common.Logger().Error("Couldn't build headers for CIS request: " + err.Error())
-		return err
+		message := err.Error()
+		common.ErrorLogForCustomer(message, logdna.Error07029, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07029, http.StatusBadRequest, message)
 	}
 	response := &CISResponseList{}
 	resp, err := c.restClient.SendRequest(reqUrl, http.MethodGet, *headers, nil, response)
 	if err != nil {
-		common.Logger().Error("Couldn't access CIS instance: " + err.Error())
+		common.ErrorLogForCustomer("Couldn't access CIS instance: "+err.Error(), logdna.Error07030, logdna.BadRequestErrorMessage, true)
 		message := fmt.Sprintf(unavailableDNSError, dnsProviderCIS)
-		return errors.New(message)
+		return commonErrors.GenerateCodedError(logdna.Error07030, http.StatusBadRequest, message)
 	}
 	//success
 	if resp.StatusCode() == http.StatusOK {
 		return nil
 	}
 	if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-		common.Logger().Error("Couldn't access CIS instance:  Authorization error ")
 		message := fmt.Sprintf(authorizationError, "to access", dnsProviderCISInstance)
-		return errors.New(message)
+		common.ErrorLogForCustomer(message, logdna.Error07031, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07031, http.StatusBadRequest, message)
 	}
 	cisError := getCISErrors(response.Errors)
-	common.Logger().Error("Couldn't access CIS instance: " + cisError)
+	common.ErrorLogForCustomer("Couldn't access CIS instance: "+cisError, logdna.Error07032, logdna.BadRequestErrorMessage, true)
 	message := fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS)
-	return errors.New(message)
+	return commonErrors.GenerateCodedError(logdna.Error07032, http.StatusBadRequest, message)
 }
 
 func createCISTxtRecordBody(key, value string, ttl int) (*bytes.Buffer, error) {
@@ -385,16 +387,20 @@ func getCISErrors(errors []CISError) string {
 func validateCISConfigStructure(config map[string]string, smInstanceCrn string) error {
 	if crnValue, ok := config[dnsConfigCisCrn]; !ok {
 		message := fmt.Sprintf(configMissingField, providerTypeDNS, dnsConfigCisCrn)
-		return errors.New(message)
+		common.ErrorLogForCustomer(message, logdna.Error07025, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07025, http.StatusBadRequest, message)
 	} else if validCrn, err := crn.ToCRN(crnValue); err != nil {
-		return errors.New(invalidCISInstanceCrn)
+		common.ErrorLogForCustomer(invalidCISInstanceCrn, logdna.Error07026, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07026, http.StatusBadRequest, invalidCISInstanceCrn)
 	} else if validCrn.ServiceName != serviceCISint && validCrn.ServiceName != serviceCIS {
-		return errors.New(invalidCISInstanceCrn)
+		common.ErrorLogForCustomer(invalidCISInstanceCrn, logdna.Error07027, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07027, http.StatusBadRequest, invalidCISInstanceCrn)
 	}
 	for k := range config {
 		if k != dnsConfigCisCrn && k != dnsConfigCisApikey {
 			message := fmt.Sprintf(invalidConfigStruct, providerTypeDNS, dnsConfigTypeCIS, "["+dnsConfigCisCrn+","+dnsConfigCisApikey+"]")
-			return errors.New(message)
+			common.ErrorLogForCustomer(message, logdna.Error07028, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07028, http.StatusBadRequest, message)
 		}
 	}
 	//if cis api key was not provided, add sm crn for s2s tokens

@@ -20,15 +20,18 @@ const (
 
 //errors in Configs
 const (
-	internalServerError = "Internal server Error"
-	providerTypeCA      = "Certificate Authority"
-	providerTypeDNS     = "DNS Provider"
-	reachedTheMaximum   = "%s configuration couldn't be added because you have reached the maximum number of configurations (%d)"
-	nameAlreadyExists   = "%s configuration with name '%s' already exists"
-	configNotFound      = "%s configuration with name '%s' was not found"
-	configMissingField  = "%s configuration missing property %s"
-	invalidConfigStruct = "%s configuration of type '%s' has a wrong structure. It may contain only properties %s"
-	validationError     = "Parameters validation error: %s"
+	internalServerError  = "Internal server Error"
+	providerTypeCA       = "Certificate Authority"
+	providerTypeDNS      = "DNS Provider"
+	reachedTheMaximum    = "%s configuration couldn't be added because you have reached the maximum number of configurations (%d)"
+	nameAlreadyExists    = "%s configuration with name '%s' already exists"
+	configNotFound       = "%s configuration with name '%s' was not found"
+	configMissingField   = "%s configuration missing property %s"
+	invalidConfigStruct  = "%s configuration of type '%s' has a wrong structure. It may contain only properties %s"
+	invalidKey           = "Private Key validation failed: %s"
+	configWrongStructure = "config field is not valid. It should be key-value map"
+	invalidConfigType    = "Config type should be one of [%s]"
+	wrongCAAccount       = "Failed to retrieve the CA account information: %s"
 )
 
 //activity tracker actions
