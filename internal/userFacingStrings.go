@@ -32,6 +32,7 @@ const (
 	configWrongStructure = "config field is not valid. It should be key-value map"
 	invalidConfigType    = "Config type should be one of [%s]"
 	wrongCAAccount       = "Failed to retrieve the CA account information: %s"
+	configNameWithSpace  = "Config name mustn't contain spaces"
 )
 
 //activity tracker actions
