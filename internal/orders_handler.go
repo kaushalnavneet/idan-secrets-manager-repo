@@ -55,23 +55,27 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 	}
 
 	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
+	if err != nil {
+		return nil, err
+	}
+	//update issuance info only if it passed all validation
 	metadata.IssuanceInfo[FieldOrderedOn] = time.Now().UTC().Format(time.RFC3339)
 	metadata.IssuanceInfo[FieldAutoRotated] = false
-	if err != nil {
-		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
-		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
-		metadata.IssuanceInfo[FieldErrorCode] = "RenewError"
-		metadata.IssuanceInfo[FieldErrorMessage] = err.Error()
-		entry.ExtraData = metadata
-		return nil, err
-	} else {
-		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
-		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
-		delete(metadata.IssuanceInfo, FieldErrorCode)
-		delete(metadata.IssuanceInfo, FieldErrorMessage)
-		entry.ExtraData = metadata
-		return nil, nil
-	}
+	//if err != nil {
+	//	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
+	//	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
+	//	metadata.IssuanceInfo[FieldErrorCode] = "RenewError"
+	//	metadata.IssuanceInfo[FieldErrorMessage] = err.Error()
+	//	entry.ExtraData = metadata
+	//	return nil, err
+	//} else {
+	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
+	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
+	delete(metadata.IssuanceInfo, FieldErrorCode)
+	delete(metadata.IssuanceInfo, FieldErrorMessage)
+	entry.ExtraData = metadata
+	return nil, nil
+	//}
 }
 
 // ExtraValidation Perform Extra validation according to the request.
@@ -122,7 +126,9 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 		GroupID:     csp.GroupId, //state
 	}
 	err = secretParams.Policies.UpdateRotationPolicy(rotation, csp.UserId, csp.CRN)
-
+	if err != nil {
+		return nil, nil, err
+	}
 	return &secretParams, nil, nil
 }
 
