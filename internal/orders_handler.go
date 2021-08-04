@@ -320,7 +320,9 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	block, _ := pem.Decode([]byte(caConfig.Config[caConfigPrivateKey]))
 	caPrivKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
-		return err
+		message := fmt.Sprintf(invalidKey, err.Error())
+		common.ErrorLogForCustomer(message, logdna.Error07039, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07039, http.StatusBadRequest, message)
 	}
 
 	ca := &CAUserConfig{
@@ -350,7 +352,9 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	if privateKey != nil && len(privateKey) > 0 {
 		certPrivKey, err := certcrypto.ParsePEMPrivateKey(privateKey)
 		if err != nil {
-			//can't happen
+			message := fmt.Sprintf(invalidKey, err.Error())
+			common.ErrorLogForCustomer(message, logdna.Error07041, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07041, http.StatusBadRequest, message)
 		}
 		//need to reuse the same key
 		csrAsDER, _ := certcrypto.GenerateCSR(certPrivKey, data.CommonName, data.AltName, false)
@@ -361,7 +365,9 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 
 	orderKey := getOrderID(domains)
 	if _, ok := oh.runningOrders[orderKey]; ok {
-		return errors.New("order for these domains is in process")
+		message := orderAlreadyInProcess
+		common.ErrorLogForCustomer(message, logdna.Error07042, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07042, http.StatusBadRequest, message)
 	}
 	oh.beforeOrders[orderKey] = workItem
 	return nil
