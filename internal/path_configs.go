@@ -458,6 +458,10 @@ func (ob *OrdersBackend) validateConfigName(d *framework.FieldData) (string, err
 		common.ErrorLogForCustomer(errorMessage, logdna.Error07015, logdna.BadRequestErrorMessage, true)
 		return "", commonErrors.GenerateCodedError(logdna.Error07015, http.StatusBadRequest, errorMessage)
 	}
+	if strings.Contains(name, " ") {
+		common.ErrorLogForCustomer(configNameWithSpace, logdna.Error07043, logdna.BadRequestErrorMessage, true)
+		return "", commonErrors.GenerateCodedError(logdna.Error07043, http.StatusBadRequest, configNameWithSpace)
+	}
 	return name, nil
 }
 
