@@ -18,6 +18,6 @@ require (
 	github.ibm.com/project-fortress/vault-client-golang v0.0.4
 	github.ibm.com/security-services/secrets-manager-common-utils v0.0.7213
 	github.ibm.com/security-services/secrets-manager-iam v0.0.7012
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.7217
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.7281
 	golang.org/x/net v0.0.0-20210716203947-853a461950ff
 )
