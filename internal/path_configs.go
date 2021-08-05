@@ -38,27 +38,32 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 
 	operationsWithoutPathParam := map[logical.Operation]framework.OperationHandler{
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathConfigCreate, atSecretConfigUpdate),
-			Summary:  "Create the configuration value",
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigCreate, atSecretConfigUpdate),
+			Summary:     createCAConfigOperationSummary,
+			Description: createCAConfigOperationDescription,
 		},
 		logical.ReadOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathConfigList, atSecretConfigRead),
-			Summary:  "Get all the configuration values",
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigList, atSecretConfigRead),
+			Summary:     listCAConfigOperationSummary,
+			Description: listCAConfigOperationDescription,
 		},
 	}
 
 	operationsWithPathParam := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathConfigRead, atSecretConfigRead),
-			Summary:  "Read the configuration value",
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigRead, atSecretConfigRead),
+			Summary:     getCAConfigOperationSummary,
+			Description: getCAConfigOperationDescription,
 		},
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathConfigUpdate, atSecretConfigUpdate),
-			Summary:  "Update the configuration value",
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigUpdate, atSecretConfigUpdate),
+			Summary:     updateCAConfigOperationSummary,
+			Description: updateCAConfigOperationDescription,
 		},
 		logical.DeleteOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathConfigDelete, atSecretConfigDelete),
-			Summary:  "Delete the configuration value",
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigDelete, atSecretConfigDelete),
+			Summary:     deleteCAConfigOperationSummary,
+			Description: deleteCAConfigOperationDescription,
 		},
 	}
 
@@ -67,15 +72,15 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 			Pattern:         ConfigCAPath,
 			Fields:          fields,
 			Operations:      operationsWithoutPathParam,
-			HelpSynopsis:    caConfigSyn,
-			HelpDescription: caConfigDesc,
+			HelpSynopsis:    pathCAConfigHelpSynopsis,
+			HelpDescription: pathCAConfigHelpDescription,
 		},
 		{
 			Pattern:         ConfigCAPath + "/" + framework.GenericNameRegex(FieldName),
 			Fields:          fields,
 			Operations:      operationsWithPathParam,
-			HelpSynopsis:    caConfigSyn,
-			HelpDescription: caConfigDesc,
+			HelpSynopsis:    pathCAConfigWithNameHelpSynopsis,
+			HelpDescription: pathCAConfigWithNameHelpDescription,
 		},
 	}
 }
@@ -100,27 +105,32 @@ func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
 
 	operationsWithoutPathParam := map[logical.Operation]framework.OperationHandler{
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathConfigCreate, atSecretConfigUpdate),
-			Summary:  "Create the configuration value",
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigCreate, atSecretConfigUpdate),
+			Summary:     createDNSConfigOperationSummary,
+			Description: createDNSConfigOperationDescription,
 		},
 		logical.ReadOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathConfigList, atSecretConfigRead),
-			Summary:  "Get all the configuration values",
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigList, atSecretConfigRead),
+			Summary:     listDNSConfigOperationSummary,
+			Description: listDNSConfigOperationDescription,
 		},
 	}
 
 	operationsWithPathParam := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathConfigRead, atSecretConfigRead),
-			Summary:  "Read the configuration value",
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigRead, atSecretConfigRead),
+			Summary:     getDNSConfigOperationSummary,
+			Description: getDNSConfigOperationDescription,
 		},
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathConfigUpdate, atSecretConfigUpdate),
-			Summary:  "Update the configuration value",
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigUpdate, atSecretConfigUpdate),
+			Summary:     updateDNSConfigOperationSummary,
+			Description: updateDNSConfigOperationDescription,
 		},
 		logical.DeleteOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.pathConfigDelete, atSecretConfigDelete),
-			Summary:  "Delete the configuration value",
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigDelete, atSecretConfigDelete),
+			Summary:     deleteDNSConfigOperationSummary,
+			Description: deleteDNSConfigOperationDescription,
 		},
 	}
 
@@ -129,15 +139,15 @@ func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
 			Pattern:         ConfigDNSPath,
 			Fields:          fields,
 			Operations:      operationsWithoutPathParam,
-			HelpSynopsis:    dnsConfigSyn,
-			HelpDescription: dnsConfigDesc,
+			HelpSynopsis:    pathDNSConfigHelpSynopsis,
+			HelpDescription: pathDNSConfigHelpDescription,
 		},
 		{
 			Pattern:         ConfigDNSPath + "/" + framework.GenericNameRegex(FieldName),
 			Fields:          fields,
 			Operations:      operationsWithPathParam,
-			HelpSynopsis:    dnsConfigSyn,
-			HelpDescription: dnsConfigDesc,
+			HelpSynopsis:    pathDNSConfigWithNameHelpSynopsis,
+			HelpDescription: pathDNSConfigWithNameHelpDescription,
 		},
 	}
 }
@@ -150,8 +160,8 @@ func (ob *OrdersBackend) pathConfigRoot() []*framework.Path {
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
 			Callback:    ob.secretBackend.PathCallback(ob.pathRootConfigRead, atSecretConfigRead),
-			Summary:     GetRootConfigOpSummary,
-			Description: GetRootConfigOpDesc,
+			Summary:     getRootConfigOperationSummary,
+			Description: getRootConfigOperationDescription,
 		},
 	}
 	return []*framework.Path{
@@ -159,8 +169,8 @@ func (ob *OrdersBackend) pathConfigRoot() []*framework.Path {
 			Pattern:         ConfigRootPath,
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    GetRootConfigHelpSyn,
-			HelpDescription: GetRootConfigHelpDesc,
+			HelpSynopsis:    pathRootConfigHelpSynopsis,
+			HelpDescription: pathRootConfigHelpDescription,
 		},
 	}
 }
@@ -416,7 +426,13 @@ func (ob *OrdersBackend) pathConfigList(ctx context.Context, req *logical.Reques
 	}
 	providerType := getProviderType(req)
 	respData := make(map[string]interface{})
-	respData[CA] = rootConfig.getConfigsAsMap(providerType)
+	var responseProperty string
+	if providerType == providerTypeCA {
+		responseProperty = CA
+	} else {
+		responseProperty = DNS
+	}
+	respData[responseProperty] = rootConfig.getConfigsAsMap(providerType)
 	resp := &logical.Response{
 		Data: respData,
 	}

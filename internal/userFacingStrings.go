@@ -1,73 +1,102 @@
 package publiccerts
 
-//Errors in communication with DNS providers
-const (
-	dnsProviderCISInstance      = "the IBM Cloud Internet Services instance"
-	dnsProviderSoftLayerAccount = "the SoftLayer account"
-	dnsProviderCIS              = "IBM Cloud Internet Services"
-	dnsProviderSoftLayer        = "SoftLayer"
-
-	domainIsNotFound     = "Domain %s is not found in %s"
-	authorizationError   = "Authorization error when trying %s %s"
-	errorResponseFromDNS = "%s responded with an error"
-	unavailableDNSError  = "Couldn't call %s. Try again later"
-
-	//specific CIS
-	obtainTokenError      = "Couldn't obtain IAM token for provided ApiKey in order to access IBM Cloud Internet Services"
-	obtainCRNTokenError   = "Couldn't obtain IAM S2S token in order to access IBM Cloud Internet Services"
-	invalidCISInstanceCrn = "IBM Cloud Internet Services instance crn is not valid"
-)
-
 //errors in Configs
 const (
-	internalServerError  = "Internal server Error"
-	providerTypeCA       = "Certificate Authority"
-	providerTypeDNS      = "DNS Provider"
+	providerTypeCA  = "Certificate Authority"
+	providerTypeDNS = "DNS Provider"
+	//this type ^ is added to the follow messages
 	reachedTheMaximum    = "%s configuration couldn't be added because you have reached the maximum number of configurations (%d)"
 	nameAlreadyExists    = "%s configuration with name '%s' already exists"
 	configNotFound       = "%s configuration with name '%s' was not found"
 	configMissingField   = "%s configuration missing property %s"
 	invalidConfigStruct  = "%s configuration of type '%s' has a wrong structure. It may contain only properties %s"
-	invalidKey           = "Certificate Authority Private Key is not valid : %s"
-	configWrongStructure = "config field is not valid. It should be key-value map"
+	configWrongStructure = "'config' field is not valid. It should be key-value map"
 	invalidConfigType    = "Config type should be one of [%s]"
-	wrongCAAccount       = "Failed to retrieve the CA account information: %s"
 	configNameWithSpace  = "Config name mustn't contain spaces"
+
+	//specific CA
+	invalidKey     = "Certificate Authority Private Key is not valid : %s"
+	wrongCAAccount = "Failed to retrieve the Certificate Authority account information: %s"
 )
 
-//activity tracker actions
+//config fields description
 const (
-	atSetConfigAction    = "Set secret engine configuration"
-	atGetConfigAction    = "Get secret engine configuration"
-	atDeleteConfigAction = "Delete secret engine configuration"
+	configFieldNameDescription   = "The config name"
+	configFieldTypeDescription   = "The config type"
+	configFieldConfigDescription = "The set of config properties"
 )
 
-//Order validation errors
+//Certificate Authorities config
 const (
-	commonNameTooLong     = "A primary domain name cannot be longer than 64 bytes"
-	redundantDomain       = "At least one of the domains is redundant with a wildcard domain in the same certificate. Remove one or the other from the certificate order."
-	invalidDomain         = "Domain %s is not valid"
-	duplicateDomain       = "Domain %s is duplicated"
-	invalidKeyAlgorithm   = "Key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384"
-	orderAlreadyInProcess = "Order for these domains is already in process"
+	// Certificate Authorities config create and list path
+	pathCAConfigHelpSynopsis    = "Create and List the Certificate Authority configuration."
+	pathCAConfigHelpDescription = `This path supports creating a new Certificate Authority configuration, 
+and listing the existing Certificate Authority configuration of the Public certificate Secrets store.`
+
+	listCAConfigOperationSummary     = "Get all the Certificate Authority configurations"
+	listCAConfigOperationDescription = `The List operation returns the Certificate Authority configurations that are in the Public certificate Secrets store.`
+
+	createCAConfigOperationSummary     = "Create the Certificate Authority configuration"
+	createCAConfigOperationDescription = `The Create operation creates a new Certificate Authority configuration. The following parameters are used to create a new secret:
+name (required), type (required), config (required).
+The created config is returned in the response.`
+
+	// Certificate Authorities config  get update delete path
+	pathCAConfigWithNameHelpSynopsis    = "Read, Update and Delete the Certificate Authority configuration."
+	pathCAConfigWithNameHelpDescription = `This path takes config name and attempts to perform reading, updating and deleting of the Certificate Authority configuration.`
+
+	getCAConfigOperationSummary     = "Read the Certificate Authority configuration"
+	getCAConfigOperationDescription = `The read operation receives the config name parameter as part of the path.
+It returns the Certificate Authority configuration.`
+
+	updateCAConfigOperationSummary     = "Update the Certificate Authority configuration"
+	updateCAConfigOperationDescription = `The update operation receives the config name parameter as part of the path and the new payload as a required parameter.
+It updates the Certificate Authority configuration, and returns the updated configuration.`
+
+	deleteCAConfigOperationSummary     = "Delete the Certificate Authority configuration"
+	deleteCAConfigOperationDescription = `The delete operation receives config name parameter as part of the path.
+It deletes the configuration with the given name.`
 )
 
-//Fields description
+//DNS provider config path
 const (
-	FieldPolicyTypeDesc = "The type of policy that is associated with the specified secret."
-	FieldPoliciesDesc   = "The new policies for the secret."
+	// Certificate Authorities config create and list path
+	pathDNSConfigHelpSynopsis    = "Create and List the DNS Provider configuration."
+	pathDNSConfigHelpDescription = `This path supports creating a new DNS Provider configuration, 
+and listing the existing DNS Provider configuration of the Public certificate Secrets store.`
+
+	listDNSConfigOperationSummary     = "Get all the DNS Provider configurations"
+	listDNSConfigOperationDescription = `The List operation returns the DNS Provider configurations that are in the Public certificate Secrets store.`
+
+	createDNSConfigOperationSummary     = "Create the DNS Provider configuration"
+	createDNSConfigOperationDescription = `The Create operation creates a new DNS Provider configuration. The following parameters are used to create a new secret:
+name (required), type (required), config (required).
+The created config is returned in the response.`
+
+	// Certificate Authorities config  get update delete path
+	pathDNSConfigWithNameHelpSynopsis    = "Read, Update and Delete the DNS Provider configuration."
+	pathDNSConfigWithNameHelpDescription = `This path takes config name and attempts to perform reading, updating and deleting of the DNS Provider configuration.`
+
+	getDNSConfigOperationSummary     = "Read the DNS Provider configuration"
+	getDNSConfigOperationDescription = `The read operation receives the config name parameter as part of the path.
+It returns the DNS Provider configuration.`
+
+	updateDNSConfigOperationSummary     = "Update the DNS Provider configuration"
+	updateDNSConfigOperationDescription = `The update operation receives the config name parameter as part of the path and the new payload as a required parameter.
+It updates the DNS Provider configuration, and returns the updated configuration.`
+
+	deleteDNSConfigOperationSummary     = "Delete the DNS Provider configuration"
+	deleteDNSConfigOperationDescription = `The delete operation receives config name parameter as part of the path.
+It deletes the configuration with the given name.`
 )
 
-//config operations
+//Root config operations
 const (
-	GetRootConfigOpSummary = "Get all the configuration values"
-	GetRootConfigOpDesc    = "Get all the configuration values"
-	GetRootConfigHelpSyn   = "Read the root configuration."
-	GetRootConfigHelpDesc  = "Read the root configuration."
-	caConfigSyn            = "Read and Update the CA configuration."
-	caConfigDesc           = "Read and Update the CA configuration."
-	dnsConfigSyn           = "Read and Update the dns provider configuration."
-	dnsConfigDesc          = "Read and Update the dns provider configuration."
+	pathRootConfigHelpSynopsis    = "Read the root configuration."
+	pathRootConfigHelpDescription = `This path supports listing all the existing DNS Provider  and Certificate Authority configurations of the Public certificate Secrets store.`
+
+	getRootConfigOperationSummary     = "Get all the configuration values"
+	getRootConfigOperationDescription = `The List operation returns all DNS Provider and Certificate Authority configurations of the Public certificate Secrets store.`
 )
 
 //api operations descriptions
@@ -122,3 +151,47 @@ const (
 	policiesNotValidStructure = "Rotation policy has not valid structure"
 	policiesNotValidField     = "Field %s in rotation policy is not valid. "
 )
+
+//activity tracker actions
+const (
+	atSetConfigAction    = "Set secret engine configuration"
+	atGetConfigAction    = "Get secret engine configuration"
+	atDeleteConfigAction = "Delete secret engine configuration"
+)
+
+//Order validation errors
+const (
+	commonNameTooLong     = "A primary domain name cannot be longer than 64 bytes"
+	redundantDomain       = "At least one of the domains is redundant with a wildcard domain in the same certificate. Remove one or the other from the certificate order."
+	invalidDomain         = "Domain %s is not valid"
+	duplicateDomain       = "Domain %s is duplicated"
+	invalidKeyAlgorithm   = "Key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384"
+	orderAlreadyInProcess = "Order for these domains is already in process"
+)
+
+//Fields description
+const (
+	FieldPolicyTypeDesc = "The type of policy that is associated with the specified secret."
+	FieldPoliciesDesc   = "The new policies for the secret."
+)
+
+//Errors in communication with DNS providers
+const (
+	dnsProviderCISInstance      = "the IBM Cloud Internet Services instance"
+	dnsProviderSoftLayerAccount = "the SoftLayer account"
+	dnsProviderCIS              = "IBM Cloud Internet Services"
+	dnsProviderSoftLayer        = "SoftLayer"
+
+	domainIsNotFound     = "Domain %s is not found in %s"
+	authorizationError   = "Authorization error when trying %s %s"
+	errorResponseFromDNS = "%s responded with an error"
+	unavailableDNSError  = "Couldn't call %s. Try again later"
+
+	//specific CIS
+	obtainTokenError      = "Couldn't obtain IAM token for provided ApiKey in order to access IBM Cloud Internet Services"
+	obtainCRNTokenError   = "Couldn't obtain IAM S2S token in order to access IBM Cloud Internet Services"
+	invalidCISInstanceCrn = "IBM Cloud Internet Services instance crn is not valid"
+)
+
+//common error
+const internalServerError = "Internal server Error"

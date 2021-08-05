@@ -126,7 +126,7 @@ func (c *CISDNSConfig) Present(domain, token, keyAuth string) error {
 func (c *CISDNSConfig) CleanUp(domain, token, keyAuth string) error {
 	currentDomain, ok := c.Domains[domain]
 	if !ok {
-		common.Logger().Info("CIS Cleanup: " + domain + " The domain is not updated in the list of current domains, retrieving its data in order to remove txt record")
+		common.Logger().Info("CIS Cleanup: " + domain + " The domain doesn't exist in the list of current domains, retrieving its data in order to remove txt record")
 		var err error
 		currentDomain, err = c.getDomainData(domain, domain, keyAuth)
 		if err != nil {
@@ -349,6 +349,7 @@ func (c *CISDNSConfig) validateConfig() error {
 	}
 	//success
 	if resp.StatusCode() == http.StatusOK {
+		common.Logger().Info("Validation succeeded. CIS instance " + c.CRN + " can be accessed with provided credentials")
 		return nil
 	}
 	if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
