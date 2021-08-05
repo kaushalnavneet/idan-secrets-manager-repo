@@ -93,17 +93,17 @@ var (
 	configFields = map[string]*framework.FieldSchema{
 		FieldName: {
 			Type:        framework.TypeString,
-			Description: configFieldNameDescription,
+			Description: fieldConfigNameDescription,
 			Required:    true,
 		},
 		FieldType: {
 			Type:        framework.TypeString,
-			Description: configFieldTypeDescription,
+			Description: fieldConfigTypeDescription,
 			Required:    true,
 		},
 		FieldConfig: {
 			Type:        framework.TypeKVPairs,
-			Description: configFieldConfigDescription,
+			Description: fieldConfigSettingsDescription,
 			Required:    true,
 		},
 	}

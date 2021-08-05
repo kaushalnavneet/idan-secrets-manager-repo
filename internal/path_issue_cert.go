@@ -12,10 +12,10 @@ import (
 
 func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 	atSecretCreate := &at.ActivityTrackerVault{DataEvent: true, TargetTypeURI: at.SecretTargetTypeURI,
-		Description: "Issue a new certificate", Action: common.CreateSecretAction, SecretType: secretentry.SecretTypePublicCert,
+		Description: atOrderCertificate, Action: common.CreateSecretAction, SecretType: secretentry.SecretTypePublicCert,
 		TargetResourceType: secretentry.SecretResourceName}
 	atSecretList := &at.ActivityTrackerVault{DataEvent: true, TargetTypeURI: at.SecretTargetTypeURI,
-		Description: "List certificates", Action: common.ListSecretsAction, SecretType: secretentry.SecretTypePublicCert,
+		Description: atListCertificates, Action: common.ListSecretsAction, SecretType: secretentry.SecretTypePublicCert,
 		TargetResourceType: secretentry.SecretResourceName}
 
 	fields := map[string]*framework.FieldSchema{
@@ -70,13 +70,14 @@ func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.CreateOperation: &framework.PathOperation{
-			Callback: ob.secretBackend.PathCallback(ob.secretBackend.Create, atSecretCreate),
-			Summary:  "Issue a certificate",
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Create, atSecretCreate),
+			Summary:     issueCertOperationSummary,
+			Description: issueCertOperationDescription,
 		},
 		logical.ReadOperation: &framework.PathOperation{
 			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.List, atSecretList),
-			Summary:     "List certificates",
-			Description: ListOpDesc,
+			Summary:     listCertsOperationSummary,
+			Description: lListCertsOperationDescription,
 		},
 	}
 
@@ -86,23 +87,23 @@ func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 			Fields:          fields,
 			ExistenceCheck:  existenceCheck,
 			Operations:      operations,
-			HelpSynopsis:    secretsRootHelpSyn,
-			HelpDescription: secretsRootHelpDesc,
+			HelpSynopsis:    pathIssueListHelpSynopsis,
+			HelpDescription: pathIssueListHelpDescription,
 		},
 		{
 			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/?$",
 			Fields:          fields,
 			Operations:      operations,
 			ExistenceCheck:  existenceCheck,
-			HelpSynopsis:    secretsRootHelpSyn,
-			HelpDescription: secretsRootHelpDesc,
+			HelpSynopsis:    pathIssueListHelpSynopsis,
+			HelpDescription: pathIssueListHelpDescription,
 		},
 	}
 }
 
 func (ob *OrdersBackend) pathRotateCertificate() []*framework.Path {
 	atRotateCertificate := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName,
-		TargetTypeURI: at.SecretTargetTypeURI, Description: "Rotate a certificate",
+		TargetTypeURI: at.SecretTargetTypeURI, Description: atRotateCertificate,
 		Action: common.RotateSecretAction, Method: http.MethodPost, SecretType: secretentry.SecretTypePublicCert}
 
 	fields := map[string]*framework.FieldSchema{
@@ -110,7 +111,7 @@ func (ob *OrdersBackend) pathRotateCertificate() []*framework.Path {
 		secretentry.FieldGroupId: common.Fields[secretentry.FieldGroupId],
 		policies.FieldRotateKeys: {
 			Type:        framework.TypeBool,
-			Description: "Specify if a private key should be rotated.",
+			Description: fieldRotateKeyDescription,
 			Required:    true,
 			Default:     false,
 		},
@@ -119,8 +120,8 @@ func (ob *OrdersBackend) pathRotateCertificate() []*framework.Path {
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.UpdateOperation: &framework.PathOperation{
 			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Rotate, atRotateCertificate),
-			Summary:     "Rotate a secrets.",
-			Description: "Renew a certificate",
+			Summary:     rotateOperationSummary,
+			Description: rotateOperationDescription,
 		},
 	}
 
@@ -129,15 +130,15 @@ func (ob *OrdersBackend) pathRotateCertificate() []*framework.Path {
 			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId) + "/rotate",
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    RotateHelpSyn,
-			HelpDescription: RotateHelpDesc,
+			HelpSynopsis:    pathRotateHelpSynopsis,
+			HelpDescription: pathRotateHelpDescription,
 		},
 		{
 			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/rotate",
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    RotateHelpSyn,
-			HelpDescription: RotateHelpDesc,
+			HelpSynopsis:    pathRotateHelpSynopsis,
+			HelpDescription: pathRotateHelpDescription,
 		},
 	}
 }

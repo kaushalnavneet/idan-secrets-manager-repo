@@ -4,7 +4,7 @@ package publiccerts
 const (
 	providerTypeCA  = "Certificate Authority"
 	providerTypeDNS = "DNS Provider"
-	//this type ^ is added to the follow messages
+	//this type ^ is added to the following messages
 	reachedTheMaximum    = "%s configuration couldn't be added because you have reached the maximum number of configurations (%d)"
 	nameAlreadyExists    = "%s configuration with name '%s' already exists"
 	configNotFound       = "%s configuration with name '%s' was not found"
@@ -21,14 +21,13 @@ const (
 
 //config fields description
 const (
-	configFieldNameDescription   = "The config name"
-	configFieldTypeDescription   = "The config type"
-	configFieldConfigDescription = "The set of config properties"
+	fieldConfigNameDescription     = "The config name"
+	fieldConfigTypeDescription     = "The config type"
+	fieldConfigSettingsDescription = "The set of config properties"
 )
 
-//Certificate Authorities config
+// Certificate Authorities config create and list path
 const (
-	// Certificate Authorities config create and list path
 	pathCAConfigHelpSynopsis    = "Create and List the Certificate Authority configuration."
 	pathCAConfigHelpDescription = `This path supports creating a new Certificate Authority configuration, 
 and listing the existing Certificate Authority configuration of the Public certificate Secrets store.`
@@ -40,8 +39,10 @@ and listing the existing Certificate Authority configuration of the Public certi
 	createCAConfigOperationDescription = `The Create operation creates a new Certificate Authority configuration. The following parameters are used to create a new secret:
 name (required), type (required), config (required).
 The created config is returned in the response.`
+)
 
-	// Certificate Authorities config  get update delete path
+// Certificate Authorities config  get update delete path
+const (
 	pathCAConfigWithNameHelpSynopsis    = "Read, Update and Delete the Certificate Authority configuration."
 	pathCAConfigWithNameHelpDescription = `This path takes config name and attempts to perform reading, updating and deleting of the Certificate Authority configuration.`
 
@@ -58,9 +59,8 @@ It updates the Certificate Authority configuration, and returns the updated conf
 It deletes the configuration with the given name.`
 )
 
-//DNS provider config path
+// DNS provider config create and list path
 const (
-	// Certificate Authorities config create and list path
 	pathDNSConfigHelpSynopsis    = "Create and List the DNS Provider configuration."
 	pathDNSConfigHelpDescription = `This path supports creating a new DNS Provider configuration, 
 and listing the existing DNS Provider configuration of the Public certificate Secrets store.`
@@ -72,8 +72,10 @@ and listing the existing DNS Provider configuration of the Public certificate Se
 	createDNSConfigOperationDescription = `The Create operation creates a new DNS Provider configuration. The following parameters are used to create a new secret:
 name (required), type (required), config (required).
 The created config is returned in the response.`
+)
 
-	// Certificate Authorities config  get update delete path
+// DNS provider config  get update delete path
+const (
 	pathDNSConfigWithNameHelpSynopsis    = "Read, Update and Delete the DNS Provider configuration."
 	pathDNSConfigWithNameHelpDescription = `This path takes config name and attempts to perform reading, updating and deleting of the DNS Provider configuration.`
 
@@ -90,7 +92,7 @@ It updates the DNS Provider configuration, and returns the updated configuration
 It deletes the configuration with the given name.`
 )
 
-//Root config operations
+// Root config get path
 const (
 	pathRootConfigHelpSynopsis    = "Read the root configuration."
 	pathRootConfigHelpDescription = `This path supports listing all the existing DNS Provider  and Certificate Authority configurations of the Public certificate Secrets store.`
@@ -99,35 +101,85 @@ const (
 	getRootConfigOperationDescription = `The List operation returns all DNS Provider and Certificate Authority configurations of the Public certificate Secrets store.`
 )
 
-//api operations descriptions
+//path get / delete secret
 const (
-	VersionMetaReadOpDesc = `The versions metadata read operation receives the secretId parameter as part of the path.
-It returns all of the secret's version metadata.`
+	pathSecretHelpSynopsis    = "Get and delete certificate ."
+	pathSecretHelpDescription = `This path supports get certificate and delete certificate data.`
 
-	VersionReadOpDesc = `The versions read operation receives the secretId parameter as part of the path.
+	getSecretOperationSummary     = "Get certificate data"
+	getSecretOperationDescription = `The Get operation returns Certificate secret data.`
+
+	deleteSecretOperationSummary     = "Get certificate data"
+	deleteSecretOperationDescription = `The Get operation returns Certificate secret data.`
+)
+
+//path get version
+const (
+	pathVersionHelpSynopsis    = `Read secrets version in the Public certificate Secrets store.`
+	pathVersionHelpDescription = `This path takes a secretId and attempts to perform the version read operation on the secret with this secretId.` +
+		"\n" + getVersionOperationDescription
+
+	getVersionOperationSummary     = "Reads a version of a secret"
+	getVersionOperationDescription = `The versions read operation receives the secretId parameter as part of the path.
 It returns all of the secret's version.`
+)
 
-	VersionOperationsHelpSyn  = `Read secrets version in the Imported certificate Secrets store.`
-	VersionOperationsHelpDesc = `This path takes a secretId and attempts to perform the version read operation on the secret with this secretId.` +
-		"\n" + VersionReadOpDesc
+// path get / update metadata
+const (
+	pathMetadataHelpSynopsis    = "Get and update certificate metadata."
+	pathMetadataHelpDescription = `This path supports get certificate metadata and update certificate name, description or labels.`
 
-	VersionMetaOperationsHelpSyn  = `Read metadata for secrets version in the Imported certificate Secrets store.`
-	VersionMetaOperationsHelpDesc = `This path takes a secretId and attempts to perform the version metadata read operation on the secret with this secretId.` +
-		"\n" + VersionMetaReadOpDesc
-	issueConfigSyn  = "Issue certificate."
-	issueConfigDesc = "Issue certificate."
-	RotateHelpSyn   = "Renew certificate"
-	RotateHelpDesc  = "Renew certificate"
-	ListHelpSyn     = "List certificate"
-	ListHelpDesc    = "List certificate"
-	ListOpDesc      = `The List operation returns the secrets that are in the Imported certificate Secrets store.
+	getMetadataOperationSummary     = "Get certificate metadata"
+	getMetadataOperationDescription = `The Get operation returns Certificate metadata.`
+
+	updateMetadataOperationSummary     = "Update secret metadata"
+	updateMetadataOperationDescription = "Update certificate name, description or labels"
+)
+
+// path get version metadata
+const (
+	pathVersionMetaHelpSynopsis    = `Read metadata for secrets version in the Public certificate Secrets store.`
+	pathVersionMetaHelpDescription = `This path takes a secretId and attempts to perform the version metadata read operation on the secret with this secretId.` +
+		"\n" + getVersionMetaOperationDescription
+
+	getVersionMetaOperationSummary     = "Reads a version metadata of a secret"
+	getVersionMetaOperationDescription = `The versions metadata read operation receives the secretId parameter as part of the path.
+It returns all of the secret's version metadata.`
+)
+
+//path issue and list certificates
+const (
+	pathIssueListHelpSynopsis    = `Create and List secrets in the Public c Certificates Secrets store.`
+	pathIssueListHelpDescription = `This path supports creating a new public certificate secret, and listing the secrets of the User Credentials Secrets store.`
+
+	issueCertOperationSummary     = "Issue a certificate"
+	issueCertOperationDescription = "Issue a certificate"
+
+	listCertsOperationSummary      = "List certificates"
+	lListCertsOperationDescription = `The List operation returns the secrets that are in the Public certificate Secrets store.
 It receives the following optional parameters: labels, limit and offset.
 The labels parameter can be used to apply a tag-filter on the result of the operation, returning only the secrets that
 have these required labels.
 The limit and offset parameters are used for pagination.`
 
-	secretsRootHelpSyn  = `Create and List secrets in the Public c Certificates Secrets store.`
-	secretsRootHelpDesc = `This path supports creating a new public certificate secret, and listing the secrets of the User Credentials Secrets store.`
+	fieldCAConfigDescription          = "The Certificate Authority configuration name."
+	fieldDNSProviderConfigDescription = "The DNS provider configuration name."
+	fieldCommonNameDescription        = "The certificate Common Name (main domain)."
+	fieldAltNamesDescription          = "The certificate Alt Names (additional domains)."
+	fieldBundleCertDescription        = "Set to `true` to bundle the issuer certificate with the public certificate (full  chain cert file). Default value true"
+	fieldKeyAlgorithmDescription      = "The certificate key algorithm. Default value RSA2048"
+	fieldRotationDescription          = `The set of rotation settings. Default value {"auto_rotate":false, "rotate_keys":false}`
+)
+
+//path  Rotate certificate
+const (
+	pathRotateHelpSynopsis    = "Renew certificate"
+	pathRotateHelpDescription = "Renew certificate"
+
+	rotateOperationSummary     = "Rotate a secrets."
+	rotateOperationDescription = "Rotate a secrets."
+
+	fieldRotateKeyDescription = "Specify if a private key should be rotated."
 )
 
 //policies operations
@@ -157,6 +209,14 @@ const (
 	atSetConfigAction    = "Set secret engine configuration"
 	atGetConfigAction    = "Get secret engine configuration"
 	atDeleteConfigAction = "Delete secret engine configuration"
+	atGetSecretData      = "Get a certificate"
+	atDeleteSecret       = "Delete a certificate"
+	atGetCertMetadata    = "Get a certificate metadata"
+	atUpdateCertMetadata = "Update a certificate metadata"
+	atGetVersionMetadata = "Get version metadata"
+	atOrderCertificate   = "Issue a new certificate"
+	atListCertificates   = "List certificates"
+	atRotateCertificate  = "Rotate a certificate"
 )
 
 //Order validation errors

@@ -11,10 +11,10 @@ import (
 
 func (ob *OrdersBackend) pathCertificate() []*framework.Path {
 	atGetCertificate := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName,
-		TargetTypeURI: at.SecretTargetTypeURI, Description: "Get a certificate",
+		TargetTypeURI: at.SecretTargetTypeURI, Description: atGetSecretData,
 		Action: common.ReadSecretAction, Method: http.MethodGet, SecretType: secretentry.SecretTypePublicCert}
 	atDeleteCertificate := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName,
-		TargetTypeURI: at.SecretTargetTypeURI, Description: "Delete a certificate",
+		TargetTypeURI: at.SecretTargetTypeURI, Description: atDeleteSecret,
 		Action: common.DeleteSecretAction, Method: http.MethodDelete, SecretType: secretentry.SecretTypePublicCert}
 
 	fields := map[string]*framework.FieldSchema{
@@ -28,13 +28,13 @@ func (ob *OrdersBackend) pathCertificate() []*framework.Path {
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
 			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Get, atGetCertificate),
-			Summary:     "Get a certificate.",
-			Description: "Get a certificate.",
+			Summary:     getSecretOperationSummary,
+			Description: getSecretOperationDescription,
 		},
 		logical.DeleteOperation: &framework.PathOperation{
 			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Delete, atDeleteCertificate),
-			Summary:     "Delete a certificate.",
-			Description: "Delete a certificate.",
+			Summary:     deleteSecretOperationSummary,
+			Description: deleteSecretOperationDescription,
 		},
 	}
 
@@ -43,8 +43,8 @@ func (ob *OrdersBackend) pathCertificate() []*framework.Path {
 			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId),
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    "help",
-			HelpDescription: "help",
+			HelpSynopsis:    pathSecretHelpSynopsis,
+			HelpDescription: pathSecretHelpDescription,
 		},
 	}
 
@@ -62,8 +62,8 @@ func (ob *OrdersBackend) pathGetVersion() []*framework.Path {
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
 			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetVersion, atGetVersion),
-			Summary:     "Reads a version of a secret",
-			Description: VersionReadOpDesc,
+			Summary:     getVersionOperationSummary,
+			Description: getVersionOperationDescription,
 		},
 	}
 
@@ -72,26 +72,27 @@ func (ob *OrdersBackend) pathGetVersion() []*framework.Path {
 			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId) + "/versions/" + framework.GenericNameRegex(secretentry.FieldVersionId),
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    VersionOperationsHelpSyn,
-			HelpDescription: VersionOperationsHelpDesc,
+			HelpSynopsis:    pathVersionHelpSynopsis,
+			HelpDescription: pathVersionHelpDescription,
 		},
 		{
 			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/versions/" + framework.GenericNameRegex(secretentry.FieldVersionId),
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    VersionOperationsHelpSyn,
-			HelpDescription: VersionOperationsHelpDesc,
+			HelpSynopsis:    pathVersionHelpSynopsis,
+			HelpDescription: pathVersionHelpDescription,
 		},
 	}
 }
 
 func (ob *OrdersBackend) pathCertificateMetadata() []*framework.Path {
 	atGetCertificate := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName,
-		TargetTypeURI: at.SecretMetadataTargetTypeURI, Description: "Get a certificate metadata",
+		TargetTypeURI: at.SecretMetadataTargetTypeURI, Description: atGetCertMetadata,
 		Action: common.ReadSecretMetadataAction, Method: http.MethodGet, SecretType: secretentry.SecretTypePublicCert}
 	atUpdateCertificate := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName,
-		TargetTypeURI: at.SecretMetadataTargetTypeURI, Description: "Update a certificate metadata",
+		TargetTypeURI: at.SecretMetadataTargetTypeURI, Description: atUpdateCertMetadata,
 		Action: common.UpdateSecretMetadataAction, Method: http.MethodPut, SecretType: secretentry.SecretTypePublicCert}
+
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldId:          common.Fields[secretentry.FieldId],
 		secretentry.FieldGroupId:     common.Fields[secretentry.FieldGroupId],
@@ -103,13 +104,13 @@ func (ob *OrdersBackend) pathCertificateMetadata() []*framework.Path {
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
 			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetMetadata, atGetCertificate),
-			Summary:     "Get a certificate metadata.",
-			Description: "Get a certificate metadata.",
+			Summary:     getMetadataOperationSummary,
+			Description: getMetadataOperationDescription,
 		},
 		logical.UpdateOperation: &framework.PathOperation{
 			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.UpdateMetadata, atUpdateCertificate),
-			Summary:     "Update a certificate metadata.",
-			Description: "Update a certificate metadata.",
+			Summary:     updateMetadataOperationSummary,
+			Description: updateMetadataOperationDescription,
 		},
 	}
 
@@ -118,15 +119,15 @@ func (ob *OrdersBackend) pathCertificateMetadata() []*framework.Path {
 			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId) + "/metadata",
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    "help",
-			HelpDescription: "help",
+			HelpSynopsis:    pathMetadataHelpSynopsis,
+			HelpDescription: pathMetadataHelpDescription,
 		},
 		{
 			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/metadata",
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    "help",
-			HelpDescription: "help",
+			HelpSynopsis:    pathMetadataHelpSynopsis,
+			HelpDescription: pathMetadataHelpDescription,
 		},
 	}
 
@@ -134,7 +135,7 @@ func (ob *OrdersBackend) pathCertificateMetadata() []*framework.Path {
 
 func (ob *OrdersBackend) pathGetVersionMetadata() []*framework.Path {
 	atGetVersion := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName, TargetTypeURI: at.SecretMetadataTargetTypeURI,
-		Description: "Get version metadata", Action: common.ReadSecretMetadataAction, Method: http.MethodGet,
+		Description: atGetVersionMetadata, Action: common.ReadSecretMetadataAction, Method: http.MethodGet,
 		SecretType: secretentry.SecretTypePublicCert}
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldId:        common.Fields[secretentry.FieldId],
@@ -145,8 +146,8 @@ func (ob *OrdersBackend) pathGetVersionMetadata() []*framework.Path {
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
 			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetVersionMetadata, atGetVersion),
-			Summary:     "Reads a version metadata of a secret",
-			Description: VersionMetaReadOpDesc,
+			Summary:     getVersionMetaOperationSummary,
+			Description: getVersionMetaOperationDescription,
 		},
 	}
 
@@ -155,15 +156,15 @@ func (ob *OrdersBackend) pathGetVersionMetadata() []*framework.Path {
 			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId) + "/versions/" + framework.GenericNameRegex(secretentry.FieldVersionId) + "/metadata",
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    VersionMetaOperationsHelpSyn,
-			HelpDescription: VersionMetaOperationsHelpDesc,
+			HelpSynopsis:    pathVersionMetaHelpSynopsis,
+			HelpDescription: pathVersionMetaHelpDescription,
 		},
 		{
 			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/versions/" + framework.GenericNameRegex(secretentry.FieldVersionId) + "/metadata",
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    VersionMetaOperationsHelpSyn,
-			HelpDescription: VersionMetaOperationsHelpDesc,
+			HelpSynopsis:    pathVersionMetaHelpSynopsis,
+			HelpDescription: pathVersionMetaHelpDescription,
 		},
 	}
 }
