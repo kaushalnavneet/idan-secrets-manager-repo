@@ -184,24 +184,20 @@ const (
 
 //policies operations
 const (
-	policyReadOpSummary = "Reads the policy of a secret."
-	policyReadOpDesc    = `The policy read operation receives the secretId parameter as part of the path. It returns the secret's policy'.`
+	pathPoliciesHelpSynopsis    = `Read and update a secret's policy for secrets in the Public Certificates Secrets store.`
+	pathPoliciesHelpDescription = `This path takes a secretId and attempts to perform the policy read/update operation for the secret with this secretId.` +
+		"\n" + policyReadOpDesc +
+		"\n" + policyUpdateOpDesc
+
+	policyReadOpSummary = "Reads the rotation policy of a secret."
+	policyReadOpDesc    = `The policy read operation receives the secretId parameter as part of the path. It returns the secret's policy.`
 
 	policyUpdateOpSummary = "Updates the policy of a secret."
 	policyUpdateOpDesc    = `The update operation receives the secretId parameter as part of the path.
 It updates the secret's policy with the parameters that were provided, and returns the updated policy.`
 
-	policyOperationsHelpSyn  = `Read and update a secret's policy for secrets in the User Credentials Secrets store.`
-	policyOperationsHelpDesc = `This path takes a secretId and attempts to perform the policy read/update operation for the secret with this secretId.` +
-		"\n" + policyReadOpDesc +
-		"\n" + policyUpdateOpDesc
-)
-
-//policies validation errors
-const (
-	policiesMoreThanOne       = "Received more than one policy"
-	policiesNotValidStructure = "Rotation policy has not valid structure"
-	policiesNotValidField     = "Field %s in rotation policy is not valid. "
+	fieldPolicyTypeDesc = "The type of policy that is associated with the specified secret."
+	fieldPoliciesDesc   = "The new policies value for the secret."
 )
 
 //activity tracker actions
@@ -217,6 +213,15 @@ const (
 	atOrderCertificate   = "Issue a new certificate"
 	atListCertificates   = "List certificates"
 	atRotateCertificate  = "Rotate a certificate"
+	atGetSecretPolicy    = "Get secret policies"
+	atSetSecretPolicy    = "Set secret policies"
+)
+
+//policies validation errors
+const (
+	policiesMoreThanOne       = "Received more than one policy"
+	policiesNotValidStructure = "Rotation policy has not valid structure"
+	policiesNotValidField     = "Field %s in rotation policy is not valid. "
 )
 
 //Order validation errors
@@ -227,12 +232,6 @@ const (
 	duplicateDomain       = "Domain %s is duplicated"
 	invalidKeyAlgorithm   = "Key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384"
 	orderAlreadyInProcess = "Order for these domains is already in process"
-)
-
-//Fields description
-const (
-	FieldPolicyTypeDesc = "The type of policy that is associated with the specified secret."
-	FieldPoliciesDesc   = "The new policies for the secret."
 )
 
 //Errors in communication with DNS providers

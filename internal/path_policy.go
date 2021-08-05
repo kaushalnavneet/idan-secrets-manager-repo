@@ -12,24 +12,24 @@ import (
 
 func (ob *OrdersBackend) pathSecretPolicies() []*framework.Path {
 	atReadSecretPolicies := &at.ActivityTrackerVault{DataEvent: false, TargetResourceType: secretentry.SecretResourceName,
-		TargetTypeURI: "secrets-manager/secret-policies", Description: "Get secret policies",
+		TargetTypeURI: "secrets-manager/secret-policies", Description: atGetSecretPolicy,
 		Action: common.GetSecretPoliciesAction, Method: http.MethodGet, SecretType: secretentry.SecretTypePublicCert}
 	atUpdateSecretPolicies := &at.ActivityTrackerVault{DataEvent: false, TargetResourceType: secretentry.SecretResourceName,
-		TargetTypeURI: "secrets-manager/secret-policies", Description: "Set secret policies",
+		TargetTypeURI: "secrets-manager/secret-policies", Description: atSetSecretPolicy,
 		Action: common.SetSecretPoliciesAction, Method: http.MethodPut, SecretType: secretentry.SecretTypePublicCert}
 	fields := map[string]*framework.FieldSchema{
 		secretentry.FieldId:      common.Fields[secretentry.FieldId],
 		secretentry.FieldGroupId: common.Fields[secretentry.FieldGroupId],
 		policies.FieldPolicy: {
 			Type:          framework.TypeString,
-			Description:   FieldPolicyTypeDesc,
+			Description:   fieldPolicyTypeDesc,
 			Required:      false,
 			Query:         true,
 			AllowedValues: ob.GetSecretBackendHandler().GetPolicyHandler().AllowedPolicyTypes(),
 		},
 		policies.FieldPolicies: {
 			Type:        framework.TypeSlice,
-			Description: FieldPoliciesDesc,
+			Description: fieldPoliciesDesc,
 			Required:    true,
 		},
 	}
@@ -50,15 +50,15 @@ func (ob *OrdersBackend) pathSecretPolicies() []*framework.Path {
 			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId) + "/policies",
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    policyOperationsHelpSyn,
-			HelpDescription: policyOperationsHelpDesc,
+			HelpSynopsis:    pathPoliciesHelpSynopsis,
+			HelpDescription: pathPoliciesHelpDescription,
 		},
 		{
 			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/policies",
 			Fields:          fields,
 			Operations:      operations,
-			HelpSynopsis:    policyOperationsHelpSyn,
-			HelpDescription: policyOperationsHelpDesc,
+			HelpSynopsis:    pathPoliciesHelpSynopsis,
+			HelpDescription: pathPoliciesHelpDescription,
 		},
 	}
 }
