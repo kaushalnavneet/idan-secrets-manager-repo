@@ -349,12 +349,12 @@ func getSoftlayerErrors(resp *resty.Response) string {
 }
 
 func validateSoftLayerStructure(config map[string]string) error {
-	if user, ok := config[dnsConfigSLUser]; !ok || len(user) < 2 {
+	if user, ok := config[dnsConfigSLUser]; !ok || len(strings.TrimSpace(user)) == 0 {
 		message := fmt.Sprintf(configMissingField, providerTypeDNS, dnsConfigSLUser)
 		common.ErrorLogForCustomer(message, logdna.Error07033, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07033, http.StatusBadRequest, message)
 	}
-	if password, ok := config[dnsConfigSLPassword]; !ok || len(password) < 2 {
+	if password, ok := config[dnsConfigSLPassword]; !ok || len(strings.TrimSpace(password)) == 0 {
 		message := fmt.Sprintf(configMissingField, providerTypeDNS, dnsConfigSLPassword)
 		common.ErrorLogForCustomer(message, logdna.Error07034, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07034, http.StatusBadRequest, message)
