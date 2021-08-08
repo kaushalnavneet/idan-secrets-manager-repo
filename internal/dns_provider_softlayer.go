@@ -20,7 +20,7 @@ import (
 
 type SLDomainData struct {
 	name           string
-	domainId       int
+	zoneId         int
 	txtRecordName  string
 	txtRecordValue string
 	txtRecordId    int
@@ -130,7 +130,7 @@ func (c *SoftlayerDNSConfig) Present(domain, token, keyAuth string) error {
 func (c *SoftlayerDNSConfig) CleanUp(domain, token, keyAuth string) error {
 	currentDomain, ok := c.Domains[domain]
 	if !ok {
-		common.Logger().Info("SoftLayer Cleanup: " + domain + " The domain is not updated in the list of current domains, retrieving its data in order to remove txt record")
+		common.Logger().Info("SoftLayer Cleanup: " + domain + " The domain doesn't exist in the list of current domains, retrieving its data in order to remove txt record")
 		var err error
 		currentDomain, err = c.getDomainData(domain, domain, keyAuth)
 		if err != nil {
@@ -170,7 +170,7 @@ func (c *SoftlayerDNSConfig) getDomainData(originalDomain, domainToSetChallenge,
 	}
 	// Compute the challenge response FQDN and TXT value for the domainToSetChallenge based  on the keyAuth.
 	currentDomain := &SLDomainData{name: domainToSetChallenge}
-	currentDomain.domainId = zoneId
+	currentDomain.zoneId = zoneId
 	currentDomain.txtRecordName, currentDomain.txtRecordValue = dns01.GetRecord(originalDomain, keyAuth)
 	return currentDomain, nil
 }
@@ -261,7 +261,7 @@ func (c *SoftlayerDNSConfig) removeChallenge(domain *SLDomainData) error {
 
 func (c *SoftlayerDNSConfig) getChallengeRecordId(domain *SLDomainData) (int, error) {
 	url := fmt.Sprintf(`%s/SoftLayer_Dns_Domain/%d/getResourceRecords?objectFilter={"resourceRecords":{"host":{"operation": "%s"},"data":{"operation": "%s"}}}`,
-		c.SoftlayerEndpoint, domain.domainId, url.QueryEscape(domain.txtRecordName), url.QueryEscape(domain.txtRecordValue))
+		c.SoftlayerEndpoint, domain.zoneId, url.QueryEscape(domain.txtRecordName), url.QueryEscape(domain.txtRecordValue))
 	headers := c.buildRequestHeader()
 
 	response := &SLlistResponse{}
@@ -296,7 +296,7 @@ func (c *SoftlayerDNSConfig) buildRequestHeader() *map[string]string {
 //this func is called synchronous, so errors will be a part of response
 func (c *SoftlayerDNSConfig) validateConfig() error {
 	//try to get domains
-	url := fmt.Sprintf("%s/SoftLayer_Dns_Domain/getByDomainName/getByDomainName/domain.com", c.SoftlayerEndpoint)
+	url := fmt.Sprintf("%s/SoftLayer_Dns_Domain/getByDomainName/domain.com", c.SoftlayerEndpoint)
 	headers := c.buildRequestHeader()
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, nil)
 	if err != nil {
@@ -306,6 +306,7 @@ func (c *SoftlayerDNSConfig) validateConfig() error {
 	}
 	//success
 	if resp.StatusCode() == http.StatusOK {
+		common.Logger().Info("Validation succeeded. User " + c.User + " has an access to Softalyer")
 		return nil
 	}
 	if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
@@ -326,7 +327,7 @@ func createTxtRecordBody(domain *SLDomainData, ttl int) (*bytes.Buffer, error) {
 			Data:     domain.txtRecordValue,
 			Ttl:      ttl,
 			Type:     "txt",
-			DomainId: domain.domainId,
+			DomainId: domain.zoneId,
 		}}}
 	marshalledPostBody, err := json.Marshal(postBody)
 	if err != nil {

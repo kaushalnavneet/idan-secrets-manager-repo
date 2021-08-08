@@ -27,7 +27,7 @@ const (
 const (
 	MaxWorkers                           = 1
 	MaxCertRequest                       = 50
-	CertRequestTimeout     time.Duration = 6000
+	CertRequestTimeout     time.Duration = 60 * 20 //wait 20 minutes till fail order
 	RenewalExecutionPeriod time.Duration = 3
 	RenewalThreshold       time.Duration = 30 * 24 //((365 * 24 * 5) + 24) to always renew every renewal period
 )
@@ -79,7 +79,7 @@ const (
 	dnsConfigSLPassword    = "SOFTLAYER_PASSWORD"
 	urlSLApi               = "https://api.softlayer.com/rest/v3"
 
-	PropagationTimeout = 60 * time.Minute
+	PropagationTimeout = 15 * time.Minute
 	PollingInterval    = 2 * time.Second
 )
 
@@ -93,17 +93,17 @@ var (
 	configFields = map[string]*framework.FieldSchema{
 		FieldName: {
 			Type:        framework.TypeString,
-			Description: "Specifies the config name.",
+			Description: fieldConfigNameDescription,
 			Required:    true,
 		},
 		FieldType: {
 			Type:        framework.TypeString,
-			Description: "Specifies the provider type.",
+			Description: fieldConfigTypeDescription,
 			Required:    true,
 		},
 		FieldConfig: {
 			Type:        framework.TypeKVPairs,
-			Description: "Specifies the set of config properties.",
+			Description: fieldConfigSettingsDescription,
 			Required:    true,
 		},
 	}
