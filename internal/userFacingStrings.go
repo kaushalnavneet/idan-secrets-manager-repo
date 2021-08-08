@@ -19,6 +19,13 @@ const (
 	wrongCAAccount = "Failed to retrieve the Certificate Authority account information: %s"
 )
 
+//info messages
+const (
+	configCreated = "%s configuration with name '%s' has been created"
+	configUpdated = "%s configuration with name '%s' has been updated"
+	configDeleted = "%s configuration with name '%s' has been deleted"
+)
+
 //config fields description
 const (
 	fieldConfigNameDescription     = "The config name"

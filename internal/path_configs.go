@@ -236,6 +236,7 @@ func (ob *OrdersBackend) pathConfigCreate(ctx context.Context, req *logical.Requ
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07004, logdna.InternalErrorMessage, false)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07004, http.StatusInternalServerError, internalServerError)
 	}
+	common.Logger().Info(fmt.Sprintf(configCreated, providerType, name))
 	respData := make(map[string]interface{})
 	respData[FieldName] = configToStore.Name
 	respData[FieldType] = configToStore.Type
@@ -308,6 +309,7 @@ func (ob *OrdersBackend) pathConfigUpdate(ctx context.Context, req *logical.Requ
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07007, logdna.InternalErrorMessage, false)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07007, http.StatusInternalServerError, internalServerError)
 	}
+	common.Logger().Info(fmt.Sprintf(configUpdated, providerType, name))
 	respData := make(map[string]interface{})
 	respData[FieldName] = configToStore.Name
 	respData[FieldType] = configToStore.Type
@@ -372,7 +374,7 @@ func (ob *OrdersBackend) pathConfigDelete(ctx context.Context, req *logical.Requ
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07010, logdna.InternalErrorMessage, false)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07010, http.StatusInternalServerError, internalServerError)
 	}
-
+	common.Logger().Info(fmt.Sprintf(configDeleted, providerType, name))
 	resp := &logical.Response{}
 	return logical.RespondWithStatusCode(resp, req, http.StatusNoContent)
 }
