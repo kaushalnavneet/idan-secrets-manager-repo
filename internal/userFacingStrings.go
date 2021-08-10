@@ -5,18 +5,53 @@ const (
 	providerTypeCA  = "Certificate Authority"
 	providerTypeDNS = "DNS Provider"
 	//this type ^ is added to the following messages
-	reachedTheMaximum    = "%s configuration couldn't be added because you have reached the maximum number of configurations (%d)"
-	nameAlreadyExists    = "%s configuration with name '%s' already exists"
-	configNotFound       = "%s configuration with name '%s' was not found"
-	configMissingField   = "%s configuration missing property %s"
-	invalidConfigStruct  = "%s configuration of type '%s' has a wrong structure. It may contain only properties %s"
-	configWrongStructure = "'config' field is not valid. It should be key-value map"
-	invalidConfigType    = "Config type should be one of [%s]"
-	configNameWithSpace  = "Config name mustn't contain spaces"
+	reachedTheMaximum    = "%s configuration couldn't be added because you have reached the maximum number of configurations (%d)" //Error07002
+	nameAlreadyExists    = "%s configuration with name '%s' already exists"                                                        //Error07003
+	configNotFound       = "%s configuration with name '%s' was not found"                                                         //Error07006, Error07009, Error07012
+	configMissingField   = "%s configuration missing property %s"                                                                  //Error07025, Error07033, Error07034, Error07018
+	invalidConfigStruct  = "%s configuration of type '%s' has a wrong structure. It may contain only properties %s"                //Error07028, Error07035, Error07019
+	configWrongStructure = "'config' field is not valid. It should be key-value map"                                               //Error07017
+	invalidConfigType    = "Config type should be one of [%s]"                                                                     //Error07020
+	configNameWithSpace  = "Config name mustn't contain spaces"                                                                    //Error07043
 
 	//specific CA
-	invalidKey     = "Certificate Authority Private Key is not valid : %s"
-	wrongCAAccount = "Failed to retrieve the Certificate Authority account information: %s"
+	invalidKey     = "Certificate Authority Private Key is not valid : %s"                  //Error07039, Error07041, Error07021, Error07024
+	wrongCAAccount = "Failed to retrieve the Certificate Authority account information: %s" //Error07023
+)
+
+//policies validation errors
+const (
+	policiesMoreThanOne       = "Received more than one policy"            // Error07094
+	policiesNotValidStructure = "Rotation policy has not valid structure"  // Error07095, Error07096, Error07097
+	policiesNotValidField     = "Field %s in rotation policy is not valid" //Error07098, Error07099
+)
+
+//Order validation errors
+const (
+	commonNameTooLong     = "A primary domain name cannot be longer than 64 bytes"                                                                                         //Error07106
+	redundantDomain       = "At least one of the domains is redundant with a wildcard domain in the same certificate. Remove one or the other from the certificate order." //Error07109
+	invalidDomain         = "Domain %s is not valid"                                                                                                                       //Error07105, Error07107
+	duplicateDomain       = "Domain %s is duplicated"                                                                                                                      //Error07108
+	invalidKeyAlgorithm   = "Key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384"                                                      //Error07040
+	orderAlreadyInProcess = "Order for these domains is already in process"                                                                                                //Error07042
+)
+
+//Errors in communication with DNS providers
+const (
+	dnsProviderCISInstance      = "the IBM Cloud Internet Services instance"
+	dnsProviderSoftLayerAccount = "the SoftLayer account"
+	dnsProviderCIS              = "IBM Cloud Internet Services"
+	dnsProviderSoftLayer        = "SoftLayer"
+
+	domainIsNotFound     = "Domain %s is not found in %s"          //Error07072, Error07052
+	authorizationError   = "Authorization error when trying %s %s" //Error07073, Error07077, Error07080, Error07089, Error07031, Error07044, Error07048, Error07051, Error07056, Error07037
+	errorResponseFromDNS = "%s responded with an error"            //Error07074, Error07078, Error07081, Error07060, Error07032, Error07045, Error07049, Error07053, Error07057, Error07038
+	unavailableDNSError  = "Couldn't call %s. Try again later"     //Error07030, Error07036, Error07047, Error07050, Error07054, Error07058, Error07071, Error07076, Error07079, Error07087
+
+	//specific CIS
+	obtainTokenError      = "Couldn't obtain IAM token for provided ApiKey in order to access IBM Cloud Internet Services" // Error07070, Error07082, Error07084, Error07086, Error07029
+	obtainCRNTokenError   = "Couldn't obtain IAM S2S token in order to access IBM Cloud Internet Services"                 // Error07070, Error07082, Error07084, Error07086, Error07029
+	invalidCISInstanceCrn = "IBM Cloud Internet Services instance crn is not valid"                                        //Error07026, Error07027
 )
 
 //info messages
@@ -222,41 +257,6 @@ const (
 	atRotateCertificate  = "Rotate a certificate"
 	atGetSecretPolicy    = "Get secret policies"
 	atSetSecretPolicy    = "Set secret policies"
-)
-
-//policies validation errors
-const (
-	policiesMoreThanOne       = "Received more than one policy"
-	policiesNotValidStructure = "Rotation policy has not valid structure"
-	policiesNotValidField     = "Field %s in rotation policy is not valid. "
-)
-
-//Order validation errors
-const (
-	commonNameTooLong     = "A primary domain name cannot be longer than 64 bytes"
-	redundantDomain       = "At least one of the domains is redundant with a wildcard domain in the same certificate. Remove one or the other from the certificate order."
-	invalidDomain         = "Domain %s is not valid"
-	duplicateDomain       = "Domain %s is duplicated"
-	invalidKeyAlgorithm   = "Key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384"
-	orderAlreadyInProcess = "Order for these domains is already in process"
-)
-
-//Errors in communication with DNS providers
-const (
-	dnsProviderCISInstance      = "the IBM Cloud Internet Services instance"
-	dnsProviderSoftLayerAccount = "the SoftLayer account"
-	dnsProviderCIS              = "IBM Cloud Internet Services"
-	dnsProviderSoftLayer        = "SoftLayer"
-
-	domainIsNotFound     = "Domain %s is not found in %s"
-	authorizationError   = "Authorization error when trying %s %s"
-	errorResponseFromDNS = "%s responded with an error"
-	unavailableDNSError  = "Couldn't call %s. Try again later"
-
-	//specific CIS
-	obtainTokenError      = "Couldn't obtain IAM token for provided ApiKey in order to access IBM Cloud Internet Services"
-	obtainCRNTokenError   = "Couldn't obtain IAM S2S token in order to access IBM Cloud Internet Services"
-	invalidCISInstanceCrn = "IBM Cloud Internet Services instance crn is not valid"
 )
 
 //common error

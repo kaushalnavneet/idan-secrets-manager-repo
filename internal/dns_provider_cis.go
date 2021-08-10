@@ -158,7 +158,7 @@ func (c *CISDNSConfig) getDomainData(originalDomain, domainToSetChallenge, keyAu
 			if len(domainParts) == 2 {
 				//we can't dive anymore, return error
 				message := fmt.Sprintf(domainIsNotFound, originalDomain, dnsProviderCISInstance)
-				common.Logger().Error(message)
+				common.Logger().Error(logdna.Error07072 + " Couldn't find neither domain " + originalDomain + "nor its parent domains")
 				return nil, buildOrderError(logdna.Error07072, message)
 			}
 			parentDomain := strings.Join(domainParts[1:], ".")
@@ -177,13 +177,13 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 	reqUrl := fmt.Sprintf(`%s/%s/zones?name=%s&status=active`, c.CISEndpoint, url.QueryEscape(c.CRN), domain)
 	headers, err := c.buildRequestHeader()
 	if err != nil {
-		common.Logger().Error("Couldn't build headers for CIS request: " + err.Error())
-		return "", buildOrderError(logdna.Error07070, obtainTokenError)
+		common.Logger().Error(logdna.Error07070 + " Couldn't build headers for CIS request: " + err.Error())
+		return "", buildOrderError(logdna.Error07070, err.Error())
 	}
 	response := &CISResponseList{}
 	resp, err := c.restClient.SendRequest(reqUrl, http.MethodGet, *headers, nil, response)
 	if err != nil {
-		common.Logger().Error("Couldn't get zone by domain name: " + err.Error())
+		common.Logger().Error(logdna.Error07071 + " Couldn't get zone by domain name: " + err.Error())
 		return "", buildOrderError(logdna.Error07071, fmt.Sprintf(unavailableDNSError, dnsProviderCIS))
 	}
 	//success
@@ -193,15 +193,15 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 		} else {
 			//it can happen for subdomains
 			message := fmt.Sprintf(domainIsNotFound, domain, dnsProviderCISInstance)
-			common.Logger().Warn(message + " We will try to find its parent if it's possible")
+			common.Logger().Warn(logdna.Error07072 + message + " We will try to find its parent if it's possible")
 			return "", buildOrderError(logdna.Error07072, message)
 		}
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-		common.Logger().Error("Couldn't get zone by domain name: Authorization error ")
+		common.Logger().Error(logdna.Error07073 + "Couldn't get zone by domain name: Authorization error ")
 		return "", buildOrderError(logdna.Error07073, fmt.Sprintf(authorizationError, "to get zones from", dnsProviderCISInstance))
 	}
 	cisError := getCISErrors(response.Errors)
-	common.Logger().Error("Couldn't get zone by domain " + domain + ": " + cisError)
+	common.Logger().Error(logdna.Error07074 + " Couldn't get zone by domain " + domain + ": " + cisError)
 	return "", buildOrderError(logdna.Error07074, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 
 }
@@ -209,20 +209,20 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 func (c *CISDNSConfig) setChallenge(domain *CISDomainData) (string, error) {
 	requestBody, err := createCISTxtRecordBody(domain.txtRecordName, domain.txtRecordValue, c.TTL)
 	if err != nil {
-		common.Logger().Error("Couldn't build txt record body: " + err.Error())
+		common.Logger().Error(logdna.Error07075 + " Couldn't build txt record body: " + err.Error())
 		return "", buildOrderError(logdna.Error07075, internalServerError)
 	}
 
 	reqUrl := fmt.Sprintf(`%s/%s/zones/%s/dns_records`, c.CISEndpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId))
 	headers, err := c.buildRequestHeader()
 	if err != nil {
-		common.Logger().Error("Couldn't build headers for CIS request: " + err.Error())
-		return "", buildOrderError(logdna.Error07082, obtainTokenError)
+		common.Logger().Error(logdna.Error07082 + " Couldn't build headers for CIS request: " + err.Error())
+		return "", buildOrderError(logdna.Error07082, err.Error())
 	}
 	response := &CISResponseResult{}
 	resp, err := c.restClient.SendRequest(reqUrl, http.MethodPost, *headers, requestBody, response)
 	if err != nil {
-		common.Logger().Error("Couldn't set challenge for domain " + domain.name + ": " + err.Error())
+		common.Logger().Error(logdna.Error07076 + " Couldn't set challenge for domain " + domain.name + ": " + err.Error())
 		return "", buildOrderError(logdna.Error07076, fmt.Sprintf(unavailableDNSError, dnsProviderCIS))
 	}
 	//success
@@ -236,11 +236,11 @@ func (c *CISDNSConfig) setChallenge(domain *CISDomainData) (string, error) {
 		}
 		return id, nil
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-		common.Logger().Error("Couldn't set txt record for domain " + domain.name + ": Authorization error ")
+		common.Logger().Error(logdna.Error07077 + " Couldn't set txt record for domain " + domain.name + ": Authorization error ")
 		return "", buildOrderError(logdna.Error07077, fmt.Sprintf(authorizationError, "to set txt record in", dnsProviderCISInstance))
 	}
 	cisError := getCISErrors(response.Errors)
-	common.Logger().Error("Couldn't set txt record for domain " + domain.name + ": " + cisError)
+	common.Logger().Error(logdna.Error07078 + " Couldn't set txt record for domain " + domain.name + ": " + cisError)
 	return "", buildOrderError(logdna.Error07078, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 }
 
@@ -248,13 +248,13 @@ func (c *CISDNSConfig) removeChallenge(domain *CISDomainData) error {
 	reqUrl := fmt.Sprintf(`%s/%s/zones/%s/dns_records/%s`, c.CISEndpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordId))
 	headers, err := c.buildRequestHeader()
 	if err != nil {
-		common.Logger().Error("Couldn't build headers for CIS request: " + err.Error())
-		return buildOrderError(logdna.Error07084, obtainTokenError)
+		common.Logger().Error(logdna.Error07084 + "Couldn't build headers for CIS request: " + err.Error())
+		return buildOrderError(logdna.Error07084, err.Error())
 	}
 	response := &CISResponseResult{}
 	resp, err := c.restClient.SendRequest(reqUrl, http.MethodDelete, *headers, nil, response)
 	if err != nil {
-		common.Logger().Error("Couldn't remove txt record for domain " + domain.name + ": " + err.Error())
+		common.Logger().Error(logdna.Error07079 + "Couldn't remove txt record for domain " + domain.name + ": " + err.Error())
 		return buildOrderError(logdna.Error07079, fmt.Sprintf(unavailableDNSError, dnsProviderCIS))
 	}
 	//success
@@ -262,11 +262,11 @@ func (c *CISDNSConfig) removeChallenge(domain *CISDomainData) error {
 		return nil
 	}
 	if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-		common.Logger().Error("Couldn't remove txt record for domain " + domain.name + ": Authorization error ")
+		common.Logger().Error(logdna.Error07080 + " Couldn't remove txt record for domain " + domain.name + ": Authorization error ")
 		return buildOrderError(logdna.Error07080, fmt.Sprintf(authorizationError, "to delete txt record from", dnsProviderCISInstance))
 	}
 	cisError := getCISErrors(response.Errors)
-	common.Logger().Error("Couldn't remove txt record for domain " + domain.name + ": " + cisError)
+	common.Logger().Error(logdna.Error07081 + " Couldn't remove txt record for domain " + domain.name + ": " + cisError)
 	return buildOrderError(logdna.Error07081, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 }
 
@@ -275,28 +275,29 @@ func (c *CISDNSConfig) getChallengeRecordId(domain *CISDomainData) (string, erro
 		url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordName), url.QueryEscape(domain.txtRecordValue))
 	headers, err := c.buildRequestHeader()
 	if err != nil {
-		common.Logger().Error("Couldn't build headers for CIS request: " + err.Error())
-		return "", buildOrderError(logdna.Error07086, obtainTokenError)
+		common.Logger().Error(logdna.Error07086 + " Couldn't build headers for CIS request: " + err.Error())
+		return "", buildOrderError(logdna.Error07086, err.Error())
 	}
 	response := &CISResponseList{}
 	resp, err := c.restClient.SendRequest(reqUrl, http.MethodGet, *headers, nil, response)
 	if err != nil {
-		common.Logger().Error("Couldn't get txt record for domain " + domain.name + ": " + err.Error())
-		return "", buildOrderError(logdna.Error07101, fmt.Sprintf(unavailableDNSError, dnsProviderCIS))
+		common.Logger().Error(logdna.Error07087 + " Couldn't get txt record for domain " + domain.name + ": " + err.Error())
+		return "", buildOrderError(logdna.Error07087, fmt.Sprintf(unavailableDNSError, dnsProviderCIS))
 	}
 	if resp.StatusCode() == http.StatusOK && response.Success && response.Result != nil {
 		if len(response.Result) > 0 {
 			return response.Result[0].ID, nil
 		}
-		common.Logger().Error("TXT record " + domain.txtRecordName + " is not found in the IBM Cloud Internet Services instance")
-		return "", buildOrderError(logdna.Error07102, internalServerError)
+		common.Logger().Error(logdna.Error07088 + " TXT record " + domain.txtRecordName + " is not found in the IBM Cloud Internet Services instance")
+		return "", buildOrderError(logdna.Error07088, internalServerError)
 	}
 	if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-		return "", buildOrderError(logdna.Error07103, fmt.Sprintf(authorizationError, "to get txt record from", dnsProviderCISInstance))
+		common.Logger().Error(logdna.Error07089 + " Couldn't remove get record for domain " + domain.name + ": Authorization error ")
+		return "", buildOrderError(logdna.Error07089, fmt.Sprintf(authorizationError, "to get txt record from", dnsProviderCISInstance))
 	}
 	cisError := getCISErrors(response.Errors)
-	common.Logger().Error("Couldn't get txt record for domain " + domain.name + ": " + cisError)
-	return "", buildOrderError(logdna.Error07104, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
+	common.Logger().Error(logdna.Error07060 + " Couldn't get txt record for domain " + domain.name + ": " + cisError)
+	return "", buildOrderError(logdna.Error07060, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 }
 
 func (c *CISDNSConfig) buildRequestHeader() (*map[string]string, error) {

@@ -23,6 +23,23 @@ func (ob *OrdersBackend) SetSecretBackend(secretBackend secret_backend.SecretBac
 	ob.secretBackend = secretBackend
 }
 
+func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendHandler {
+	//first time create order handler
+	if ob.ordersHandler == nil {
+		oh := &OrdersHandler{
+			runningOrders: make(map[string]WorkItem),
+			beforeOrders:  make(map[string]WorkItem),
+			parser:        &certificate.CertificateParserImpl{},
+		}
+		oh.workerPool = NewWorkerPool(oh,
+			GetEnv("MAX_WORKERS", MaxWorkers).(int),
+			GetEnv("MAX_CERT_REQUEST", MaxCertRequest).(int),
+			GetEnv("CERT_REQUEST_TIMEOUT_SECS", CertRequestTimeout).(time.Duration)*time.Second)
+		ob.ordersHandler = oh
+	}
+	return ob.ordersHandler
+}
+
 func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 	return framework.PathAppend(
 		// set + get config
@@ -44,23 +61,6 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 			//// Make sure this stays at the end so that the valid paths are processed first.
 			//common.PathInvalid(backendHelp),
 		})
-}
-
-func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendHandler {
-	//first time create order handler
-	if ob.ordersHandler == nil {
-		oh := &OrdersHandler{
-			runningOrders: make(map[string]WorkItem),
-			beforeOrders:  make(map[string]WorkItem),
-			parser:        &certificate.CertificateParserImpl{},
-		}
-		oh.workerPool = NewWorkerPool(oh,
-			GetEnv("MAX_WORKERS", MaxWorkers).(int),
-			GetEnv("MAX_CERT_REQUEST", MaxCertRequest).(int),
-			GetEnv("CERT_REQUEST_TIMEOUT_SECS", CertRequestTimeout).(time.Duration)*time.Second)
-		ob.ordersHandler = oh
-	}
-	return ob.ordersHandler
 }
 
 func existenceCheck(ctx context.Context, request *logical.Request, data *framework.FieldData) (bool, error) {

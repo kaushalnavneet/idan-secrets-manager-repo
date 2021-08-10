@@ -156,12 +156,13 @@ func (c *SoftlayerDNSConfig) getDomainData(originalDomain, domainToSetChallenge,
 	zoneId, err := c.getZoneIdByDomain(domainToSetChallenge)
 	if err != nil {
 		//if domain was not found in Softlayer
-		if strings.Contains(err.Error(), logdna.Error07072) {
+		if strings.Contains(err.Error(), logdna.Error07052) {
 			//try to look for its parent domain
 			domainParts := strings.Split(domainToSetChallenge, ".")
 			if len(domainParts) == 2 {
 				//we can't dive anymore, return error
-				return nil, buildOrderError(logdna.Error07072, fmt.Sprintf(domainIsNotFound, originalDomain, dnsProviderSoftLayerAccount))
+				common.Logger().Error(logdna.Error07052 + " Couldn't find neither domain " + originalDomain + "nor its parent domains")
+				return nil, buildOrderError(logdna.Error07052, fmt.Sprintf(domainIsNotFound, originalDomain, dnsProviderSoftLayerAccount))
 			}
 			parentDomain := strings.Join(domainParts[1:], ".")
 			return c.getDomainData(originalDomain, parentDomain, keyAuth)
@@ -181,8 +182,8 @@ func (c *SoftlayerDNSConfig) getZoneIdByDomain(domain string) (int, error) {
 	response := make([]*SLDomainResponse, 0)
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, &response)
 	if err != nil {
-		common.Logger().Error("Couldn't get zone by domain name: " + err.Error())
-		return -1, buildOrderError(logdna.Error07071, fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer))
+		common.Logger().Error(logdna.Error07058 + " Couldn't get zone by domain name: " + err.Error())
+		return -1, buildOrderError(logdna.Error07058, fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer))
 	}
 	//success
 	if resp.StatusCode() == http.StatusOK {
@@ -190,22 +191,24 @@ func (c *SoftlayerDNSConfig) getZoneIdByDomain(domain string) (int, error) {
 			return response[0].Id, nil
 		} else {
 			//it can happen for subdomains
-			return -1, buildOrderError(logdna.Error07072, fmt.Sprintf(domainIsNotFound, domain, dnsProviderSoftLayerAccount))
+			message := fmt.Sprintf(domainIsNotFound, domain, dnsProviderSoftLayerAccount)
+			common.Logger().Warn(logdna.Error07052 + message + " We will try to find its parent if it's possible")
+			return -1, buildOrderError(logdna.Error07052, message)
 		}
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-		common.Logger().Error("Couldn't get zone by domain name: Authorization error ")
-		return -1, buildOrderError(logdna.Error07073, fmt.Sprintf(authorizationError, "to get zones from", dnsProviderSoftLayerAccount))
+		common.Logger().Error(logdna.Error07044 + " Couldn't get zone by domain name: Authorization error ")
+		return -1, buildOrderError(logdna.Error07044, fmt.Sprintf(authorizationError, "to get zones from", dnsProviderSoftLayerAccount))
 	}
 	//softlayerError := getSoftlayerErrors(response.Errors)
-	common.Logger().Error("Couldn't get zone by domain " + domain + ": ") //+ softlayerError)
-	return -1, buildOrderError(logdna.Error07074, fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer))
+	common.Logger().Error(logdna.Error07045 + " Couldn't get zone by domain " + domain + ": ") //+ softlayerError)
+	return -1, buildOrderError(logdna.Error07045, fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer))
 }
 
 func (c *SoftlayerDNSConfig) setChallenge(domain *SLDomainData) (int, error) {
 	requestBody, err := createTxtRecordBody(domain, c.TTL)
 	if err != nil {
-		common.Logger().Error("Couldn't build txt record body: " + err.Error())
-		return -1, buildOrderError(logdna.Error07075, internalServerError)
+		common.Logger().Error(logdna.Error07046 + " Couldn't build txt record body: " + err.Error())
+		return -1, buildOrderError(logdna.Error07046, internalServerError)
 	}
 	url := fmt.Sprintf(`%s/SoftLayer_Dns_Domain_ResourceRecord`, c.SoftlayerEndpoint)
 	headers := c.buildRequestHeader()
@@ -213,8 +216,8 @@ func (c *SoftlayerDNSConfig) setChallenge(domain *SLDomainData) (int, error) {
 	response := &SetDnsRecordResponse{}
 	resp, err := c.restClient.SendRequest(url, http.MethodPost, *headers, requestBody, response)
 	if err != nil {
-		common.Logger().Error("Couldn't set challenge for domain " + domain.name + ": " + err.Error())
-		return -1, buildOrderError(logdna.Error07076, fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer))
+		common.Logger().Error(logdna.Error07047 + " Couldn't set challenge for domain " + domain.name + ": " + err.Error())
+		return -1, buildOrderError(logdna.Error07047, fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer))
 	}
 	//success
 	if resp.StatusCode() == http.StatusCreated {
@@ -227,12 +230,12 @@ func (c *SoftlayerDNSConfig) setChallenge(domain *SLDomainData) (int, error) {
 		}
 		return id, nil
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-		common.Logger().Error("Couldn't set txt record for domain " + domain.name + ": Authorization error ")
-		return -1, buildOrderError(logdna.Error07077, fmt.Sprintf(authorizationError, "to set txt record in", dnsProviderSoftLayerAccount))
+		common.Logger().Error(logdna.Error07048 + " Couldn't set txt record for domain " + domain.name + ": Authorization error ")
+		return -1, buildOrderError(logdna.Error07048, fmt.Sprintf(authorizationError, "to set txt record in", dnsProviderSoftLayerAccount))
 	}
 	softlayerError := getSoftlayerErrors(resp)
-	common.Logger().Error("Couldn't set txt record for domain " + domain.name + ": " + softlayerError)
-	return -1, buildOrderError(logdna.Error07078, fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer))
+	common.Logger().Error(logdna.Error07049 + " Couldn't set txt record for domain " + domain.name + ": " + softlayerError)
+	return -1, buildOrderError(logdna.Error07049, fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer))
 }
 
 func (c *SoftlayerDNSConfig) removeChallenge(domain *SLDomainData) error {
@@ -242,20 +245,20 @@ func (c *SoftlayerDNSConfig) removeChallenge(domain *SLDomainData) error {
 
 	resp, err := c.restClient.SendRequest(url, http.MethodDelete, *headers, nil, nil)
 	if err != nil {
-		common.Logger().Error("Couldn't remove txt record for domain " + domain.name + ": " + err.Error())
-		return buildOrderError(logdna.Error07079, fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer))
+		common.Logger().Error(logdna.Error07050 + " Couldn't remove txt record for domain " + domain.name + ": " + err.Error())
+		return buildOrderError(logdna.Error07050, fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer))
 	}
 	//success
 	if resp.StatusCode() == http.StatusOK {
 		return nil
 	}
 	if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-		common.Logger().Error("Couldn't remove txt record for domain " + domain.name + ": Authorization error ")
-		return buildOrderError(logdna.Error07080, fmt.Sprintf(authorizationError, "to delete txt record from", dnsProviderSoftLayerAccount))
+		common.Logger().Error(logdna.Error07051 + " Couldn't remove txt record for domain " + domain.name + ": Authorization error ")
+		return buildOrderError(logdna.Error07051, fmt.Sprintf(authorizationError, "to delete txt record from", dnsProviderSoftLayerAccount))
 	}
 	softlayerError := getSoftlayerErrors(resp)
-	common.Logger().Error("Couldn't remove txt record for domain " + domain.name + ": " + softlayerError)
-	return buildOrderError(logdna.Error07081, fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer))
+	common.Logger().Error(logdna.Error07053 + " Couldn't remove txt record for domain " + domain.name + ": " + softlayerError)
+	return buildOrderError(logdna.Error07053, fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer))
 
 }
 
@@ -267,22 +270,23 @@ func (c *SoftlayerDNSConfig) getChallengeRecordId(domain *SLDomainData) (int, er
 	response := &SLlistResponse{}
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, nil)
 	if err != nil {
-		common.Logger().Error("Couldn't get txt record for domain " + domain.name + ": " + err.Error())
-		return -1, buildOrderError(logdna.Error07101, fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer))
+		common.Logger().Error(logdna.Error07054 + " Couldn't get txt record for domain " + domain.name + ": " + err.Error())
+		return -1, buildOrderError(logdna.Error07054, fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer))
 	}
 	if resp.StatusCode() == http.StatusOK {
 		if len(response.Result) > 0 {
 			return response.Result[0].Id, nil
 		}
-		common.Logger().Error("TXT record " + domain.txtRecordName + " is not found in the IBM Cloud Internet Services instance")
-		return -1, buildOrderError(logdna.Error07102, internalServerError)
+		common.Logger().Error(logdna.Error07055 + " TXT record " + domain.txtRecordName + " is not found in the IBM Cloud Internet Services instance")
+		return -1, buildOrderError(logdna.Error07055, internalServerError)
 	}
 	if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
-		return -1, buildOrderError(logdna.Error07103, fmt.Sprintf(authorizationError, "to get txt record from", dnsProviderSoftLayerAccount))
+		common.Logger().Error(logdna.Error07056 + " Couldn't get txt record for domain " + domain.name + ": Authorization error ")
+		return -1, buildOrderError(logdna.Error07056, fmt.Sprintf(authorizationError, "to get txt record from", dnsProviderSoftLayerAccount))
 	}
 	softlayerError := getSoftlayerErrors(resp)
-	common.Logger().Error("Couldn't get txt record for domain " + domain.name + ": " + softlayerError)
-	return -1, buildOrderError(logdna.Error07104, fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer))
+	common.Logger().Error(logdna.Error07057 + " Couldn't get txt record for domain " + domain.name + ": " + softlayerError)
+	return -1, buildOrderError(logdna.Error07057, fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer))
 }
 
 func (c *SoftlayerDNSConfig) buildRequestHeader() *map[string]string {
