@@ -29,6 +29,7 @@ type OrdersHandler struct {
 	runningOrders map[string]WorkItem
 	parser        certificate.CertificateParser
 	iamConfig     *iam.Config
+	pluginConfig  *common.ICAuthConfig
 	smInstanceCrn string
 }
 
@@ -129,6 +130,26 @@ func (oh *OrdersHandler) MakeActionsBeforeStore(ctx context.Context, req *logica
 }
 
 func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry) (*logical.Response, error) {
+	//order and rotation
+	if strings.Contains(req.Path, "rotate") && req.Operation == logical.UpdateOperation || req.Operation == logical.CreateOperation {
+		oh.startOrder(secretEntry)
+		//config iam endpoint
+	} else if strings.Contains(req.Path, "config/iam") && req.Operation == logical.UpdateOperation {
+		common.Logger().Debug("CONFIG IAM WAS CALLED")
+		oh.createCronJob(ctx, req)
+	}
+	return nil, nil
+}
+
+func (oh *OrdersHandler) createCronJob(ctx context.Context, req *logical.Request) {
+	auth, err := common.ObtainAuthConfigFromStorage(ctx, req.Storage)
+	if err == nil {
+		oh.pluginConfig = auth
+	}
+
+}
+
+func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 	//get domains from the secret in order to build order key
 	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
 	domains := getNames(metadata.CommonName, metadata.AltName)
@@ -143,7 +164,6 @@ func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical
 	oh.beforeOrders = make(map[string]WorkItem)
 	//start an order
 	_, _ = oh.workerPool.ScheduleCertificateRequest(workItem)
-	return nil, nil
 }
 
 // MapSecretEntry Map secret entry to
@@ -182,9 +202,7 @@ func (oh *OrdersHandler) UpdateSecretEntryMetadata(ctx context.Context, req *log
 func (oh *OrdersHandler) GetInputPolicies(data *framework.FieldData) (*policies.Policies, error) {
 	requestPolicies, err := getPoliciesFromFieldData(data)
 	if err != nil {
-		msg := "Invalid policies: " + err.Error()
-		common.ErrorLogForCustomer(msg, logdna.Error07090, logdna.BadRequestErrorMessage, true)
-		return nil, commonErrors.GenerateCodedError(logdna.Error07090, http.StatusBadRequest, msg)
+		return nil, err
 	}
 	return requestPolicies, nil
 
@@ -475,7 +493,7 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.
 			return err
 		}
 		if authConfig == nil {
-			common.Logger().Error("Iam config is missing in the storage")
+			common.Logger().Error(logdna.Error07092 + " Iam config is missing in the storage")
 			return commonErrors.GenerateCodedError(logdna.Error07092, http.StatusInternalServerError, internalServerError)
 		}
 		config := &iam.Config{
@@ -488,7 +506,7 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.
 		oh.iamConfig = config
 		err = iam.Configure(config)
 		if err != nil {
-			common.Logger().Error("Failed to configure iam: " + err.Error())
+			common.Logger().Error(logdna.Error07093 + " Failed to configure iam: " + err.Error())
 			return commonErrors.GenerateCodedError(logdna.Error07093, http.StatusInternalServerError, internalServerError)
 		}
 		oh.smInstanceCrn = authConfig.Service.Instance.CRN

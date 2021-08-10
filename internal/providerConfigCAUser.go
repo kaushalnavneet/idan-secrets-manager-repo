@@ -14,6 +14,7 @@ import (
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"net/http"
+	"strings"
 )
 
 type CAUserConfig struct {
@@ -138,7 +139,7 @@ func (u *CAUserConfig) getConfigToStore() (map[string]string, error) {
 func prepareCAConfigToStore(p *ProviderConfig) error {
 	var err error
 	privateKeyPEM, ok := p.Config[caConfigPrivateKey]
-	if !ok || len(privateKeyPEM) == 0 {
+	if !ok || len(strings.TrimSpace(privateKeyPEM)) == 0 {
 		message := fmt.Sprintf(configMissingField, providerTypeCA, caConfigPrivateKey)
 		common.ErrorLogForCustomer(message, logdna.Error07018, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07018, http.StatusBadRequest, message)

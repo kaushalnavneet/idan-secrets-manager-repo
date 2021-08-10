@@ -196,8 +196,8 @@ func validateNames(names []string) error {
 		converted, err := idnaValidator.ToASCII(sanitizedName)
 		if err != nil {
 			msg := fmt.Sprintf(invalidDomain, sanitizedName)
-			common.ErrorLogForCustomer(msg, logdna.Error07106, logdna.BadRequestErrorMessage, true)
-			return commonErrors.GenerateCodedError(logdna.Error07106, http.StatusBadRequest, msg)
+			common.ErrorLogForCustomer(msg, logdna.Error07105, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07105, http.StatusBadRequest, msg)
 		}
 		//this check is for common name only (the first in the array)
 		if i == 0 && len(converted) > 64 {
