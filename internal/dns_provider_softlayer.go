@@ -196,7 +196,7 @@ func (c *SoftlayerDNSConfig) getZoneIdByDomain(domain string) (int, error) {
 		}
 		//it can happen for subdomains
 		message := fmt.Sprintf(domainIsNotFound, domain, dnsProviderSoftLayerAccount)
-		common.Logger().Warn(logdna.Error07052 + message + " We will try to find its parent if it's possible")
+		common.Logger().Warn(logdna.Error07052 + " " + message + " Trying to get its parent domain.")
 		return -1, buildOrderError(logdna.Error07052, message)
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
 		common.Logger().Error(logdna.Error07044 + " Couldn't get zone by domain name: Authorization error ")
