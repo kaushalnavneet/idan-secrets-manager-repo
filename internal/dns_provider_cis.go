@@ -158,7 +158,7 @@ func (c *CISDNSConfig) getDomainData(originalDomain, domainToSetChallenge, keyAu
 			if len(domainParts) == 2 {
 				//we can't dive anymore, return error
 				message := fmt.Sprintf(domainIsNotFound, originalDomain, dnsProviderCISInstance)
-				common.Logger().Error(logdna.Error07072 + " Couldn't find neither domain " + originalDomain + "nor its parent domains")
+				common.Logger().Error(logdna.Error07072 + " Couldn't find neither domain " + originalDomain + "nor its parent domains in " + dnsProviderCISInstance)
 				return nil, buildOrderError(logdna.Error07072, message)
 			}
 			parentDomain := strings.Join(domainParts[1:], ".")
