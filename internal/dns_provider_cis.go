@@ -193,7 +193,7 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 		} else {
 			//it can happen for subdomains
 			message := fmt.Sprintf(domainIsNotFound, domain, dnsProviderCISInstance)
-			common.Logger().Warn(logdna.Error07072 + message + " We will try to find its parent if it's possible")
+			common.Logger().Warn(logdna.Error07072 + " " + message + " Trying to get its parent domain")
 			return "", buildOrderError(logdna.Error07072, message)
 		}
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {

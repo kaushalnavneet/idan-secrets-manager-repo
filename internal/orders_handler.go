@@ -10,6 +10,7 @@ import (
 	"github.com/go-acme/lego/v4/registration"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/robfig/cron/v3"
 	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
@@ -31,6 +32,7 @@ type OrdersHandler struct {
 	iamConfig     *iam.Config
 	pluginConfig  *common.ICAuthConfig
 	smInstanceCrn string
+	cron          *cron.Cron
 }
 
 func (oh *OrdersHandler) GetPolicyHandler() secret_backend.PolicyHandler {
@@ -145,6 +147,14 @@ func (oh *OrdersHandler) createCronJob(ctx context.Context, req *logical.Request
 	auth, err := common.ObtainAuthConfigFromStorage(ctx, req.Storage)
 	if err == nil {
 		oh.pluginConfig = auth
+	}
+	if oh.cron != nil {
+		//r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		//renewalScheduler := fmt.Sprintf("%d */3 * * *", r.Intn(60))
+		renewalScheduler := "*/30 * * * *"
+		//_, _ :=
+		oh.cron.AddFunc(renewalScheduler, func() { common.Logger().Info("AUTO RENEW JOB RUNNING") })
+		common.Logger().Info(fmt.Sprintf("Added cron job for certificates automatic renewal '%s'", renewalScheduler))
 	}
 
 }

@@ -177,7 +177,7 @@ func (c *SoftlayerDNSConfig) getDomainData(originalDomain, domainToSetChallenge,
 }
 
 func (c *SoftlayerDNSConfig) getZoneIdByDomain(domain string) (int, error) {
-	url := fmt.Sprintf("%s/SoftLayer_Dns_Domain/getByDomainName/%s", c.SoftlayerEndpoint, domain)
+	url := fmt.Sprintf("%s/SoftLayer_Dns_Domain/getByDomainName/%s", c.SoftlayerEndpoint, url.QueryEscape(domain))
 	headers := c.buildRequestHeader()
 	response := make([]*SLDomainResponse, 0)
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, &response)
@@ -188,13 +188,16 @@ func (c *SoftlayerDNSConfig) getZoneIdByDomain(domain string) (int, error) {
 	//success
 	if resp.StatusCode() == http.StatusOK {
 		if len(response) > 0 {
-			return response[0].Id, nil
-		} else {
-			//it can happen for subdomains
-			message := fmt.Sprintf(domainIsNotFound, domain, dnsProviderSoftLayerAccount)
-			common.Logger().Warn(logdna.Error07052 + message + " We will try to find its parent if it's possible")
-			return -1, buildOrderError(logdna.Error07052, message)
+			for _, d := range response {
+				if d.Name == domain {
+					return d.Id, nil
+				}
+			}
 		}
+		//it can happen for subdomains
+		message := fmt.Sprintf(domainIsNotFound, domain, dnsProviderSoftLayerAccount)
+		common.Logger().Warn(logdna.Error07052 + " " + message + " Trying to get its parent domain.")
+		return -1, buildOrderError(logdna.Error07052, message)
 	} else if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
 		common.Logger().Error(logdna.Error07044 + " Couldn't get zone by domain name: Authorization error ")
 		return -1, buildOrderError(logdna.Error07044, fmt.Sprintf(authorizationError, "to get zones from", dnsProviderSoftLayerAccount))

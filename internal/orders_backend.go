@@ -30,6 +30,7 @@ func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendH
 			runningOrders: make(map[string]WorkItem),
 			beforeOrders:  make(map[string]WorkItem),
 			parser:        &certificate.CertificateParserImpl{},
+			cron:          ob.secretBackend.(*secret_backend.SecretBackendImpl).Cron,
 		}
 		oh.workerPool = NewWorkerPool(oh,
 			GetEnv("MAX_WORKERS", MaxWorkers).(int),
