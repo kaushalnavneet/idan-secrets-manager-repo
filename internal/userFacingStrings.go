@@ -50,7 +50,7 @@ const (
 
 	//specific CIS
 	obtainTokenError      = "Couldn't obtain IAM token for provided API key in order to access Cloud Internet Services (CIS)" // Error07070, Error07082, Error07084, Error07086, Error07029
-	obtainCRNTokenError   = "Couldn't obtain IAM service to service authorization token in order to access Cloud Internet Services (CIS)"                 // Error07070, Error07082, Error07084, Error07086, Error07029
+	obtainCRNTokenError   = "Couldn't obtain IAM service to service CRN token in order to access Cloud Internet Services (CIS)"                 // Error07070, Error07082, Error07084, Error07086, Error07029
 	invalidCISInstanceCrn = "Cloud Internet Services (CIS) instance CRN is not valid"                                        //Error07026, Error07027
 )
 
