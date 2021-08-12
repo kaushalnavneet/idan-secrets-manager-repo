@@ -153,7 +153,7 @@ const (
 
 	deleteSecretOperationSummary     = "Delete a certificate"
 	deleteSecretOperationDescription = `The delete operation receives the secretId parameter as part of the path.
-	It deletes the certificate with the given secretId.``
+	It deletes the certificate with the given secretId.`
 )
 
 //path get version
