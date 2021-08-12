@@ -131,7 +131,7 @@ func (oh *OrdersHandler) MakeActionsBeforeStore(ctx context.Context, req *logica
 	return nil, nil
 }
 
-func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry) (*logical.Response, error) {
+func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry, storeError error) (*logical.Response, error) {
 	//order and rotation
 	if strings.Contains(req.Path, "rotate") && req.Operation == logical.UpdateOperation || req.Operation == logical.CreateOperation {
 		oh.startOrder(secretEntry)
