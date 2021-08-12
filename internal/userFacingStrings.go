@@ -2,8 +2,8 @@ package publiccerts
 
 //errors in Configs
 const (
-	providerTypeCA  = "Certificate Authority"
-	providerTypeDNS = "DNS Provider"
+	providerTypeCA  = "Certificate authority"
+	providerTypeDNS = "DNS provider"
 	//this type ^ is added to the following messages
 	reachedTheMaximum    = "%s configuration couldn't be added because you have reached the maximum number of configurations (%d)" //Error07002
 	nameAlreadyExists    = "%s configuration with name '%s' already exists"                                                        //Error07003
@@ -15,14 +15,14 @@ const (
 	configNameWithSpace  = "Config name mustn't contain spaces"                                                                    //Error07043
 
 	//specific CA
-	invalidKey     = "Certificate Authority Private Key is not valid : %s"                  //Error07039, Error07041, Error07021, Error07024
-	wrongCAAccount = "Failed to retrieve the Certificate Authority account information: %s" //Error07023
+	invalidKey     = "Certificate authority private key is not valid : %s"                  //Error07039, Error07041, Error07021, Error07024
+	wrongCAAccount = "Failed to retrieve the certificate authority account information: %s" //Error07023
 )
 
 //policies validation errors
 const (
 	policiesMoreThanOne       = "Received more than one policy"            // Error07094
-	policiesNotValidStructure = "Rotation policy has not valid structure"  // Error07095, Error07096, Error07097
+	policiesNotValidStructure = "Rotation policy doesn't have a valid structure"  // Error07095, Error07096, Error07097
 	policiesNotValidField     = "Field %s in rotation policy is not valid" //Error07098, Error07099
 )
 
@@ -38,10 +38,10 @@ const (
 
 //Errors in communication with DNS providers
 const (
-	dnsProviderCISInstance      = "the IBM Cloud Internet Services instance"
-	dnsProviderSoftLayerAccount = "the SoftLayer account"
-	dnsProviderCIS              = "IBM Cloud Internet Services"
-	dnsProviderSoftLayer        = "SoftLayer"
+	dnsProviderCISInstance      = "the Cloud Internet Services (CIS) instance"
+	dnsProviderSoftLayerAccount = "the classic infrastructure (SoftLayer) account"
+	dnsProviderCIS              = "Cloud Internet Services (CIS)"
+	dnsProviderSoftLayer        = "Classic infrastructure (SoftLayer)"
 
 	domainIsNotFound     = "Domain %s is not found in %s"          //Error07072, Error07052
 	authorizationError   = "Authorization error when trying %s %s" //Error07073, Error07077, Error07080, Error07089, Error07031, Error07044, Error07048, Error07051, Error07056, Error07037
@@ -49,9 +49,9 @@ const (
 	unavailableDNSError  = "Couldn't call %s. Try again later"     //Error07030, Error07036, Error07047, Error07050, Error07054, Error07058, Error07071, Error07076, Error07079, Error07087
 
 	//specific CIS
-	obtainTokenError      = "Couldn't obtain IAM token for provided ApiKey in order to access IBM Cloud Internet Services" // Error07070, Error07082, Error07084, Error07086, Error07029
-	obtainCRNTokenError   = "Couldn't obtain IAM S2S token in order to access IBM Cloud Internet Services"                 // Error07070, Error07082, Error07084, Error07086, Error07029
-	invalidCISInstanceCrn = "IBM Cloud Internet Services instance crn is not valid"                                        //Error07026, Error07027
+	obtainTokenError      = "Couldn't obtain IAM token for provided API key in order to access Cloud Internet Services (CIS)" // Error07070, Error07082, Error07084, Error07086, Error07029
+	obtainCRNTokenError   = "Couldn't obtain IAM service to service CRN token in order to access Cloud Internet Services (CIS)"                 // Error07070, Error07082, Error07084, Error07086, Error07029
+	invalidCISInstanceCrn = "Cloud Internet Services (CIS) instance CRN is not valid"                                        //Error07026, Error07027
 )
 
 //info messages
@@ -70,117 +70,118 @@ const (
 
 // Certificate Authorities config create and list path
 const (
-	pathCAConfigHelpSynopsis    = "Create and List the Certificate Authority configuration."
-	pathCAConfigHelpDescription = `This path supports creating a new Certificate Authority configuration, 
-and listing the existing Certificate Authority configuration of the Public certificate Secrets store.`
+	pathCAConfigHelpSynopsis    = "Create and the list certificate authority configuration"
+	pathCAConfigHelpDescription = `This path supports creating a new certificate authority configuration, 
+and listing the existing certificate authority configurations of the public certificate secrets store.`
 
-	listCAConfigOperationSummary     = "Get all the Certificate Authority configurations"
-	listCAConfigOperationDescription = `The List operation returns the Certificate Authority configurations that are in the Public certificate Secrets store.`
+	listCAConfigOperationSummary     = "List certificate authority configurations"
+	listCAConfigOperationDescription = `The list operation returns the certificate authority configurations that are in the Public certificate Secrets store.`
 
-	createCAConfigOperationSummary     = "Create the Certificate Authority configuration"
-	createCAConfigOperationDescription = `The Create operation creates a new Certificate Authority configuration. The following parameters are used to create a new secret:
+	createCAConfigOperationSummary     = "Create a certificate authority configuration"
+	createCAConfigOperationDescription = `The create operation creates a new certificate authority configuration. The following parameters are used to create a new configuration:
 name (required), type (required), config (required).
 The created config is returned in the response.`
 )
 
 // Certificate Authorities config  get update delete path
 const (
-	pathCAConfigWithNameHelpSynopsis    = "Read, Update and Delete the Certificate Authority configuration."
-	pathCAConfigWithNameHelpDescription = `This path takes config name and attempts to perform reading, updating and deleting of the Certificate Authority configuration.`
+	pathCAConfigWithNameHelpSynopsis    = "Read, update, and delete a certificate authority configuration"
+	pathCAConfigWithNameHelpDescription = `This path takes the config name and attempts to read, update, and delete the certificate authority configuration.`
 
-	getCAConfigOperationSummary     = "Read the Certificate Authority configuration"
+	getCAConfigOperationSummary     = "Read the certificate authority configuration"
 	getCAConfigOperationDescription = `The read operation receives the config name parameter as part of the path.
-It returns the Certificate Authority configuration.`
+It returns the certificate authority configuration.`
 
-	updateCAConfigOperationSummary     = "Update the Certificate Authority configuration"
+	updateCAConfigOperationSummary     = "Update the certificate authority configuration"
 	updateCAConfigOperationDescription = `The update operation receives the config name parameter as part of the path and the new payload as a required parameter.
-It updates the Certificate Authority configuration, and returns the updated configuration.`
+It updates the certificate authority configuration, and returns the updated configuration.`
 
-	deleteCAConfigOperationSummary     = "Delete the Certificate Authority configuration"
-	deleteCAConfigOperationDescription = `The delete operation receives config name parameter as part of the path.
+	deleteCAConfigOperationSummary     = "Delete the certificate authority configuration"
+	deleteCAConfigOperationDescription = `The delete operation receives the config name parameter as part of the path.
 It deletes the configuration with the given name.`
 )
 
 // DNS provider config create and list path
 const (
-	pathDNSConfigHelpSynopsis    = "Create and List the DNS Provider configuration."
-	pathDNSConfigHelpDescription = `This path supports creating a new DNS Provider configuration, 
-and listing the existing DNS Provider configuration of the Public certificate Secrets store.`
+	pathDNSConfigHelpSynopsis    = "Create and list the DNS provider configuration"
+	pathDNSConfigHelpDescription = `This path supports creating a new DNS provider configuration, 
+and listing the existing DNS provider configuration of the public certificates secrets store.`
 
-	listDNSConfigOperationSummary     = "Get all the DNS Provider configurations"
-	listDNSConfigOperationDescription = `The List operation returns the DNS Provider configurations that are in the Public certificate Secrets store.`
+	listDNSConfigOperationSummary     = "List DNS provider configurations"
+	listDNSConfigOperationDescription = `The list operation returns the DNS provider configurations that are in the public certificate secrets store.`
 
-	createDNSConfigOperationSummary     = "Create the DNS Provider configuration"
-	createDNSConfigOperationDescription = `The Create operation creates a new DNS Provider configuration. The following parameters are used to create a new secret:
+	createDNSConfigOperationSummary     = "Create a DNS provider configuration"
+	createDNSConfigOperationDescription = `The create operation creates a new DNS provider configuration. The following parameters are used to create a new configuration:
 name (required), type (required), config (required).
 The created config is returned in the response.`
 )
 
 // DNS provider config  get update delete path
 const (
-	pathDNSConfigWithNameHelpSynopsis    = "Read, Update and Delete the DNS Provider configuration."
-	pathDNSConfigWithNameHelpDescription = `This path takes config name and attempts to perform reading, updating and deleting of the DNS Provider configuration.`
+	pathDNSConfigWithNameHelpSynopsis    = "Read, update, and delete the DNS provider configuration"
+	pathDNSConfigWithNameHelpDescription = `This path takes the config name and attempts to read, udpate, and delete the DNS provider configuration.`
 
-	getDNSConfigOperationSummary     = "Read the DNS Provider configuration"
+	getDNSConfigOperationSummary     = "Read the DNS provider configuration"
 	getDNSConfigOperationDescription = `The read operation receives the config name parameter as part of the path.
-It returns the DNS Provider configuration.`
+It returns the DNS provider configuration.`
 
-	updateDNSConfigOperationSummary     = "Update the DNS Provider configuration"
+	updateDNSConfigOperationSummary     = "Update the DNS provider configuration"
 	updateDNSConfigOperationDescription = `The update operation receives the config name parameter as part of the path and the new payload as a required parameter.
-It updates the DNS Provider configuration, and returns the updated configuration.`
+It updates the DNS provider configuration, and returns the updated configuration.`
 
-	deleteDNSConfigOperationSummary     = "Delete the DNS Provider configuration"
-	deleteDNSConfigOperationDescription = `The delete operation receives config name parameter as part of the path.
+	deleteDNSConfigOperationSummary     = "Delete the DNS provider configuration"
+	deleteDNSConfigOperationDescription = `The delete operation receives the config name parameter as part of the path.
 It deletes the configuration with the given name.`
 )
 
 // Root config get path
 const (
-	pathRootConfigHelpSynopsis    = "Read the root configuration."
-	pathRootConfigHelpDescription = `This path supports listing all the existing DNS Provider  and Certificate Authority configurations of the Public certificate Secrets store.`
+	pathRootConfigHelpSynopsis    = "Read the root configuration"
+	pathRootConfigHelpDescription = `This path supports listing all of the existing DNS provider and certificate authority configurations of the public certificate secrets store.`
 
-	getRootConfigOperationSummary     = "Get all the configuration values"
-	getRootConfigOperationDescription = `The List operation returns all DNS Provider and Certificate Authority configurations of the Public certificate Secrets store.`
+	getRootConfigOperationSummary     = "Get all of the configuration values"
+	getRootConfigOperationDescription = `The list operation returns all DNS provider and certificate authority configurations of the public certificate secrets store.`
 )
 
 //path get / delete secret
 const (
-	pathSecretHelpSynopsis    = "Get and delete certificate ."
-	pathSecretHelpDescription = `This path supports get certificate and delete certificate data.`
+	pathSecretHelpSynopsis    = "Get and delete a certificate"
+	pathSecretHelpDescription = `This path supports retrieving a certificate and deleting certificate data.`
 
-	getSecretOperationSummary     = "Get certificate data"
-	getSecretOperationDescription = `The Get operation returns Certificate secret data.`
+	getSecretOperationSummary     = "Get a certificate"
+	getSecretOperationDescription = `The get operation returns the secret data that is associated with the certificate.`
 
-	deleteSecretOperationSummary     = "Get certificate data"
-	deleteSecretOperationDescription = `The Get operation returns Certificate secret data.`
+	deleteSecretOperationSummary     = "Delete a certificate"
+	deleteSecretOperationDescription = `The delete operation receives the secretId parameter as part of the path.
+	It deletes the certificate with the given secretId.`
 )
 
 //path get version
 const (
-	pathVersionHelpSynopsis    = `Read secrets version in the Public certificate Secrets store.`
+	pathVersionHelpSynopsis    = `Read secrets version in the public certificate secrets store.`
 	pathVersionHelpDescription = `This path takes a secretId and attempts to perform the version read operation on the secret with this secretId.` +
 		"\n" + getVersionOperationDescription
 
-	getVersionOperationSummary     = "Reads a version of a secret"
+	getVersionOperationSummary     = "Read a version of a secret"
 	getVersionOperationDescription = `The versions read operation receives the secretId parameter as part of the path.
 It returns all of the secret's version.`
 )
 
 // path get / update metadata
 const (
-	pathMetadataHelpSynopsis    = "Get and update certificate metadata."
+	pathMetadataHelpSynopsis    = "Get and update certificate metadata"
 	pathMetadataHelpDescription = `This path supports get certificate metadata and update certificate name, description or labels.`
 
 	getMetadataOperationSummary     = "Get certificate metadata"
-	getMetadataOperationDescription = `The Get operation returns Certificate metadata.`
+	getMetadataOperationDescription = `The get operation returns the metadata that is associated with the certificate.`
 
-	updateMetadataOperationSummary     = "Update secret metadata"
-	updateMetadataOperationDescription = "Update certificate name, description or labels"
+	updateMetadataOperationSummary     = "Update certificate metadata"
+	updateMetadataOperationDescription = "The update operation updates the name, description, or labels that are associated with a certificate."
 )
 
 // path get version metadata
 const (
-	pathVersionMetaHelpSynopsis    = `Read metadata for secrets version in the Public certificate Secrets store.`
+	pathVersionMetaHelpSynopsis    = `Read metadata for secrets version in the public certificate secrets store.`
 	pathVersionMetaHelpDescription = `This path takes a secretId and attempts to perform the version metadata read operation on the secret with this secretId.` +
 		"\n" + getVersionMetaOperationDescription
 
@@ -191,50 +192,50 @@ It returns all of the secret's version metadata.`
 
 //path issue and list certificates
 const (
-	pathIssueListHelpSynopsis    = `Create and List secrets in the Public c Certificates Secrets store.`
-	pathIssueListHelpDescription = `This path supports creating a new public certificate secret, and listing the secrets of the User Credentials Secrets store.`
+	pathIssueListHelpSynopsis    = `Create and list secrets in the public certificates secrets store.`
+	pathIssueListHelpDescription = `This path supports creating a new public certificate secret, and listing the secrets of the public certificate secrets store.`
 
 	issueCertOperationSummary     = "Issue a certificate"
 	issueCertOperationDescription = "Issue a certificate"
 
 	listCertsOperationSummary      = "List certificates"
-	lListCertsOperationDescription = `The List operation returns the secrets that are in the Public certificate Secrets store.
-It receives the following optional parameters: labels, limit and offset.
+	lListCertsOperationDescription = `The list operation returns the secrets that are in the public certificate secrets store.
+It receives the following optional parameters: labels, limit, and offset.
 The labels parameter can be used to apply a tag-filter on the result of the operation, returning only the secrets that
 have these required labels.
 The limit and offset parameters are used for pagination.`
 
-	fieldCAConfigDescription          = "The Certificate Authority configuration name."
+	fieldCAConfigDescription          = "The certificate authority configuration name."
 	fieldDNSProviderConfigDescription = "The DNS provider configuration name."
 	fieldCommonNameDescription        = "The certificate Common Name (main domain)."
-	fieldAltNamesDescription          = "The certificate Alt Names (additional domains)."
-	fieldBundleCertDescription        = "Set to `true` to bundle the issuer certificate with the public certificate (full  chain cert file). Default value true"
+	fieldAltNamesDescription          = "The certificate Subject Alternative Names (additional domains)."
+	fieldBundleCertDescription        = "Set to `true` to bundle the issuer certificate with the public certificate (full chain cert file). Default value true"
 	fieldKeyAlgorithmDescription      = "The certificate key algorithm. Default value RSA2048"
 	fieldRotationDescription          = `The set of rotation settings. Default value {"auto_rotate":false, "rotate_keys":false}`
 )
 
 //path  Rotate certificate
 const (
-	pathRotateHelpSynopsis    = "Renew certificate"
-	pathRotateHelpDescription = "Renew certificate"
+	pathRotateHelpSynopsis    = "Renew a certificate"
+	pathRotateHelpDescription = "This path takes a secretId and attempts to perform a rotate operation on the secret with this secretId."
 
-	rotateOperationSummary     = "Rotate a secrets."
-	rotateOperationDescription = "Rotate a secrets."
+	rotateOperationSummary     = "Rotate a certificate"
+	rotateOperationDescription = "This operation rotates the secret data that is associated with the given certifcate."
 
 	fieldRotateKeyDescription = "Specify if a private key should be rotated."
 )
 
 //policies operations
 const (
-	pathPoliciesHelpSynopsis    = `Read and update a secret's policy for secrets in the Public Certificates Secrets store.`
+	pathPoliciesHelpSynopsis    = `Read and update the policy of a secret in the public certificates secrets store.`
 	pathPoliciesHelpDescription = `This path takes a secretId and attempts to perform the policy read/update operation for the secret with this secretId.` +
 		"\n" + policyReadOpDesc +
 		"\n" + policyUpdateOpDesc
 
-	policyReadOpSummary = "Reads the rotation policy of a secret."
+	policyReadOpSummary = "Read the rotation policy of a secret"
 	policyReadOpDesc    = `The policy read operation receives the secretId parameter as part of the path. It returns the secret's policy.`
 
-	policyUpdateOpSummary = "Updates the policy of a secret."
+	policyUpdateOpSummary = "Update the rotation policy of a secret"
 	policyUpdateOpDesc    = `The update operation receives the secretId parameter as part of the path.
 It updates the secret's policy with the parameters that were provided, and returns the updated policy.`
 
@@ -244,9 +245,9 @@ It updates the secret's policy with the parameters that were provided, and retur
 
 //activity tracker actions
 const (
-	atSetConfigAction    = "Set secret engine configuration"
-	atGetConfigAction    = "Get secret engine configuration"
-	atDeleteConfigAction = "Delete secret engine configuration"
+	atSetConfigAction    = "Set secrets engine configuration"
+	atGetConfigAction    = "Get secrets engine configuration"
+	atDeleteConfigAction = "Delete secrets engine configuration"
 	atGetSecretData      = "Get a certificate"
 	atDeleteSecret       = "Delete a certificate"
 	atGetCertMetadata    = "Get a certificate metadata"
