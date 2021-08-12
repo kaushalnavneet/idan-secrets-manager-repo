@@ -22,7 +22,7 @@ const (
 //policies validation errors
 const (
 	policiesMoreThanOne       = "Received more than one policy"            // Error07094
-	policiesNotValidStructure = "Rotation policy doesn't have valid structure"  // Error07095, Error07096, Error07097
+	policiesNotValidStructure = "Rotation policy doesn't have a valid structure"  // Error07095, Error07096, Error07097
 	policiesNotValidField     = "Field %s in rotation policy is not valid" //Error07098, Error07099
 )
 
@@ -39,9 +39,9 @@ const (
 //Errors in communication with DNS providers
 const (
 	dnsProviderCISInstance      = "the Cloud Internet Services (CIS) instance"
-	dnsProviderSoftLayerAccount = "the classic infrastructure account"
+	dnsProviderSoftLayerAccount = "the classic infrastructure (SoftLayer) account"
 	dnsProviderCIS              = "Cloud Internet Services (CIS)"
-	dnsProviderSoftLayer        = "Classic infrastructure"
+	dnsProviderSoftLayer        = "Classic infrastructure (SoftLayer)"
 
 	domainIsNotFound     = "Domain %s is not found in %s"          //Error07072, Error07052
 	authorizationError   = "Authorization error when trying %s %s" //Error07073, Error07077, Error07080, Error07089, Error07031, Error07044, Error07048, Error07051, Error07056, Error07037
