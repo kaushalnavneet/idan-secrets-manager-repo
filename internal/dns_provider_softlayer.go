@@ -294,9 +294,9 @@ func (c *SoftlayerDNSConfig) getChallengeRecordId(domain *SLDomainData) (int, er
 
 func (c *SoftlayerDNSConfig) buildRequestHeader() *map[string]string {
 	headers := make(map[string]string)
-	headers["Authorization"] = "Basic " + c.Auth
-	headers["Content-Type"] = "application/json"
-	headers["Accept"] = "application/json"
+	headers[authorizationHeader] = "Basic " + c.Auth
+	headers[contentTypeHeader] = applicationJson
+	headers[acceptHeader] = applicationJson
 	return &headers
 }
 

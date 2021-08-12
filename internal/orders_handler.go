@@ -29,9 +29,7 @@ type OrdersHandler struct {
 	beforeOrders  map[string]WorkItem
 	runningOrders map[string]WorkItem
 	parser        certificate.CertificateParser
-	iamConfig     *iam.Config
 	pluginConfig  *common.ICAuthConfig
-	smInstanceCrn string
 	cron          *cron.Cron
 }
 
@@ -137,26 +135,15 @@ func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical
 		oh.startOrder(secretEntry)
 		//config iam endpoint
 	} else if strings.Contains(req.Path, "config/iam") && req.Operation == logical.UpdateOperation {
-		common.Logger().Debug("CONFIG IAM WAS CALLED")
-		oh.createCronJob(ctx, req)
+		common.Logger().Debug("Get and keep plugin configuration ")
+		auth, err := common.ObtainAuthConfigFromStorage(ctx, req.Storage)
+		if err == nil {
+			oh.pluginConfig = auth
+		}
+		common.Logger().Debug("Config cron job if needed")
+		ConfigAutoRenewJob(auth, oh.cron, PluginMountPath)
 	}
 	return nil, nil
-}
-
-func (oh *OrdersHandler) createCronJob(ctx context.Context, req *logical.Request) {
-	auth, err := common.ObtainAuthConfigFromStorage(ctx, req.Storage)
-	if err == nil {
-		oh.pluginConfig = auth
-	}
-	if oh.cron != nil {
-		//r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		//renewalScheduler := fmt.Sprintf("%d */3 * * *", r.Intn(60))
-		renewalScheduler := "*/30 * * * *"
-		//_, _ :=
-		oh.cron.AddFunc(renewalScheduler, func() { common.Logger().Info("AUTO RENEW JOB RUNNING") })
-		common.Logger().Info(fmt.Sprintf("Added cron job for certificates automatic renewal '%s'", renewalScheduler))
-	}
-
 }
 
 func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
@@ -171,7 +158,7 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 	oh.runningOrders[orderKey] = workItem
 	//empty beforeOrders, current workItem is moved to runningOrders
 	//some previous order requests could fail on validations so their beforeOrders should be removed too
-	oh.beforeOrders = make(map[string]WorkItem)
+	delete(oh.beforeOrders, orderKey)
 	//start an order
 	_, _ = oh.workerPool.ScheduleCertificateRequest(workItem)
 }
@@ -497,7 +484,7 @@ func (oh *OrdersHandler) getOrderResponse(entry *secretentry.SecretEntry) map[st
 
 func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.Request) error {
 	storage := req.Storage
-	if oh.iamConfig == nil {
+	if oh.pluginConfig == nil {
 		authConfig, err := common.ObtainAuthConfigFromStorage(ctx, storage)
 		if err != nil {
 			return err
@@ -513,14 +500,54 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.
 			ClientSecret: authConfig.Service.ClientSecret,
 			DisableCache: false,
 		}
-		oh.iamConfig = config
 		err = iam.Configure(config)
 		if err != nil {
 			common.Logger().Error(logdna.Error07093 + " Failed to configure iam: " + err.Error())
 			return commonErrors.GenerateCodedError(logdna.Error07093, http.StatusInternalServerError, internalServerError)
 		}
-		oh.smInstanceCrn = authConfig.Service.Instance.CRN
+		oh.pluginConfig = authConfig
 	}
+	return nil
+}
+
+func (oh *OrdersHandler) renewCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
+	if entry.State != secretentry.StateActive || !entry.Policies.Rotation.AutoRotate() || time.Now().AddDate(0, 0, 91).Before(*entry.ExpirationDate) {
+		common.Logger().Debug(fmt.Sprintf("Secret with id %s and name %s  should NOT be renewed", entry.ID, entry.Name))
+		return nil
+	}
+	common.Logger().Debug(fmt.Sprintf("Secret with id %s and name %s  should be renewed", entry.ID, entry.Name))
+	rotateKey := entry.Policies.Rotation.RotateKeys()
+	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
+	var privateKey []byte
+	if !rotateKey {
+		common.Logger().Debug("Keep the same private key")
+		rawdata, _ := certificate.DecodeRawData(entry.LastVersionData())
+		privateKey = []byte(rawdata.PrivateKey)
+	}
+
+	//validate all the data and prepare it for order
+	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
+	metadata.IssuanceInfo[FieldOrderedOn] = time.Now().UTC().Format(time.RFC3339)
+	metadata.IssuanceInfo[FieldAutoRotated] = true
+	if err != nil {
+		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
+		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
+		metadata.IssuanceInfo[FieldErrorCode] = "RenewError"
+		metadata.IssuanceInfo[FieldErrorMessage] = err.Error()
+		entry.ExtraData = metadata
+	} else {
+		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
+		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
+		delete(metadata.IssuanceInfo, FieldErrorCode)
+		delete(metadata.IssuanceInfo, FieldErrorMessage)
+		entry.ExtraData = metadata
+	}
+	err = common.StoreSecretWithoutLocking(entry, req.Storage, context.Background())
+	if err != nil {
+		common.Logger().Error("Couldn't save order result to storage: " + err.Error())
+	}
+	//save updated entry
+	oh.startOrder(entry)
 	return nil
 }
 

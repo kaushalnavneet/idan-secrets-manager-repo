@@ -327,7 +327,7 @@ func (c *CISDNSConfig) buildRequestHeader() (*map[string]string, error) {
 		c.iamToken = iamToken
 	}
 	headers["x-auth-user-token"] = c.iamToken
-	headers["Content-Type"] = "application/json"
+	headers[contentTypeHeader] = applicationJson
 	return &headers, nil
 }
 
