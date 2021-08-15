@@ -96,7 +96,7 @@ func NewCAUserConfig(caType, privateKeyPEM, caRootCertPath, email string) (*CAUs
 func (u *CAUserConfig) initCAAccount() error {
 	client, err := NewACMEClient(u, certcrypto.RSA2048)
 	if err != nil {
-		message := fmt.Sprintf("Failed to configure HTTP Client: %s", err.Error())
+		message := fmt.Sprintf(logdna.Error07022+" Failed to configure HTTP Client: %s", err.Error())
 		common.Logger().Error(message)
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07022, logdna.InternalErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07022, http.StatusBadRequest, internalServerError)

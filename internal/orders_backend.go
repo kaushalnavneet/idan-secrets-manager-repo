@@ -59,8 +59,7 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 		ob.pathGetVersion(),
 		ob.pathGetVersionMetadata(),
 		[]*framework.Path{
-			//// Make sure this stays at the end so that the valid paths are processed first.
-			//common.PathInvalid(backendHelp),
+			ob.pathAutoRenew(),
 		})
 }
 

@@ -41,9 +41,9 @@ cd $VAULT_ROOT
 # Register Vault policy for usage
 vault policy write usage "$PLUGIN_SRC"/configs/usage.hcl
 # Create usage token role with period of 30 days
-vault write auth/token/roles/usage allowed_policies="usage" period="720h"
+vault write auth/token/roles/public_cert_usage allowed_policies="usage" period="720h"
 # Create periodic token for usage role and set as env variable USAGE_TOKEN
-USAGE_TOKEN="$(vault token create -role=usage -format=json | jq -j '.auth.client_token')"
+USAGE_TOKEN="$(vault token create -role=public_cert_usage -format=json | jq -j '.auth.client_token')"
 
 vault write ibmcloud/$PLUGIN_NAME/config/iam \
   api_key="$OPERATOR_API_KEY" \

@@ -500,7 +500,7 @@ func (ob *OrdersBackend) createConfigToStore(name string, providerType string, d
 	if providerType == providerTypeCA {
 		err = prepareCAConfigToStore(configToStore)
 	} else {
-		err = prepareDNSConfigToStore(configToStore, ob.ordersHandler.smInstanceCrn)
+		err = prepareDNSConfigToStore(configToStore, ob.ordersHandler.pluginConfig.Service.Instance.CRN)
 	}
 	if err != nil {
 		return nil, err

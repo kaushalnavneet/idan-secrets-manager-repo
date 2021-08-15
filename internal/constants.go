@@ -22,6 +22,15 @@ const (
 
 	endCertificate = "-----END CERTIFICATE-----"
 	errorPattern   = `{"error_code":"%s","error_message":"%s"}`
+	AutoRenewPath  = "autorenew"
+)
+
+const (
+	vaultTokenHeader    = "X-Vault-Token"
+	acceptHeader        = "Accept"
+	contentTypeHeader   = "Content-Type"
+	authorizationHeader = "Authorization"
+	applicationJson     = "application/json"
 )
 
 const (
