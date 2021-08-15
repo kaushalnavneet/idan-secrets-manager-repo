@@ -135,13 +135,13 @@ func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical
 		oh.startOrder(secretEntry)
 		//config iam endpoint
 	} else if strings.Contains(req.Path, "config/iam") && req.Operation == logical.UpdateOperation {
-		common.Logger().Debug("Get and keep plugin configuration ")
+		common.Logger().Debug("Get auth config and keep it in plugin configuration ")
 		auth, err := common.ObtainAuthConfigFromStorage(ctx, req.Storage)
 		if err == nil {
 			oh.pluginConfig = auth
 		}
-		common.Logger().Debug("Config cron job if needed")
-		ConfigAutoRenewJob(auth, oh.cron, PluginMountPath)
+		//configure certificates auto-renewal cron job if needed
+		ConfigAutoRenewalJob(auth, oh.cron)
 	}
 	return nil, nil
 }
@@ -479,6 +479,7 @@ func (oh *OrdersHandler) getOrderResponse(entry *secretentry.SecretEntry) map[st
 		policies.FieldAutoRotate: entry.Policies.Rotation.AutoRotate(),
 		policies.FieldRotateKeys: entry.Policies.Rotation.RotateKeys()}
 	e[FieldRotation] = rotation
+	delete(e, secretentry.FieldSecretData)
 	return e
 }
 

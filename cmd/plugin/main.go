@@ -23,7 +23,7 @@ func main() {
 			secret_backend.ActionCreation: http.StatusAccepted,
 			secret_backend.ActionRotation: http.StatusAccepted,
 		},
-		PluginSetup: publiccerts.SetupPlugin,
+		PluginSetup: publiccerts.SetupPluginWithAutoRenewalJob,
 	}
 
 	if err := plugin.Serve(&plugin.ServeOpts{

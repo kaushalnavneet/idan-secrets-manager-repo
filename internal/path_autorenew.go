@@ -19,7 +19,7 @@ func (ob *OrdersBackend) pathAutoRenew() *framework.Path {
 }
 
 func (ob *OrdersBackend) autoRenewCertificates(ctx context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
-	common.Logger().Info("!!!!autoRenewCertificates!!!!")
+	common.Logger().Info("!!!!AUTO RENEW CERTIFICATES!!!!")
 	//common.PerformOperationOnAllSecrets(ctx, req, ob.GetSecretBackendHandler().(*OrdersHandler).renewCertIfNeeded)
 	return nil, nil
 }
