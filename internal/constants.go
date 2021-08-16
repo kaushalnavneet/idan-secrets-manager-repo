@@ -20,9 +20,10 @@ const (
 	FieldAutoRotated  = "auto_rotated"
 	FieldIssuanceInfo = "issuance_info"
 
-	endCertificate = "-----END CERTIFICATE-----"
-	errorPattern   = `{"error_code":"%s","error_message":"%s"}`
-	AutoRenewPath  = "autorenew"
+	endCertificate       = "-----END CERTIFICATE-----"
+	errorPattern         = `{"error_code":"%s","error_message":"%s"}`
+	AutoRenewPath        = "autorenew"
+	AutoRenewCleanupPath = "autorenew/final"
 )
 
 const (
@@ -34,11 +35,10 @@ const (
 )
 
 const (
-	MaxWorkers                           = 1
-	MaxCertRequest                       = 50
-	CertRequestTimeout     time.Duration = 60 * 20 //wait 20 minutes till fail order
-	RenewalExecutionPeriod time.Duration = 3
-	RenewalThreshold       time.Duration = 30 * 24 //((365 * 24 * 5) + 24) to always renew every renewal period
+	MaxWorkers                              = 1
+	MaxCertRequest                          = 50
+	CertRequestTimeout        time.Duration = 60 * 20 //wait 20 minutes till fail order
+	RenewIfExpirationIsInDays               = 88
 )
 
 //cofigs common

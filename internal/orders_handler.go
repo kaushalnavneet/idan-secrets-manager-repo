@@ -522,11 +522,11 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.
 
 //is called from path_renew for every certificate in the storage
 func (oh *OrdersHandler) renewCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
-	if entry.State != secretentry.StateActive || !entry.Policies.Rotation.AutoRotate() || time.Now().AddDate(0, 0, 91).Before(*entry.ExpirationDate) {
-		common.Logger().Debug(fmt.Sprintf("Secret with name %s and id %s should NOT be renewed", entry.ID, entry.Name))
+	if !isRenewNeeded(entry) {
+		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be renewed", entry.Name, entry.ID))
 		return nil
 	}
-	common.Logger().Debug(fmt.Sprintf("\"Secret with name %s and id %s SHOULD be renewed", entry.ID, entry.Name))
+	common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s SHOULD be renewed", entry.Name, entry.ID))
 	rotateKey := entry.Policies.Rotation.RotateKeys()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
 	var privateKey []byte
@@ -551,6 +551,25 @@ func (oh *OrdersHandler) renewCertIfNeeded(entry *secretentry.SecretEntry, engin
 
 	oh.startOrder(entry)
 	return nil
+}
+
+func (oh *OrdersHandler) cleanupAfterRenewCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
+	if !isRenewNeeded(entry) {
+		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be renewed", entry.Name, entry.ID))
+		return nil
+	}
+	common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s  SHOULD have been renewed but WAS NOT ", entry.Name, entry.ID))
+	return nil
+}
+
+func isRenewNeeded(entry *secretentry.SecretEntry) bool {
+	now := time.Now()
+	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	startRenewPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays)
+	endRenewPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays+1)
+	certExpiration := *entry.ExpirationDate
+	return entry.State == secretentry.StateActive && entry.Policies.Rotation.AutoRotate() &&
+		certExpiration.After(startRenewPeriod) && certExpiration.Before(endRenewPeriod)
 }
 
 func getPoliciesFromFieldData(data *framework.FieldData) (*policies.Policies, error) {

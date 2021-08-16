@@ -58,9 +58,9 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 		ob.pathCertificate(),
 		ob.pathGetVersion(),
 		ob.pathGetVersionMetadata(),
-		[]*framework.Path{
-			ob.pathAutoRenew(),
-		})
+		//autorenew+cleanup
+		ob.pathAutoRenew(),
+	)
 }
 
 func existenceCheck(ctx context.Context, request *logical.Request, data *framework.FieldData) (bool, error) {
