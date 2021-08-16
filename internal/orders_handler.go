@@ -130,6 +130,9 @@ func (oh *OrdersHandler) MakeActionsBeforeStore(ctx context.Context, req *logica
 }
 
 func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry, storeError error) (*logical.Response, error) {
+	if storeError != nil {
+		return nil, storeError
+	}
 	//order and rotation
 	if strings.Contains(req.Path, "rotate") && req.Operation == logical.UpdateOperation || req.Operation == logical.CreateOperation {
 		oh.startOrder(secretEntry)
@@ -146,28 +149,11 @@ func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical
 	return nil, nil
 }
 
-func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
-	//get domains from the secret in order to build order key
-	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
-	domains := getNames(metadata.CommonName, metadata.AltName)
-	orderKey := getOrderID(domains)
-	//get work item from cache
-	workItem := oh.beforeOrders[orderKey]
-	//update it with secret id
-	workItem.secretEntry = secretEntry
-	oh.runningOrders[orderKey] = workItem
-	//empty beforeOrders, current workItem is moved to runningOrders
-	//some previous order requests could fail on validations so their beforeOrders should be removed too
-	delete(oh.beforeOrders, orderKey)
-	//start an order
-	_, _ = oh.workerPool.ScheduleCertificateRequest(workItem)
-}
-
 // MapSecretEntry Map secret entry to
 func (oh *OrdersHandler) MapSecretEntry(entry *secretentry.SecretEntry, operation logical.Operation, includeSecretData bool) map[string]interface{} {
 	//for order and renew
 	if operation == logical.CreateOperation || operation == logical.UpdateOperation {
-		return oh.getOrderResponse(entry)
+		return oh.buildOrderResponse(entry)
 	} else { //for all other cases
 		return oh.getCertMetadata(entry, includeSecretData, includeSecretData)
 	}
@@ -275,6 +261,8 @@ func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, include
 
 	if !includeSecretData {
 		delete(e, secretentry.FieldSecretData)
+	} else if e[secretentry.FieldSecretData] == nil || e[secretentry.FieldSecretData] == "" {
+		e[secretentry.FieldSecretData] = make(map[string]string)
 	}
 
 	if !includeVersion {
@@ -388,6 +376,25 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	return nil
 }
 
+//takes a work item from the map  and runs certificate order
+func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
+	//get domains from the secret in order to build order key
+	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
+	domains := getNames(metadata.CommonName, metadata.AltName)
+	orderKey := getOrderID(domains)
+	//get work item from cache
+	workItem := oh.beforeOrders[orderKey]
+	//update it with secret id
+	workItem.secretEntry = secretEntry
+	oh.runningOrders[orderKey] = workItem
+	//empty beforeOrders, current workItem is moved to runningOrders
+	//some previous order requests could fail on validations so their beforeOrders should be removed too
+	delete(oh.beforeOrders, orderKey)
+	//start an order
+	_, _ = oh.workerPool.ScheduleCertificateRequest(workItem)
+}
+
+//gets result of order and save it to secret entry
 func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	//delete the order from cache of orders in process
 	orderKey := getOrderID(res.workItem.domains)
@@ -464,7 +471,8 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 
 }
 
-func (oh *OrdersHandler) getOrderResponse(entry *secretentry.SecretEntry) map[string]interface{} {
+//build response for create and rotate requests
+func (oh *OrdersHandler) buildOrderResponse(entry *secretentry.SecretEntry) map[string]interface{} {
 	e := entry.ToMapMeta()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
 	e[secretentry.FieldCommonName] = metadata.CommonName
@@ -483,6 +491,7 @@ func (oh *OrdersHandler) getOrderResponse(entry *secretentry.SecretEntry) map[st
 	return e
 }
 
+//is called from endpoints where we need iam
 func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.Request) error {
 	storage := req.Storage
 	if oh.pluginConfig == nil {
@@ -511,12 +520,13 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.
 	return nil
 }
 
+//is called from path_renew for every certificate in the storage
 func (oh *OrdersHandler) renewCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
 	if entry.State != secretentry.StateActive || !entry.Policies.Rotation.AutoRotate() || time.Now().AddDate(0, 0, 91).Before(*entry.ExpirationDate) {
-		common.Logger().Debug(fmt.Sprintf("Secret with id %s and name %s  should NOT be renewed", entry.ID, entry.Name))
+		common.Logger().Debug(fmt.Sprintf("Secret with name %s and id %s should NOT be renewed", entry.ID, entry.Name))
 		return nil
 	}
-	common.Logger().Debug(fmt.Sprintf("Secret with id %s and name %s  should be renewed", entry.ID, entry.Name))
+	common.Logger().Debug(fmt.Sprintf("\"Secret with name %s and id %s SHOULD be renewed", entry.ID, entry.Name))
 	rotateKey := entry.Policies.Rotation.RotateKeys()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
 	var privateKey []byte
@@ -530,24 +540,15 @@ func (oh *OrdersHandler) renewCertIfNeeded(entry *secretentry.SecretEntry, engin
 	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
 	metadata.IssuanceInfo[FieldOrderedOn] = time.Now().UTC().Format(time.RFC3339)
 	metadata.IssuanceInfo[FieldAutoRotated] = true
-	if err != nil {
-		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
-		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
-		metadata.IssuanceInfo[FieldErrorCode] = "RenewError"
-		metadata.IssuanceInfo[FieldErrorMessage] = err.Error()
-		entry.ExtraData = metadata
-	} else {
-		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
-		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
-		delete(metadata.IssuanceInfo, FieldErrorCode)
-		delete(metadata.IssuanceInfo, FieldErrorMessage)
-		entry.ExtraData = metadata
-	}
+	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
+	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
+	entry.ExtraData = metadata
+	//save updated entry
 	err = common.StoreSecretWithoutLocking(entry, req.Storage, context.Background())
 	if err != nil {
 		common.Logger().Error("Couldn't save order result to storage: " + err.Error())
 	}
-	//save updated entry
+
 	oh.startOrder(entry)
 	return nil
 }
