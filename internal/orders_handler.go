@@ -522,12 +522,11 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.
 
 //is called from path_renew for every certificate in the storage
 func (oh *OrdersHandler) renewCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
-	if entry.State != secretentry.StateActive || entry.State != secretentry.StatePreActivation ||
-		!entry.Policies.Rotation.AutoRotate() || time.Now().AddDate(0, 0, 91).Before(*entry.ExpirationDate) {
-		common.Logger().Debug(fmt.Sprintf("Secret with id %s and name %s  should NOT be renewed", entry.ID, entry.Name))
+	if entry.State != secretentry.StateActive || !entry.Policies.Rotation.AutoRotate() || time.Now().AddDate(0, 0, 91).Before(*entry.ExpirationDate) {
+		common.Logger().Debug(fmt.Sprintf("Secret with name %s and id %s should NOT be renewed", entry.ID, entry.Name))
 		return nil
 	}
-	common.Logger().Debug(fmt.Sprintf("Secret with id %s and name %s  should be renewed", entry.ID, entry.Name))
+	common.Logger().Debug(fmt.Sprintf("\"Secret with name %s and id %s SHOULD be renewed", entry.ID, entry.Name))
 	rotateKey := entry.Policies.Rotation.RotateKeys()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
 	var privateKey []byte
