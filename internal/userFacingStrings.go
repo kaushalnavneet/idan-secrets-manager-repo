@@ -21,19 +21,20 @@ const (
 
 //policies validation errors
 const (
-	policiesMoreThanOne       = "Received more than one policy"            // Error07094
-	policiesNotValidStructure = "Rotation policy doesn't have a valid structure"  // Error07095, Error07096, Error07097
-	policiesNotValidField     = "Field %s in rotation policy is not valid" //Error07098, Error07099
+	policiesMoreThanOne       = "Received more than one policy"                  // Error07094
+	policiesNotValidStructure = "Rotation policy doesn't have a valid structure" // Error07095, Error07096, Error07097
+	policiesNotValidField     = "Field %s in rotation policy is not valid"       //Error07098, Error07099
 )
 
 //Order validation errors
 const (
-	commonNameTooLong     = "A primary domain name cannot be longer than 64 bytes"                                                                                         //Error07106
-	redundantDomain       = "At least one of the domains is redundant with a wildcard domain in the same certificate. Remove one or the other from the certificate order." //Error07109
-	invalidDomain         = "Domain %s is not valid"                                                                                                                       //Error07105, Error07107
-	duplicateDomain       = "Domain %s is duplicated"                                                                                                                      //Error07108
-	invalidKeyAlgorithm   = "Key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384"                                                      //Error07040
-	orderAlreadyInProcess = "Order for these domains is already in process"                                                                                                //Error07042
+	commonNameTooLong = "A primary domain name cannot be longer than 64 bytes" //Error07106
+	redundantDomain   = `At least one of the domains is redundant with a wildcard domain in the same certificate. 
+Remove one or the other from the certificate order.`  //Error07109
+	invalidDomain         = "Domain %s is not valid"                                                                  //Error07105, Error07107
+	duplicateDomain       = "Domain %s is duplicated"                                                                 //Error07108
+	invalidKeyAlgorithm   = "Key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384" //Error07040
+	orderAlreadyInProcess = "Order for these domains is already in process"                                           //Error07042
 )
 
 //Errors in communication with DNS providers
@@ -49,9 +50,9 @@ const (
 	unavailableDNSError  = "Couldn't call %s. Try again later"     //Error07030, Error07036, Error07047, Error07050, Error07054, Error07058, Error07071, Error07076, Error07079, Error07087
 
 	//specific CIS
-	obtainTokenError      = "Couldn't obtain IAM token for provided API key in order to access Cloud Internet Services (CIS)" // Error07070, Error07082, Error07084, Error07086, Error07029
-	obtainCRNTokenError   = "Couldn't obtain IAM service to service CRN token in order to access Cloud Internet Services (CIS)"                 // Error07070, Error07082, Error07084, Error07086, Error07029
-	invalidCISInstanceCrn = "Cloud Internet Services (CIS) instance CRN is not valid"                                        //Error07026, Error07027
+	obtainTokenError      = "Couldn't obtain IAM token for provided API key in order to access Cloud Internet Services (CIS)"   // Error07070, Error07082, Error07084, Error07086, Error07029
+	obtainCRNTokenError   = "Couldn't obtain IAM service to service CRN token in order to access Cloud Internet Services (CIS)" // Error07070, Error07082, Error07084, Error07086, Error07029
+	invalidCISInstanceCrn = "Cloud Internet Services (CIS) instance CRN is not valid"                                           //Error07026, Error07027
 )
 
 //info messages
