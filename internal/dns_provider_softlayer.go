@@ -161,7 +161,7 @@ func (c *SoftlayerDNSConfig) getDomainData(originalDomain, domainToSetChallenge,
 			domainParts := strings.Split(domainToSetChallenge, ".")
 			if len(domainParts) == 2 {
 				//we can't dive anymore, return error
-				common.Logger().Error(logdna.Error07052 + " Couldn't find neither domain " + originalDomain + "nor its parent domains in " + dnsProviderSoftLayerAccount)
+				common.Logger().Error(logdna.Error07052 + " Couldn't find neither domain " + originalDomain + " nor its parent domains in " + dnsProviderSoftLayerAccount)
 				return nil, buildOrderError(logdna.Error07052, fmt.Sprintf(domainIsNotFound, originalDomain, dnsProviderSoftLayerAccount))
 			}
 			parentDomain := strings.Join(domainParts[1:], ".")

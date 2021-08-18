@@ -564,11 +564,16 @@ func (oh *OrdersHandler) cleanupAfterRenewCertIfNeeded(entry *secretentry.Secret
 
 func isRenewNeeded(entry *secretentry.SecretEntry) bool {
 	if entry.State == secretentry.StateActive && entry.Policies.Rotation.AutoRotate() {
-		now := time.Now()
+		now := time.Now().UTC()
+		common.Logger().Debug(fmt.Sprintf("Time now %s", now.Format(time.RFC3339)))
 		midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		common.Logger().Debug(fmt.Sprintf("Midnight today %s", midnight.Format(time.RFC3339)))
 		startRenewPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays)
+		common.Logger().Debug(fmt.Sprintf("Start expiration period %s", startRenewPeriod.Format(time.RFC3339)))
 		endRenewPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays+1)
+		common.Logger().Debug(fmt.Sprintf("End  expiration period %s", endRenewPeriod.Format(time.RFC3339)))
 		certExpiration := *entry.ExpirationDate
+		common.Logger().Debug(fmt.Sprintf("Certificate '%s' expiration %s", entry.Name, certExpiration.Format(time.RFC3339)))
 		return certExpiration.After(startRenewPeriod) && certExpiration.Before(endRenewPeriod)
 	} else {
 		return false
