@@ -564,6 +564,7 @@ func (oh *OrdersHandler) cleanupAfterRenewCertIfNeeded(entry *secretentry.Secret
 
 func isRenewNeeded(entry *secretentry.SecretEntry) bool {
 	if entry.State == secretentry.StateActive && entry.Policies.Rotation.AutoRotate() {
+		common.Logger().Debug(fmt.Sprintf("Certificate '%s' is active and auto-rotate=true", entry.Name))
 		now := time.Now().UTC()
 		common.Logger().Debug(fmt.Sprintf("Time now %s", now.Format(time.RFC3339)))
 		midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
