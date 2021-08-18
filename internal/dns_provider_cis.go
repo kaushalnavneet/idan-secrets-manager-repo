@@ -15,7 +15,6 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -44,21 +43,16 @@ type CISResult struct {
 	ID string `json:"id"`
 }
 
-type CISError struct {
-	Code    int    `json:"code,omitempty"`
-	Message string `json:"message,omitempty"`
-}
-
 type CISResponseList struct {
 	Success bool        `json:"success"`
 	Result  []CISResult `json:"result"`
-	Errors  []CISError  `json:"errors,omitempty"`
+	Errors  interface{} `json:"errors,omitempty"`
 }
 
 type CISResponseResult struct {
-	Success bool       `json:"success"`
-	Result  CISResult  `json:"result"`
-	Errors  []CISError `json:"errors,omitempty"`
+	Success bool        `json:"success"`
+	Result  CISResult   `json:"result"`
+	Errors  interface{} `json:"errors,omitempty"`
 }
 
 type CISRequest struct {
@@ -200,8 +194,7 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 		common.Logger().Error(logdna.Error07073 + "Couldn't get zone by domain name: Authorization error ")
 		return "", buildOrderError(logdna.Error07073, fmt.Sprintf(authorizationError, "to get zones from", dnsProviderCISInstance))
 	}
-	cisError := getCISErrors(response.Errors)
-	common.Logger().Error(logdna.Error07074 + " Couldn't get zone by domain " + domain + ": " + cisError)
+	common.Logger().Error(logdna.Error07074 + fmt.Sprintf(" Couldn't get zone by domain %s. statusCode=%d, errors='%+v'", domain, resp.StatusCode(), response.Errors))
 	return "", buildOrderError(logdna.Error07074, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 
 }
@@ -239,8 +232,8 @@ func (c *CISDNSConfig) setChallenge(domain *CISDomainData) (string, error) {
 		common.Logger().Error(logdna.Error07077 + " Couldn't set txt record for domain " + domain.name + ": Authorization error ")
 		return "", buildOrderError(logdna.Error07077, fmt.Sprintf(authorizationError, "to set txt record in", dnsProviderCISInstance))
 	}
-	cisError := getCISErrors(response.Errors)
-	common.Logger().Error(logdna.Error07078 + " Couldn't set txt record for domain " + domain.name + ": " + cisError)
+	common.Logger().Error(logdna.Error07078 + fmt.Sprintf(" Couldn't set txt record for domain %s. statusCode=%d, errors='%+v'",
+		domain.name, resp.StatusCode(), response.Errors))
 	return "", buildOrderError(logdna.Error07078, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 }
 
@@ -265,8 +258,7 @@ func (c *CISDNSConfig) removeChallenge(domain *CISDomainData) error {
 		common.Logger().Error(logdna.Error07080 + " Couldn't remove txt record for domain " + domain.name + ": Authorization error ")
 		return buildOrderError(logdna.Error07080, fmt.Sprintf(authorizationError, "to delete txt record from", dnsProviderCISInstance))
 	}
-	cisError := getCISErrors(response.Errors)
-	common.Logger().Error(logdna.Error07081 + " Couldn't remove txt record for domain " + domain.name + ": " + cisError)
+	common.Logger().Error(logdna.Error07081 + fmt.Sprintf(" Couldn't remove txt record for domain %s. statusCode=%d, errors='%+v'", domain.name, resp.StatusCode(), response.Errors))
 	return buildOrderError(logdna.Error07081, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 }
 
@@ -295,8 +287,7 @@ func (c *CISDNSConfig) getChallengeRecordId(domain *CISDomainData) (string, erro
 		common.Logger().Error(logdna.Error07089 + " Couldn't remove get record for domain " + domain.name + ": Authorization error ")
 		return "", buildOrderError(logdna.Error07089, fmt.Sprintf(authorizationError, "to get txt record from", dnsProviderCISInstance))
 	}
-	cisError := getCISErrors(response.Errors)
-	common.Logger().Error(logdna.Error07060 + " Couldn't get txt record for domain " + domain.name + ": " + cisError)
+	common.Logger().Error(logdna.Error07060 + fmt.Sprintf(" Couldn't get txt record for domain %s: statusCode=%d, errors='%+v'", domain.name, resp.StatusCode(), response.Errors))
 	return "", buildOrderError(logdna.Error07060, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 }
 
@@ -358,8 +349,7 @@ func (c *CISDNSConfig) validateConfig() error {
 		common.ErrorLogForCustomer(message, logdna.Error07031, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07031, http.StatusBadRequest, message)
 	}
-	cisError := getCISErrors(response.Errors)
-	common.ErrorLogForCustomer("Couldn't access CIS instance: "+cisError, logdna.Error07032, logdna.BadRequestErrorMessage, true)
+	common.ErrorLogForCustomer(logdna.Error07032+fmt.Sprintf(" Couldn't access CIS instance: statusCode=%d, errors='%+v'", resp.StatusCode(), response.Errors), logdna.Error07032, logdna.BadRequestErrorMessage, true)
 	message := fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS)
 	return commonErrors.GenerateCodedError(logdna.Error07032, http.StatusBadRequest, message)
 }
@@ -376,14 +366,6 @@ func createCISTxtRecordBody(key, value string, ttl int) (*bytes.Buffer, error) {
 		return nil, err
 	}
 	return bytes.NewBuffer(marshalledPostBody), nil
-}
-
-func getCISErrors(errors []CISError) string {
-	result := "CIS error/s: "
-	for i, cisError := range errors {
-		result += strconv.Itoa(i) + ". Code:" + strconv.Itoa(cisError.Code) + " Message:" + cisError.Message + ". "
-	}
-	return result
 }
 
 func validateCISConfigStructure(config map[string]string, smInstanceCrn string) error {
