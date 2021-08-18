@@ -563,13 +563,16 @@ func (oh *OrdersHandler) cleanupAfterRenewCertIfNeeded(entry *secretentry.Secret
 }
 
 func isRenewNeeded(entry *secretentry.SecretEntry) bool {
-	now := time.Now()
-	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	startRenewPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays)
-	endRenewPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays+1)
-	certExpiration := *entry.ExpirationDate
-	return entry.State == secretentry.StateActive && entry.Policies.Rotation.AutoRotate() &&
-		certExpiration.After(startRenewPeriod) && certExpiration.Before(endRenewPeriod)
+	if entry.State == secretentry.StateActive && entry.Policies.Rotation.AutoRotate() {
+		now := time.Now()
+		midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		startRenewPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays)
+		endRenewPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays+1)
+		certExpiration := *entry.ExpirationDate
+		return certExpiration.After(startRenewPeriod) && certExpiration.Before(endRenewPeriod)
+	} else {
+		return false
+	}
 }
 
 func getPoliciesFromFieldData(data *framework.FieldData) (*policies.Policies, error) {

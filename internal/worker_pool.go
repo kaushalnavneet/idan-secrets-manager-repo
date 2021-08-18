@@ -21,7 +21,6 @@ type WorkerPool struct {
 	cancelChan        chan struct{}
 	wg                sync.WaitGroup
 	httpClientWrapper HttpClientWrapper
-	cache             *Cache
 	handler           *OrdersHandler
 	execFunction      ExecFunctionType
 }
@@ -57,7 +56,6 @@ func NewWorkerPool(handler *OrdersHandler, numWorkers, maxWorkItems int, timeout
 		workChan:          make(chan WorkItem, maxWorkItems),
 		cancelChan:        make(chan struct{}),
 		httpClientWrapper: HttpClientWrapper{client: nil},
-		cache:             NewCache(),
 		handler:           handler,
 	}
 	if len(execFunction) == 0 {
