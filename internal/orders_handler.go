@@ -531,7 +531,7 @@ func (oh *OrdersHandler) renewCertIfNeeded(entry *secretentry.SecretEntry, engin
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
 	var privateKey []byte
 	if !rotateKey {
-		common.Logger().Debug("Keep the same private key")
+		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s will be renewed with the same private key", entry.Name, entry.ID))
 		rawdata, _ := certificate.DecodeRawData(entry.LastVersionData())
 		privateKey = []byte(rawdata.PrivateKey)
 	}
@@ -564,17 +564,17 @@ func (oh *OrdersHandler) cleanupAfterRenewCertIfNeeded(entry *secretentry.Secret
 
 func isRenewNeeded(entry *secretentry.SecretEntry) bool {
 	if entry.State == secretentry.StateActive && entry.Policies.Rotation.AutoRotate() {
-		common.Logger().Debug(fmt.Sprintf("Certificate '%s' is active and auto-rotate=true", entry.Name))
+		//common.Logger().Debug(fmt.Sprintf("Certificate '%s' is active and auto-rotate=true", entry.Name))
 		now := time.Now().UTC()
-		common.Logger().Debug(fmt.Sprintf("Time now %s", now.Format(time.RFC3339)))
+		//common.Logger().Debug(fmt.Sprintf("Time now %s", now.Format(time.RFC3339)))
 		midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		common.Logger().Debug(fmt.Sprintf("Midnight today %s", midnight.Format(time.RFC3339)))
+		//common.Logger().Debug(fmt.Sprintf("Midnight today %s", midnight.Format(time.RFC3339)))
 		startRenewPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays)
-		common.Logger().Debug(fmt.Sprintf("Start expiration period %s", startRenewPeriod.Format(time.RFC3339)))
+		//common.Logger().Debug(fmt.Sprintf("Start expiration period %s", startRenewPeriod.Format(time.RFC3339)))
 		endRenewPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays+1)
-		common.Logger().Debug(fmt.Sprintf("End  expiration period %s", endRenewPeriod.Format(time.RFC3339)))
+		//common.Logger().Debug(fmt.Sprintf("End  expiration period %s", endRenewPeriod.Format(time.RFC3339)))
 		certExpiration := *entry.ExpirationDate
-		common.Logger().Debug(fmt.Sprintf("Certificate '%s' expiration %s", entry.Name, certExpiration.Format(time.RFC3339)))
+		//common.Logger().Debug(fmt.Sprintf("Certificate '%s' expiration %s", entry.Name, certExpiration.Format(time.RFC3339)))
 		return certExpiration.After(startRenewPeriod) && certExpiration.Before(endRenewPeriod)
 	} else {
 		return false
