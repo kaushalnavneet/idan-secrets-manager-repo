@@ -17,8 +17,8 @@ require (
 	github.com/hashicorp/vault/sdk v0.2.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.ibm.com/project-fortress/vault-client-golang v0.0.4
-	github.ibm.com/security-services/secrets-manager-common-utils v0.0.7474
-	github.ibm.com/security-services/secrets-manager-iam v0.0.7224
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.7489
-	golang.org/x/net 60bc85c4be6d
+	github.ibm.com/security-services/secrets-manager-common-utils v0.0.7519
+	github.ibm.com/security-services/secrets-manager-iam v0.0.7531
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.7647
+	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
 )

@@ -38,7 +38,7 @@ const (
 	MaxWorkers                              = 1
 	MaxCertRequest                          = 50
 	CertRequestTimeout        time.Duration = 60 * 20 //wait 20 minutes till fail order
-	RenewIfExpirationIsInDays               = 89
+	RenewIfExpirationIsInDays               = 88
 )
 
 //cofigs common

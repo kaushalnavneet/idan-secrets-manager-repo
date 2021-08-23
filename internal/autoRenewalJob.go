@@ -11,10 +11,8 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_client_factory"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_cliient_impl"
-	"math/rand"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 type AutoRenewConfig struct {
@@ -40,9 +38,9 @@ var cleanupEntryId cron.EntryID = 0
 
 func ConfigAutoRenewalJob(config *common.ICAuthConfig, c *cron.Cron) error {
 	common.Logger().Debug("ConfigAutoRenewalJob: Trying to configure certificates auto-renewal and cleanup jobs")
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	renewalSchedule := fmt.Sprintf("%d * * * *", r.Intn(60))
-	//renewalSchedule := "*/5 * * * *"
+	//r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	//renewalSchedule := fmt.Sprintf("%d * * * *", r.Intn(60))
+	renewalSchedule := "5 */3 * * *"
 	cleanupSchedule := "00 23 * * *"
 
 	arc := &AutoRenewConfig{
