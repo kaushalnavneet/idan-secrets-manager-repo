@@ -564,18 +564,12 @@ func (oh *OrdersHandler) cleanupAfterRenewCertIfNeeded(entry *secretentry.Secret
 
 func isRenewNeeded(entry *secretentry.SecretEntry) bool {
 	if entry.State == secretentry.StateActive && entry.Policies.Rotation.AutoRotate() {
-		//common.Logger().Debug(fmt.Sprintf("Certificate '%s' is active and auto-rotate=true", entry.Name))
 		now := time.Now().UTC()
-		//common.Logger().Debug(fmt.Sprintf("Time now %s", now.Format(time.RFC3339)))
 		midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		//common.Logger().Debug(fmt.Sprintf("Midnight today %s", midnight.Format(time.RFC3339)))
-		startRenewPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays)
-		//common.Logger().Debug(fmt.Sprintf("Start expiration period %s", startRenewPeriod.Format(time.RFC3339)))
-		endRenewPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays+1)
-		//common.Logger().Debug(fmt.Sprintf("End  expiration period %s", endRenewPeriod.Format(time.RFC3339)))
+		startExpirationPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays)
+		endExpirationPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays+1)
 		certExpiration := *entry.ExpirationDate
-		//common.Logger().Debug(fmt.Sprintf("Certificate '%s' expiration %s", entry.Name, certExpiration.Format(time.RFC3339)))
-		return certExpiration.After(startRenewPeriod) && certExpiration.Before(endRenewPeriod)
+		return certExpiration.After(startExpirationPeriod) && certExpiration.Before(endExpirationPeriod)
 	} else {
 		return false
 	}
@@ -628,10 +622,14 @@ func getRotationPolicy(rawPolicy interface{}) (*policies.RotationPolicy, error) 
 		Rotation: &policies.RotationData{
 			AutoRotate: autoRotate,
 			RotateKeys: rotateKeys,
-			Interval:   59,
+			Interval:   0,
 			Unit:       policies.DayUnit,
 		},
 		Type: policies.MIMETypeForPolicyResource,
+	}
+	//todo 90 is for LetsEncrypt. need to set it according to CA
+	if autoRotate {
+		rotationPolicy.Rotation.Interval = 90 - RenewIfExpirationIsInDays
 	}
 
 	return &rotationPolicy, nil
