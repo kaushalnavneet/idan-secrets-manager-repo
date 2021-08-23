@@ -175,6 +175,12 @@ func validateNames(names []string) error {
 	directChildDomains := make(map[string]int)
 	for i, name := range names {
 		sanitizedName := name
+		if uniqueDomains[name] {
+			msg := fmt.Sprintf(duplicateDomain, name)
+			common.ErrorLogForCustomer(msg, logdna.Error07108, logdna.BadRequestErrorMessage, true)
+			return commonErrors.GenerateCodedError(logdna.Error07108, http.StatusBadRequest, msg)
+		}
+		uniqueDomains[name] = true
 		// If we have an asterisk as the first part of the domain name, mark it
 		// as wildcard and set the sanitized name to the remainder of the  domain
 		if strings.HasPrefix(name, "*.") {
@@ -209,13 +215,6 @@ func validateNames(names []string) error {
 			common.ErrorLogForCustomer(msg, logdna.Error07107, logdna.BadRequestErrorMessage, true)
 			return commonErrors.GenerateCodedError(logdna.Error07107, http.StatusBadRequest, msg)
 		}
-		if uniqueDomains[converted] {
-			msg := fmt.Sprintf(duplicateDomain, name)
-			common.ErrorLogForCustomer(msg, logdna.Error07108, logdna.BadRequestErrorMessage, true)
-			return commonErrors.GenerateCodedError(logdna.Error07108, http.StatusBadRequest, msg)
-
-		}
-		uniqueDomains[converted] = true
 	}
 	for _, wildcard := range wildcardDomains {
 		if directChildDomains[wildcard] > 0 {
