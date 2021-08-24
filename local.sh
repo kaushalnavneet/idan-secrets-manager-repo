@@ -45,12 +45,8 @@ vault write auth/token/roles/public_cert_usage allowed_policies="usage" period="
 # Create periodic token for usage role and set as env variable USAGE_TOKEN
 USAGE_TOKEN="$(vault token create -role=public_cert_usage -format=json | jq -j '.auth.client_token')"
 
-vault write ibmcloud/$PLUGIN_NAME/config/iam \
-  api_key="$OPERATOR_API_KEY" \
-  client_id="$CLIENT_ID" \
-  client_secret="$CLIENT_SECRET" \
+vault write ibmcloud/$PLUGIN_NAME/config/engine \
   instance_crn="$INSTANCE_CRN" \
-  iam_endpoint="$IAM_ENDPOINT" \
   vault_endpoint="$VAULT_ENDPOINT" \
   usage_token="$USAGE_TOKEN"
 

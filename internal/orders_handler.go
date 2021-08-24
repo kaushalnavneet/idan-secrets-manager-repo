@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/robfig/cron/v3"
-	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
@@ -502,20 +501,8 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.
 			return err
 		}
 		if authConfig == nil {
-			common.Logger().Error(logdna.Error07092 + " Iam config is missing in the storage")
+			common.Logger().Error(logdna.Error07092 + " Engine config is missing in the storage")
 			return commonErrors.GenerateCodedError(logdna.Error07092, http.StatusInternalServerError, internalServerError)
-		}
-		config := &iam.Config{
-			IamEndpoint:  authConfig.IAMEndpoint,
-			ApiKey:       authConfig.Service.APIKey,
-			ClientID:     authConfig.Service.ClientID,
-			ClientSecret: authConfig.Service.ClientSecret,
-			DisableCache: false,
-		}
-		err = iam.Configure(config)
-		if err != nil {
-			common.Logger().Error(logdna.Error07093 + " Failed to configure iam: " + err.Error())
-			return commonErrors.GenerateCodedError(logdna.Error07093, http.StatusInternalServerError, internalServerError)
 		}
 		oh.pluginConfig = authConfig
 	}
