@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
@@ -44,7 +43,8 @@ type OrderError struct {
 
 func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *logical.Request, data *framework.FieldData, entry *secretentry.SecretEntry, userID string) (*logical.Response, error) {
 	if entry.State != secretentry.StateActive {
-		return nil, errors.New("secret should be in Active state")
+		common.ErrorLogForCustomer(secretShouldBeInActiveState, logdna.Error07062, logdna.BadRequestErrorMessage, false)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07062, http.StatusBadRequest, secretShouldBeInActiveState)
 	}
 	//TODO take rotate_key from policy and override with parameter if any
 	rotateKey := data.Get(policies.FieldRotateKeys).(bool)
