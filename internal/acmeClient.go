@@ -17,7 +17,7 @@ import (
 
 type Client struct {
 	LegoClient *lego.Client
-	RestClient *rest_client.RestClientFactory
+	RestClient rest_client.RestClientFactory
 }
 
 func NewACMEClient(CAUserConfig *CAUserConfig, keyType certcrypto.KeyType) (*Client, error) {
