@@ -31,10 +31,11 @@ const (
 	commonNameTooLong = "A primary domain name cannot be longer than 64 bytes" //Error07106
 	redundantDomain   = `At least one of the domains is redundant with a wildcard domain in the same certificate. 
 Remove one or the other from the certificate order.`  //Error07109
-	invalidDomain         = "Domain %s is not valid"                                                                  //Error07105, Error07107
-	duplicateDomain       = "Domain %s is duplicated"                                                                 //Error07108
-	invalidKeyAlgorithm   = "Key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384" //Error07040
-	orderAlreadyInProcess = "Order for these domains is already in process"                                           //Error07042
+	invalidDomain               = "Domain %s is not valid"                                                                  //Error07105, Error07107
+	duplicateDomain             = "Domain %s is duplicated"                                                                 //Error07108
+	invalidKeyAlgorithm         = "Key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384" //Error07040
+	orderAlreadyInProcess       = "Order for these domains is already in process"                                           //Error07042
+	secretShouldBeInActiveState = "Secret should be in Active state"                                                        //Error07062
 )
 
 //Errors in communication with DNS providers
