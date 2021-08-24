@@ -125,7 +125,9 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 }
 
 func (oh *OrdersHandler) MakeActionsBeforeStore(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry) (*logical.Response, error) {
-	secretEntry.State = secretentry.StatePreActivation
+	if req.Operation == logical.CreateOperation {
+		secretEntry.State = secretentry.StatePreActivation
+	}
 	return nil, nil
 }
 
