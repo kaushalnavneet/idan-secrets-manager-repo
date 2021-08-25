@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
-	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
 	"github.ibm.com/security-services/secrets-manager-iam/pkg/crn"
-	"github.ibm.com/security-services/secrets-manager-iam/pkg/iam"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_cliient_impl"
 	"net/http"
 	"net/url"
 	"strings"
@@ -29,6 +28,7 @@ type CISDNSConfig struct {
 	restClient    rest_client.RestClientFactory
 	smInstanceCrn string
 	iamToken      string
+	authUtils     common.AuthUtils
 }
 
 type CISDomainData struct {
@@ -62,19 +62,15 @@ type CISRequest struct {
 	TTL     int    `json:"ttl"`
 }
 
-func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
+func NewCISDNSProvider(providerConfig map[string]string, cf rest_client.RestClientFactory, auth common.AuthUtils) *CISDNSConfig {
 	cisCrn := providerConfig[dnsConfigCisCrn]
 	apikey := providerConfig[dnsConfigCisApikey]
 	smInstanceCrn := providerConfig[dnsConfigSMCrn]
 
-	//create resty client
-	cf := &rest_client_impl.RestClientFactory{}
-	//init resty client with not default options
-	cf.InitClientWithOptions(rest_client.RestClientOptions{
-		Timeout:    10 * time.Second,
-		Retries:    2,
-		RetryDelay: 1 * time.Second,
-	})
+	if auth == nil { //it's always nil except tests
+		auth = &common.AuthUtilsImpl{Client: &vault_cliient_impl.VaultClientFactory{Logger: common.Logger()}}
+	}
+
 	var cisURL, iamURL string
 	if strings.Contains(cisCrn, "staging") {
 		if strings.Contains(cisCrn, serviceCISint) {
@@ -96,6 +92,7 @@ func NewCISDNSProvider(providerConfig map[string]string) *CISDNSConfig {
 		Domains:       make(map[string]*CISDomainData),
 		restClient:    cf,
 		smInstanceCrn: smInstanceCrn,
+		authUtils:     auth,
 	}
 }
 
@@ -293,31 +290,22 @@ func (c *CISDNSConfig) getChallengeRecordId(domain *CISDomainData) (string, erro
 
 func (c *CISDNSConfig) buildRequestHeader() (*map[string]string, error) {
 	headers := make(map[string]string)
-	if c.iamToken != "" {
-		if _, err := iam.GetClaims(c.iamToken); err != nil {
-			common.Logger().Info("Cached IAM token for CIS access is not valid.")
-			c.iamToken = ""
-		}
+	var iamToken, msg string
+	var err error
+	common.Logger().Info("Obtaining IAM token for CIS access.")
+	if c.APIKey != "" {
+		iamToken, _, err = c.authUtils.ObtainCachedToken(c.IAMEndpoint, c.APIKey, "", "", "")
+		msg = obtainTokenError
+	} else {
+		iamToken, _, err = c.authUtils.ObtainCachedCrnToken(c.IAMEndpoint, c.smInstanceCrn, "")
+		msg = obtainCRNTokenError
 	}
-	if c.iamToken == "" {
-		var iamToken, msg string
-		var err error
-		common.Logger().Info("Obtaining IAM token for CIS access.")
-		if c.APIKey != "" {
-			iamToken, _, err = iam.ObtainCachedToken(c.IAMEndpoint, c.APIKey, "", "", "")
-			msg = obtainTokenError
-		} else {
-			iamToken, _, err = iam.ObtainCrnToken(c.IAMEndpoint, c.smInstanceCrn)
-			msg = obtainCRNTokenError
-		}
-		if err != nil {
-			msg = msg + err.Error()
-			common.Logger().Error(msg)
-			return &headers, errors.New(msg)
-		}
-		c.iamToken = iamToken
+	if err != nil {
+		msg = msg + err.Error()
+		common.Logger().Error(msg)
+		return &headers, errors.New(msg)
 	}
-	headers["x-auth-user-token"] = c.iamToken
+	headers["x-auth-user-token"] = iamToken
 	headers[contentTypeHeader] = applicationJson
 	return &headers, nil
 }

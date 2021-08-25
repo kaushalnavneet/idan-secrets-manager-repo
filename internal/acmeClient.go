@@ -9,12 +9,15 @@ import (
 	"github.com/go-acme/lego/v4/lego"
 	"github.com/go-acme/lego/v4/providers/dns"
 	"github.com/go-acme/lego/v4/registration"
+	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
+	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
 	"net/http"
 	"time"
 )
 
 type Client struct {
 	LegoClient *lego.Client
+	RestClient rest_client.RestClientFactory
 }
 
 func NewACMEClient(CAUserConfig *CAUserConfig, keyType certcrypto.KeyType) (*Client, error) {
@@ -40,7 +43,15 @@ func NewACMEClientWithCustomHttpClient(CAUserConfig *CAUserConfig, keyType certc
 	if err != nil {
 		return nil, err
 	}
-	return &Client{LegoClient: legoClient}, nil
+	//create resty client for communication with dns provider
+	cf := &rest_client_impl.RestClientFactory{}
+	//init resty client with not default options
+	cf.InitClientWithOptions(rest_client.RestClientOptions{
+		Timeout:    10 * time.Second,
+		Retries:    2,
+		RetryDelay: 1 * time.Second,
+	})
+	return &Client{LegoClient: legoClient, RestClient: cf}, nil
 }
 
 func (client *Client) setDNSProvider(dnsProvider *ProviderConfig, domains []string, challengeOption dns01.ChallengeOption) error {
@@ -60,11 +71,11 @@ func (client *Client) setDNSProvider(dnsProvider *ProviderConfig, domains []stri
 		return err
 
 	} else if providerType == dnsConfigTypeCIS {
-		err := client.LegoClient.Challenge.SetDNS01Provider(NewCISDNSProvider(providerConfiguration), challengeOption)
+		err := client.LegoClient.Challenge.SetDNS01Provider(NewCISDNSProvider(providerConfiguration, client.RestClient, nil), challengeOption)
 		return err
 
 	} else if providerType == dnsConfigTypeSoftLayer {
-		err := client.LegoClient.Challenge.SetDNS01Provider(NewSoftlayerDNSProvider(providerConfiguration), challengeOption)
+		err := client.LegoClient.Challenge.SetDNS01Provider(NewSoftlayerDNSProvider(providerConfiguration, client.RestClient), challengeOption)
 		return err
 
 	} else {

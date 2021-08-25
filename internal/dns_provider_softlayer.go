@@ -8,7 +8,6 @@ import (
 	"github.com/go-acme/lego/v4/challenge/dns01"
 	"github.com/go-resty/resty/v2"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
-	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
@@ -84,20 +83,10 @@ type SLDNSRecord struct {
 	DomainId interface{} `json:"domainId"`
 }
 
-func NewSoftlayerDNSProvider(providerConfig map[string]string) *SoftlayerDNSConfig {
+func NewSoftlayerDNSProvider(providerConfig map[string]string, cf rest_client.RestClientFactory) *SoftlayerDNSConfig {
 	user := providerConfig[dnsConfigSLUser]
 	password := providerConfig[dnsConfigSLPassword]
 	auth := user + ":" + password
-
-	//create resty client
-	cf := &rest_client_impl.RestClientFactory{}
-	//init resty client with not default options
-	cf.InitClientWithOptions(rest_client.RestClientOptions{
-		Timeout:    10 * time.Second,
-		Retries:    2,
-		RetryDelay: 1 * time.Second,
-	})
-
 	return &SoftlayerDNSConfig{
 		User:              user,
 		Password:          password,
