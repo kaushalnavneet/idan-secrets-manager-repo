@@ -197,12 +197,7 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 }
 
 func (c *CISDNSConfig) setChallenge(domain *CISDomainData) (string, error) {
-	requestBody, err := createCISTxtRecordBody(domain.txtRecordName, domain.txtRecordValue, c.TTL)
-	if err != nil {
-		common.Logger().Error(logdna.Error07075 + " Couldn't build txt record body: " + err.Error())
-		return "", buildOrderError(logdna.Error07075, internalServerError)
-	}
-
+	requestBody := createCISTxtRecordBody(domain.txtRecordName, domain.txtRecordValue, c.TTL)
 	reqUrl := fmt.Sprintf(`%s/%s/zones/%s/dns_records`, c.CISEndpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId))
 	headers, err := c.buildRequestHeader()
 	if err != nil {
@@ -342,18 +337,15 @@ func (c *CISDNSConfig) validateConfig() error {
 	return commonErrors.GenerateCodedError(logdna.Error07032, http.StatusBadRequest, message)
 }
 
-func createCISTxtRecordBody(key, value string, ttl int) (*bytes.Buffer, error) {
+func createCISTxtRecordBody(key, value string, ttl int) *bytes.Buffer {
 	postBody := CISRequest{
 		Name:    key,
 		Content: value,
 		Type:    "TXT",
 		TTL:     ttl,
 	}
-	marshalledPostBody, err := json.Marshal(postBody)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(marshalledPostBody), nil
+	marshalledPostBody, _ := json.Marshal(postBody)
+	return bytes.NewBuffer(marshalledPostBody)
 }
 
 func validateCISConfigStructure(config map[string]string, smInstanceCrn string) error {
