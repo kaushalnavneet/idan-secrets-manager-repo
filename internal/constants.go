@@ -31,6 +31,7 @@ const (
 	acceptHeader        = "Accept"
 	contentTypeHeader   = "Content-Type"
 	authorizationHeader = "Authorization"
+	authUserTokenHeader = "x-auth-user-token"
 	applicationJson     = "application/json"
 )
 

@@ -88,7 +88,7 @@ func NewCISDNSProvider(providerConfig map[string]string, cf rest_client.RestClie
 		CISEndpoint:   cisURL,
 		IAMEndpoint:   iamURL,
 		APIKey:        apikey,
-		TTL:           120, //for TXT records
+		TTL:           txtRecordTtl, //for TXT records
 		Domains:       make(map[string]*CISDomainData),
 		restClient:    cf,
 		smInstanceCrn: smInstanceCrn,
@@ -301,11 +301,11 @@ func (c *CISDNSConfig) buildRequestHeader() (*map[string]string, error) {
 		msg = obtainCRNTokenError
 	}
 	if err != nil {
-		msg = msg + err.Error()
+		msg = msg + ": " + err.Error()
 		common.Logger().Error(msg)
 		return &headers, errors.New(msg)
 	}
-	headers["x-auth-user-token"] = iamToken
+	headers[authUserTokenHeader] = iamToken
 	headers[contentTypeHeader] = applicationJson
 	return &headers, nil
 }
