@@ -56,11 +56,11 @@ const (
 	caConfigTypeLEProd  = "letsencrypt"
 	caConfigTypeLEStage = "letsencrypt-stage"
 
-	caConfigPrivateKey   = "PRIVATE_KEY"
-	caConfigRegistration = "REGISTRATION"
-	caConfigEmail        = "EMAIL"
-	caConfigDirectoryUrl = "DIRECTORY_URL"
-	caConfigCARootCert   = "CA_ROOT_CERT"
+	caConfigPrivateKey   = "private_key"
+	caConfigRegistration = "registration"
+	caConfigEmail        = "email"
+	caConfigDirectoryUrl = "directory_url"
+	caConfigCARootCert   = "ca_root_cert"
 
 	UrlLetsEncryptProd  = "https://acme-v02.api.letsencrypt.org/directory"
 	UrlLetsEncryptStage = "https://acme-staging-v02.api.letsencrypt.org/directory"
@@ -72,9 +72,9 @@ const (
 	ConfigDNSPath = "config/" + DNS
 
 	dnsConfigTypeCIS   = "cis"
-	dnsConfigCisCrn    = "CIS_CRN"
-	dnsConfigCisApikey = "CIS_APIKEY"
-	dnsConfigSMCrn     = "SM_CRN"
+	dnsConfigCisCrn    = "cis_crn"
+	dnsConfigCisApikey = "cis_apikey"
+	dnsConfigSMCrn     = "sm_crn"
 	serviceCISint      = "internet-svcs-ci"
 	serviceCIS         = "internet-svcs"
 	urlCISIntegration  = "https://api.int.cis.cloud.ibm.com/v1"
@@ -83,9 +83,9 @@ const (
 	urlIamStage        = "https://iam.test.cloud.ibm.com"
 	urlIamProd         = "https://iam.cloud.ibm.com"
 
-	dnsConfigTypeSoftLayer = "softlayer"
-	dnsConfigSLUser        = "SOFTLAYER_USER"
-	dnsConfigSLPassword    = "SOFTLAYER_PASSWORD"
+	dnsConfigTypeSoftLayer = "classic_infrastructure"
+	dnsConfigSLUser        = "classic_infrastructure_username"
+	dnsConfigSLPassword    = "classic_infrastructure_password"
 	urlSLApi               = "https://api.softlayer.com/rest/v3"
 
 	PropagationTimeout = 15 * time.Minute
