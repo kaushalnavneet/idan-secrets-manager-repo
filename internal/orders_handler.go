@@ -322,6 +322,11 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	}
 
 	block, _ := pem.Decode([]byte(caConfig.Config[caConfigPrivateKey]))
+	if block == nil {
+		message := fmt.Sprintf(invalidKey, "valid PEM data is not found")
+		common.ErrorLogForCustomer(message, logdna.Error07064, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07064, http.StatusBadRequest, message)
+	}
 	caPrivKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
 		message := fmt.Sprintf(invalidKey, err.Error())

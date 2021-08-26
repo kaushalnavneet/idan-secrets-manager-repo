@@ -29,7 +29,7 @@ func prepareDNSConfigToStore(p *ProviderConfig, smInstanceCrn string) error {
 		}
 		return NewCISDNSProvider(p.Config, cf, nil).validateConfig()
 	case dnsConfigTypeSoftLayer:
-		if err := validateSoftLayerStructure(p.Config); err != nil {
+		if err := validateSoftLayerConfigStructure(p.Config); err != nil {
 			return err
 		}
 		return NewSoftlayerDNSProvider(p.Config, cf).validateConfig()
