@@ -171,7 +171,7 @@ func Test_CIS_ValidateConfig(t *testing.T) {
 	t.Run("Happy flow ", func(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
-				RequestKey{Method: http.MethodGet, Path: urlCISProd}: {StatusCode: 200, JsonBody: `{}`},
+				RequestKey{Method: http.MethodGet, Path: urlCISProd}: {StatusCode: http.StatusOK, JsonBody: `{}`},
 			},
 			CheckHeaders: func(method string, path string, headers map[string]string) {
 				assert.Equal(t, fakeIamToken, headers[authUserTokenHeader])
@@ -184,7 +184,7 @@ func Test_CIS_ValidateConfig(t *testing.T) {
 	t.Run("Authorization error", func(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
-				RequestKey{Method: http.MethodGet, Path: urlCISProd}: {StatusCode: 403, JsonBody: `{}`},
+				RequestKey{Method: http.MethodGet, Path: urlCISProd}: {StatusCode: http.StatusForbidden, JsonBody: `{}`},
 			},
 			CheckHeaders: func(method string, path string, headers map[string]string) {
 				assert.Equal(t, fakeIamToken, headers[authUserTokenHeader])
@@ -200,7 +200,7 @@ func Test_CIS_ValidateConfig(t *testing.T) {
 	t.Run("CIS server error", func(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
-				RequestKey{Method: http.MethodGet, Path: urlCISProd}: {StatusCode: 503, JsonBody: `{}`},
+				RequestKey{Method: http.MethodGet, Path: urlCISProd}: {StatusCode: http.StatusServiceUnavailable, JsonBody: `{}`},
 			},
 			CheckHeaders: func(method string, path string, headers map[string]string) {
 				assert.Equal(t, fakeIamToken, headers[authUserTokenHeader])
@@ -262,9 +262,9 @@ func Test_CIS_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: 200, JsonBody: string(buildCISListResponse(domainId))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: 200, JsonBody: string(buildCISResponse())},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusOK, JsonBody: string(buildCISResponse())},
 			},
 			CheckHeaders: func(method string, path string, headers map[string]string) {
 				assert.Equal(t, fakeIamToken, headers[authUserTokenHeader])
@@ -286,11 +286,11 @@ func Test_CIS_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: 200, JsonBody: string(buildCISListResponse(domainId))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: 400, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
 				//get existing txt record
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: 200, JsonBody: string(buildCISListResponse(txtRecordId))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(txtRecordId))},
 			},
 		}
 		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)
@@ -303,7 +303,7 @@ func Test_CIS_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCISProd}: {StatusCode: 200, JsonBody: string(buildCISListResponse(""))},
+				RequestKey{Method: http.MethodGet, Path: urlCISProd}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(""))},
 			},
 		}
 		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)
@@ -316,7 +316,7 @@ func Test_CIS_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCISProd}: {StatusCode: 403, JsonBody: "{}"},
+				RequestKey{Method: http.MethodGet, Path: urlCISProd}: {StatusCode: http.StatusForbidden, JsonBody: "{}"},
 			},
 		}
 		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)
@@ -329,9 +329,9 @@ func Test_CIS_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: 200, JsonBody: string(buildCISListResponse(domainId))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: 403, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusForbidden, JsonBody: "{}"},
 			},
 		}
 		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)
@@ -344,11 +344,11 @@ func Test_CIS_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: 200, JsonBody: string(buildCISListResponse(domainId))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: 400, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
 				//get existing txt record
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: 403, JsonBody: "{}"},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: http.StatusForbidden, JsonBody: "{}"},
 			},
 		}
 		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)
@@ -362,7 +362,7 @@ func Test_CIS_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: 500, JsonBody: "{}"},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusServiceUnavailable, JsonBody: "{}"},
 			},
 		}
 		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)
@@ -375,9 +375,9 @@ func Test_CIS_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: 200, JsonBody: string(buildCISListResponse(domainId))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: 503, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusServiceUnavailable, JsonBody: "{}"},
 			},
 		}
 		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)
@@ -390,11 +390,11 @@ func Test_CIS_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: 200, JsonBody: string(buildCISListResponse(domainId))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: 400, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
 				//get existing txt record
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: 503, JsonBody: "{}"},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: http.StatusServiceUnavailable, JsonBody: "{}"},
 			},
 		}
 		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)
@@ -421,7 +421,7 @@ func Test_CIS_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: 200, JsonBody: string(buildCISListResponse(domainId))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
 				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {Error: clientError},
 			},
@@ -436,9 +436,9 @@ func Test_CIS_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: 200, JsonBody: string(buildCISListResponse(domainId))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: 400, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
 				//get existing txt record
 				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {Error: clientError},
 			},
@@ -453,11 +453,11 @@ func Test_CIS_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: 200, JsonBody: string(buildCISListResponse(domainId))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: 400, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
 				//get existing txt record
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: 200, JsonBody: string(buildCISListResponse(""))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(""))},
 			},
 		}
 		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)
@@ -487,7 +487,7 @@ func Test_CIS_Cleanup(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodDelete, Path: urlCisToRemoveTxtRecord}: {StatusCode: 200, JsonBody: `{"Success": true }`},
+				RequestKey{Method: http.MethodDelete, Path: urlCisToRemoveTxtRecord}: {StatusCode: http.StatusOK, JsonBody: `{"Success": true }`},
 			},
 			CheckHeaders: func(method string, path string, headers map[string]string) {
 				assert.Equal(t, fakeIamToken, headers[authUserTokenHeader])
@@ -504,11 +504,11 @@ func Test_CIS_Cleanup(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodDelete, Path: urlCisToRemoveTxtRecord}: {StatusCode: 200, JsonBody: `{"Success": true }`},
+				RequestKey{Method: http.MethodDelete, Path: urlCisToRemoveTxtRecord}: {StatusCode: http.StatusOK, JsonBody: `{"Success": true }`},
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: 200, JsonBody: string(buildCISListResponse(domainId))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//get existing txt record
-				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: 200, JsonBody: string(buildCISListResponse(txtRecordId))},
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(txtRecordId))},
 			},
 			CheckHeaders: func(method string, path string, headers map[string]string) {
 				assert.Equal(t, fakeIamToken, headers[authUserTokenHeader])
@@ -524,7 +524,7 @@ func Test_CIS_Cleanup(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodDelete, Path: urlCisToRemoveTxtRecord}: {StatusCode: 403, JsonBody: `{}`},
+				RequestKey{Method: http.MethodDelete, Path: urlCisToRemoveTxtRecord}: {StatusCode: http.StatusForbidden, JsonBody: `{}`},
 			},
 		}
 		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)
@@ -539,7 +539,7 @@ func Test_CIS_Cleanup(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodDelete, Path: urlCisToRemoveTxtRecord}: {StatusCode: 503, JsonBody: `{}`},
+				RequestKey{Method: http.MethodDelete, Path: urlCisToRemoveTxtRecord}: {StatusCode: http.StatusServiceUnavailable, JsonBody: `{}`},
 			},
 		}
 		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)
