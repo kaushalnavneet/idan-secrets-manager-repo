@@ -62,7 +62,7 @@ type CISRequest struct {
 	TTL     int    `json:"ttl"`
 }
 
-func NewCISDNSProvider(providerConfig map[string]string, cf rest_client.RestClientFactory, auth common.AuthUtils) *CISDNSConfig {
+func NewCISDNSProvider(providerConfig map[string]string, rc rest_client.RestClientFactory, auth common.AuthUtils) *CISDNSConfig {
 	cisCrn := providerConfig[dnsConfigCisCrn]
 	apikey := providerConfig[dnsConfigCisApikey]
 	smInstanceCrn := providerConfig[dnsConfigSMCrn]
@@ -90,7 +90,7 @@ func NewCISDNSProvider(providerConfig map[string]string, cf rest_client.RestClie
 		APIKey:        apikey,
 		TTL:           txtRecordTtl, //for TXT records
 		Domains:       make(map[string]*CISDomainData),
-		restClient:    cf,
+		restClient:    rc,
 		smInstanceCrn: smInstanceCrn,
 		authUtils:     auth,
 	}
@@ -354,7 +354,7 @@ func validateCISConfigStructure(config map[string]string, smInstanceCrn string) 
 		common.ErrorLogForCustomer(message, logdna.Error07025, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07025, http.StatusBadRequest, message)
 	} else if validCrn, err := crn.ToCRN(crnValue); err != nil {
-		common.ErrorLogForCustomer(invalidCISInstanceCrn, logdna.Error07026, logdna.BadRequestErrorMessage, true)
+		common.ErrorLogForCustomer(invalidCISInstanceCrn+": "+err.Error(), logdna.Error07026, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07026, http.StatusBadRequest, invalidCISInstanceCrn)
 	} else if validCrn.ServiceName != serviceCISint && validCrn.ServiceName != serviceCIS {
 		common.ErrorLogForCustomer(invalidCISInstanceCrn, logdna.Error07027, logdna.BadRequestErrorMessage, true)
