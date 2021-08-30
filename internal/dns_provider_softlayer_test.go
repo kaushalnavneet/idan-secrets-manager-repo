@@ -177,7 +177,6 @@ func Test_SL_Present(t *testing.T) {
 	providerConfig := map[string]string{dnsConfigSLUser: slUser, dnsConfigSLPassword: slPassword}
 
 	t.Run("Happy flow ", func(t *testing.T) {
-		t.Skipf("doesn't work because of the impossible mock of rest-client")
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
@@ -202,7 +201,6 @@ func Test_SL_Present(t *testing.T) {
 	})
 
 	t.Run("Domain not found ", func(t *testing.T) {
-		t.Skipf("doesn't work because of the impossible mock of rest-client")
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
@@ -482,7 +480,7 @@ func buildSLListResponse(foundId int, foundName string, resultsCount int) []byte
 }
 
 func buildSLResponse() []byte {
-	cisResp := SetDnsRecordResponse{
+	cisResp := SLDnsRecordResponse{
 		Id: txtRecordIdInt,
 	}
 	respStr, _ := json.Marshal(cisResp)
