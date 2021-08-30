@@ -5,6 +5,7 @@ import (
 	"github.com/go-acme/lego/v4/providers/dns"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
+	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"time"
 )
 
@@ -13,7 +14,7 @@ func GetDNSTypesAllowedValues() []interface{} {
 }
 
 //this function is used for dns config only
-func prepareDNSConfigToStore(p *ProviderConfig, smInstanceCrn string) error {
+func prepareDNSConfigToStore(p *ProviderConfig, smInstanceCrn string, auth common.AuthUtils) error {
 	//create resty client
 	cf := &rest_client_impl.RestClientFactory{}
 	//init resty client with not default options
@@ -27,7 +28,7 @@ func prepareDNSConfigToStore(p *ProviderConfig, smInstanceCrn string) error {
 		if err := validateCISConfigStructure(p.Config, smInstanceCrn); err != nil {
 			return err
 		}
-		return NewCISDNSProvider(p.Config, cf, nil).validateConfig()
+		return NewCISDNSProvider(p.Config, cf, auth).validateConfig()
 	case dnsConfigTypeSoftLayer:
 		if err := validateSoftLayerConfigStructure(p.Config); err != nil {
 			return err

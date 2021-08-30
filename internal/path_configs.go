@@ -196,7 +196,7 @@ func (ob *OrdersBackend) pathConfigCreate(ctx context.Context, req *logical.Requ
 	secretsConfigLock.Lock()
 	defer secretsConfigLock.Unlock()
 	// Get the storage entry
-	rootConfig, err := getRootConfig(ctx, req)
+	rootConfig, err := getRootConfig(ctx, req.Storage)
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf(failedToGetConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07001, logdna.InternalErrorMessage, false)
@@ -230,7 +230,7 @@ func (ob *OrdersBackend) pathConfigCreate(ctx context.Context, req *logical.Requ
 	allConfigs = append(allConfigs, configToStore)
 	rootConfig.setConfigsByProviderType(providerType, allConfigs)
 	//save root config
-	err = rootConfig.save(ctx, req)
+	err = rootConfig.save(ctx, req.Storage)
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf(failedToSaveConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07004, logdna.InternalErrorMessage, false)
@@ -268,7 +268,7 @@ func (ob *OrdersBackend) pathConfigUpdate(ctx context.Context, req *logical.Requ
 	secretsConfigLock.Lock()
 	defer secretsConfigLock.Unlock()
 	// Get the storage entry
-	rootConfig, err := getRootConfig(ctx, req)
+	rootConfig, err := getRootConfig(ctx, req.Storage)
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf(failedToGetConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07005, logdna.InternalErrorMessage, false)
@@ -303,7 +303,7 @@ func (ob *OrdersBackend) pathConfigUpdate(ctx context.Context, req *logical.Requ
 	//update array of configs
 	rootConfig.setConfigsByProviderType(providerType, allConfigs)
 	//save root config
-	err = rootConfig.save(ctx, req)
+	err = rootConfig.save(ctx, req.Storage)
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf(failedToSaveConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07007, logdna.InternalErrorMessage, false)
@@ -342,7 +342,7 @@ func (ob *OrdersBackend) pathConfigDelete(ctx context.Context, req *logical.Requ
 	secretsConfigLock.Lock()
 	defer secretsConfigLock.Unlock()
 	// Get the storage entry
-	rootConfig, err := getRootConfig(ctx, req)
+	rootConfig, err := getRootConfig(ctx, req.Storage)
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf(failedToGetConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07008, logdna.InternalErrorMessage, false)
@@ -368,7 +368,7 @@ func (ob *OrdersBackend) pathConfigDelete(ctx context.Context, req *logical.Requ
 	//update array of configs in root config
 	rootConfig.setConfigsByProviderType(providerType, allConfigs)
 	//save root config
-	err = rootConfig.save(ctx, req)
+	err = rootConfig.save(ctx, req.Storage)
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf(failedToSaveConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07010, logdna.InternalErrorMessage, false)
@@ -420,7 +420,7 @@ func (ob *OrdersBackend) pathConfigList(ctx context.Context, req *logical.Reques
 	secretsConfigLock.RLock()
 	defer secretsConfigLock.RUnlock()
 	// Get the storage entry
-	rootConfig, err := getRootConfig(ctx, req)
+	rootConfig, err := getRootConfig(ctx, req.Storage)
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf(failedToGetConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07013, logdna.InternalErrorMessage, false)
@@ -453,7 +453,7 @@ func (ob *OrdersBackend) pathRootConfigRead(ctx context.Context, req *logical.Re
 	secretsConfigLock.RLock()
 	defer secretsConfigLock.RUnlock()
 	// Get the storage entry
-	rootConfig, err := getRootConfig(ctx, req)
+	rootConfig, err := getRootConfig(ctx, req.Storage)
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf(failedToGetConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07014, logdna.InternalErrorMessage, false)
@@ -484,23 +484,18 @@ func (ob *OrdersBackend) validateConfigName(d *framework.FieldData) (string, err
 }
 
 func (ob *OrdersBackend) createConfigToStore(name string, providerType string, d *framework.FieldData) (*ProviderConfig, error) {
-	configType, err := ob.validateStringField(d, FieldType, "min=2,max=128", "length should be 2 to 128 chars")
-	if err != nil {
-		errorMessage := err.Error()
-		common.ErrorLogForCustomer(errorMessage, logdna.Error07016, logdna.BadRequestErrorMessage, true)
-		return nil, commonErrors.GenerateCodedError(logdna.Error07016, http.StatusBadRequest, errorMessage)
-	}
+	configType := d.Get(FieldType).(string) //was already validate with enum
 	config, ok := d.Get(FieldConfig).(map[string]string)
 	if !ok || config == nil {
 		common.ErrorLogForCustomer(configWrongStructure, logdna.Error07017, logdna.BadRequestErrorMessage, true)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07017, http.StatusBadRequest, configWrongStructure)
 	}
 	configToStore := NewProviderConfig(name, configType, config)
-
+	var err error
 	if providerType == providerTypeCA {
 		err = prepareCAConfigToStore(configToStore)
 	} else {
-		err = prepareDNSConfigToStore(configToStore, ob.ordersHandler.pluginConfig.Service.Instance.CRN)
+		err = prepareDNSConfigToStore(configToStore, ob.ordersHandler.pluginConfig.Service.Instance.CRN, ob.secretBackend.GetValidator().GetAuth())
 	}
 	if err != nil {
 		return nil, err
@@ -530,7 +525,7 @@ func getConfigByName(name string, providerType string, ctx context.Context, req 
 	secretsConfigLock.RLock()
 	defer secretsConfigLock.RUnlock()
 	// Get the storage entry
-	rootConfig, err := getRootConfig(ctx, req)
+	rootConfig, err := getRootConfig(ctx, req.Storage)
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf(failedToGetConfigError, err.Error()))
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07011, logdna.InternalErrorMessage, false)
