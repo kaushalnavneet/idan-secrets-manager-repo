@@ -86,7 +86,7 @@ func NewSoftlayerDNSProvider(providerConfig map[string]string, rc rest_client.Re
 
 // Present Implements dns provider interface
 func (c *SoftlayerDNSConfig) Present(domain, token, keyAuth string) error {
-	common.Logger().Info("SoftLayer Present: " + domain + " Trying to set challenge")
+	common.Logger().Info(dnsProviderSoftLayer + " Present: " + domain + " Trying to set challenge")
 	currentDomain, err := c.getDomainData(domain, domain, keyAuth)
 	if err != nil {
 		return err
@@ -97,7 +97,7 @@ func (c *SoftlayerDNSConfig) Present(domain, token, keyAuth string) error {
 	}
 	currentDomain.txtRecordId = recordId
 	c.Domains[domain] = currentDomain
-	common.Logger().Info("SoftLayer Present: " + domain + " Challenge was set successfully")
+	common.Logger().Info(dnsProviderSoftLayer + " Present: " + domain + " Challenge was set successfully")
 	return nil
 }
 
@@ -105,7 +105,7 @@ func (c *SoftlayerDNSConfig) Present(domain, token, keyAuth string) error {
 func (c *SoftlayerDNSConfig) CleanUp(domain, token, keyAuth string) error {
 	currentDomain, ok := c.Domains[domain]
 	if !ok {
-		common.Logger().Info("SoftLayer Cleanup: " + domain + " The domain doesn't exist in the list of current domains, retrieving its data in order to remove txt record")
+		common.Logger().Info(dnsProviderSoftLayer + " Cleanup: " + domain + " The domain doesn't exist in the list of current domains, retrieving its data in order to remove txt record")
 		var err error
 		currentDomain, err = c.getDomainData(domain, domain, keyAuth)
 		if err != nil {
@@ -117,13 +117,13 @@ func (c *SoftlayerDNSConfig) CleanUp(domain, token, keyAuth string) error {
 		}
 		currentDomain.txtRecordId = recordId
 	}
-	common.Logger().Info("SoftLayer Cleanup: " + domain + " Trying to remove the challenge from domain")
+	common.Logger().Info(dnsProviderSoftLayer + " Cleanup: " + domain + " Trying to remove the challenge from domain")
 	err := c.removeChallenge(currentDomain)
 	if err != nil {
 		return err
 	}
 	delete(c.Domains, domain)
-	common.Logger().Info("SoftLayer Cleanup: " + domain + " The domain was successfully cleaned up")
+	common.Logger().Info(dnsProviderSoftLayer + " Cleanup: " + domain + " The domain was successfully cleaned up")
 	return nil
 }
 
@@ -272,12 +272,12 @@ func (c *SoftlayerDNSConfig) validateConfig() error {
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, domainsResponse)
 	if err != nil {
 		message := fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer)
-		common.ErrorLogForCustomer("Couldn't access SoftLayer: "+err.Error(), logdna.Error07036, logdna.BadRequestErrorMessage, true)
+		common.ErrorLogForCustomer("Couldn't access "+dnsProviderSoftLayerAccount+": "+err.Error(), logdna.Error07036, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07036, http.StatusBadRequest, message)
 	}
 	//success
 	if resp.StatusCode() == http.StatusOK {
-		common.Logger().Info("Validation succeeded. User " + c.User + " has an access to Softalyer account")
+		common.Logger().Info("Validation succeeded. User " + c.User + " has an access to " + dnsProviderSoftLayerAccount)
 		return nil
 	}
 	if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
@@ -286,7 +286,7 @@ func (c *SoftlayerDNSConfig) validateConfig() error {
 		return commonErrors.GenerateCodedError(logdna.Error07037, http.StatusBadRequest, message)
 	}
 	message := fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer)
-	common.ErrorLogForCustomer("Couldn't access SoftLayer: "+domainsResponse.getErrorMessage(), logdna.Error07038, logdna.BadRequestErrorMessage, true)
+	common.ErrorLogForCustomer("Couldn't access "+dnsProviderSoftLayerAccount+": "+domainsResponse.getErrorMessage(), logdna.Error07038, logdna.BadRequestErrorMessage, true)
 	return commonErrors.GenerateCodedError(logdna.Error07038, http.StatusBadRequest, message)
 }
 
@@ -362,8 +362,8 @@ func (r *SLCombineResponse) UnmarshalJSON(data []byte) error {
 
 func (r *SLCombineResponse) getErrorMessage() string {
 	if r.Error != nil {
-		return fmt.Sprintf("Softlayer error code: %s, message: %s ", r.Error.Code, r.Error.Error)
+		return fmt.Sprintf(dnsProviderSoftLayer+" error code: %s, message: %s ", r.Error.Code, r.Error.Error)
 	} else {
-		return fmt.Sprintf("Softlayer response: %s", string(r.Other))
+		return fmt.Sprintf(dnsProviderSoftLayer+" response: %s", string(r.Other))
 	}
 }
