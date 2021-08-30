@@ -123,7 +123,7 @@ func (c *SoftlayerDNSConfig) CleanUp(domain, token, keyAuth string) error {
 		return err
 	}
 	delete(c.Domains, domain)
-	common.Logger().Info("SoftLayer Cleanup:  " + domain + " The domain was successfully cleaned up")
+	common.Logger().Info("SoftLayer Cleanup: " + domain + " The domain was successfully cleaned up")
 	return nil
 }
 
@@ -233,8 +233,11 @@ func (c *SoftlayerDNSConfig) getChallengeRecordId(domain *SLDomainData) (int, er
 		common.Logger().Error(logdna.Error07054 + " Couldn't get txt record for domain " + domain.name + ": " + err.Error())
 		return -1, buildOrderError(logdna.Error07054, fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer))
 	}
-	if resp.StatusCode() == http.StatusOK && response.DnsRecords != nil {
-		if len(response.DnsRecords) > 0 {
+	if resp.StatusCode() == http.StatusOK {
+		//if an array is empty our unmarshal method can't distinguish between domains ad dns records
+		//so here we can get empty response.Domains instead of response.DnsRecords
+		//in this case we know that nothing was found
+		if response.DnsRecords != nil && len(response.DnsRecords) > 0 {
 			for _, d := range response.DnsRecords {
 				if d.Host == domain.txtRecordName && d.Data == domain.txtRecordValue {
 					return d.Id, nil
@@ -332,7 +335,7 @@ type SLCombineResponse struct {
 	DnsRecords []SLDnsRecordResponse
 	DnsRecord  *SLDnsRecordResponse
 	Error      *SLErrorResponse
-	Other      interface{}
+	Other      []byte
 }
 
 func (r *SLCombineResponse) UnmarshalJSON(data []byte) error {
@@ -340,17 +343,19 @@ func (r *SLCombineResponse) UnmarshalJSON(data []byte) error {
 	var dnsRec SLDnsRecordResponse
 	var dnsRecs []SLDnsRecordResponse
 	var errResp SLErrorResponse
-	var other interface{}
-	if err := json.Unmarshal(data, &domains); err == nil {
+	//in order to distinguish between array of domains and array of dns records
+	//need to check that an item has a name (it's mandatory in domain but dns record doesn't have it)
+	//if the array is empty we can't check it and empty domains always will be returned
+	if err := json.Unmarshal(data, &domains); err == nil && (len(domains) == 0 || domains[0].Name != "") {
 		r.Domains = domains
-	} else if err = json.Unmarshal(data, &dnsRecs); err == nil {
+	} else if err = json.Unmarshal(data, &dnsRecs); err == nil && (len(dnsRecs) == 0 || dnsRecs[0].Host != "") {
 		r.DnsRecords = dnsRecs
-	} else if err = json.Unmarshal(data, &dnsRec); err == nil {
+	} else if err = json.Unmarshal(data, &dnsRec); err == nil && dnsRec.Host != "" {
 		r.DnsRecord = &dnsRec
-	} else if err = json.Unmarshal(data, &errResp); err == nil {
+	} else if err = json.Unmarshal(data, &errResp); err == nil && errResp.Error != "" {
 		r.Error = &errResp
-	} else if err = json.Unmarshal(data, &other); err == nil {
-		r.Other = &other
+	} else {
+		r.Other = data
 	}
 	return nil
 }
@@ -359,6 +364,6 @@ func (r *SLCombineResponse) getErrorMessage() string {
 	if r.Error != nil {
 		return fmt.Sprintf("Softlayer error code: %s, message: %s ", r.Error.Code, r.Error.Error)
 	} else {
-		return fmt.Sprintf("Softlayer response: %+v", r.Other)
+		return fmt.Sprintf("Softlayer response: %s", string(r.Other))
 	}
 }

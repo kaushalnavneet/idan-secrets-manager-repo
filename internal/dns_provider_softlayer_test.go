@@ -11,6 +11,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"gotest.tools/v3/assert"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strconv"
 	"testing"
@@ -29,8 +30,8 @@ var (
 	urlSlToGetZoneId       = fmt.Sprintf("%s/SoftLayer_Dns_Domain/getByDomainName/%s", urlSLApi, domainName)
 	urlSlToSetChallenge    = fmt.Sprintf(`%s/SoftLayer_Dns_Domain_ResourceRecord`, urlSLApi)
 	urlSlToRemoveTxtRecord = fmt.Sprintf(`%s/SoftLayer_Dns_Domain_ResourceRecord/%d`, urlSLApi, txtRecordIdInt)
-	urlSlToGetTxtRecord    = fmt.Sprintf(`%s/SoftLayer_Dns_Domain/%d/getResourceRecords?objectFilter={"resourceRecords":{"host":{"operation": "%s"},"data":{"operation": "%s"}}}`,
-		urlSLApi, domainIdInt, txtRecName, txtRecValue)
+	objectFilter           = fmt.Sprintf(`{"resourceRecords":{"host":{"operation": "%s"},"data":{"operation": "%s"}}}`, txtRecName, txtRecValue)
+	urlSlToGetTxtRecord    = fmt.Sprintf(`%s/SoftLayer_Dns_Domain/%d/getResourceRecords?objectFilter=%s`, urlSLApi, domainIdInt, url.QueryEscape(objectFilter))
 
 	expectedDomainData = SLDomainData{
 		name:           domainName,
@@ -180,7 +181,7 @@ func Test_SL_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLListResponse(domainIdInt, domainName, 3))},
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLDomainsResponse(domainIdInt, domainName, 3))},
 				//set challenge
 				RequestKey{Method: http.MethodPost, Path: urlSlToSetChallenge}: {StatusCode: http.StatusCreated, JsonBody: string(buildSLResponse())},
 			},
@@ -204,7 +205,7 @@ func Test_SL_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlSLApi}: {StatusCode: http.StatusOK, JsonBody: string(buildSLListResponse(-1, "", 4))},
+				RequestKey{Method: http.MethodGet, Path: urlSLApi}: {StatusCode: http.StatusOK, JsonBody: string(buildSLDomainsResponse(-1, "", 4))},
 			},
 		}
 		slProvider := NewSoftlayerDNSProvider(providerConfig, rc)
@@ -227,11 +228,10 @@ func Test_SL_Present(t *testing.T) {
 	})
 
 	t.Run("Authorization error when set challenge ", func(t *testing.T) {
-		t.Skipf("doesn't work because of the impossible mock of rest-client")
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLListResponse(domainIdInt, domainName, 3))},
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLDomainsResponse(domainIdInt, domainName, 3))},
 				//set challenge
 				RequestKey{Method: http.MethodPost, Path: urlSlToSetChallenge}: {StatusCode: http.StatusForbidden, JsonBody: "{}"},
 			},
@@ -246,7 +246,7 @@ func Test_SL_Present(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusServiceUnavailable, JsonBody: "{}"},
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusServiceUnavailable, JsonBody: `{"error":"Some error message", "code":"Some Code"}`},
 			},
 		}
 		slProvider := NewSoftlayerDNSProvider(providerConfig, rc)
@@ -256,13 +256,12 @@ func Test_SL_Present(t *testing.T) {
 	})
 
 	t.Run("SL server error when set challenge ", func(t *testing.T) {
-		t.Skipf("doesn't work because of the impossible mock of rest-client")
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLListResponse(domainIdInt, domainName, 3))},
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLDomainsResponse(domainIdInt, domainName, 3))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlSlToSetChallenge}: {StatusCode: http.StatusServiceUnavailable, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlSlToSetChallenge}: {StatusCode: http.StatusServiceUnavailable, JsonBody: `{"someOtherStructure":"Some error message"}`},
 			},
 		}
 		slProvider := NewSoftlayerDNSProvider(providerConfig, rc)
@@ -285,11 +284,10 @@ func Test_SL_Present(t *testing.T) {
 	})
 
 	t.Run("SL client error when set challenge ", func(t *testing.T) {
-		t.Skipf("doesn't work because of the impossible mock of rest-client")
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLListResponse(domainIdInt, domainName, 3))},
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLDomainsResponse(domainIdInt, domainName, 3))},
 				//set challenge
 				RequestKey{Method: http.MethodPost, Path: urlSlToSetChallenge}: {Error: clientError},
 			},
@@ -325,15 +323,14 @@ func Test_SL_Cleanup(t *testing.T) {
 	})
 
 	t.Run("Happy flow - domain is not in the list", func(t *testing.T) {
-		t.Skipf("doesn't work because of the impossible mock of rest-client")
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodDelete, Path: urlSlToRemoveTxtRecord}: {StatusCode: http.StatusOK, JsonBody: `{"Success": true }`},
+				RequestKey{Method: http.MethodDelete, Path: urlSlToRemoveTxtRecord}: {StatusCode: http.StatusOK, JsonBody: `true`},
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLListResponse(domainIdInt, domainName, 3))},
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLDomainsResponse(domainIdInt, domainName, 3))},
 				//get existing txt record
-				//RequestKey{Method: http.MethodGet, Path: urlSlToGetTxtRecord}: {StatusCode: http.StatusOK, JsonBody: string(buildSLListResponse(txtRecordIdInt))},
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetTxtRecord}: {StatusCode: http.StatusOK, JsonBody: string(buildSLDnsRecordsResponse(txtRecordIdInt, txtRecName, txtRecValue, 2))},
 			},
 			CheckHeaders: func(method string, path string, headers map[string]string) {
 				assert.Equal(t, "Basic "+slAuth, headers[authorizationHeader])
@@ -346,20 +343,17 @@ func Test_SL_Cleanup(t *testing.T) {
 	})
 
 	t.Run("Authorization error when get existing challenge ", func(t *testing.T) {
-		t.Skipf("doesn't work because of the impossible mock of rest-client")
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLListResponse(domainIdInt, domainName, 3))},
-				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlSlToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLDomainsResponse(domainIdInt, domainName, 3))},
 				//get existing txt record
 				RequestKey{Method: http.MethodGet, Path: urlSlToGetTxtRecord}: {StatusCode: http.StatusForbidden, JsonBody: "{}"},
 			},
 		}
 		slProvider := NewSoftlayerDNSProvider(providerConfig, rc)
-		err := slProvider.Present(domainName, tokenNotInUse, keyAuth)
-		expectedMessage := fmt.Sprintf(errorPattern, logdna.Error07089, fmt.Sprintf(authorizationError, "to get txt record from", dnsProviderSoftLayerAccount))
+		err := slProvider.CleanUp(domainName, tokenNotInUse, keyAuth)
+		expectedMessage := fmt.Sprintf(errorPattern, logdna.Error07056, fmt.Sprintf(authorizationError, "to get txt record from", dnsProviderSoftLayerAccount))
 		assert.Equal(t, expectedMessage, err.Error())
 
 	})
@@ -383,7 +377,7 @@ func Test_SL_Cleanup(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodDelete, Path: urlSlToRemoveTxtRecord}: {StatusCode: http.StatusServiceUnavailable, JsonBody: `{}`},
+				RequestKey{Method: http.MethodDelete, Path: urlSlToRemoveTxtRecord}: {StatusCode: http.StatusServiceUnavailable, JsonBody: `false`},
 			},
 		}
 		slProvider := NewSoftlayerDNSProvider(providerConfig, rc)
@@ -393,21 +387,34 @@ func Test_SL_Cleanup(t *testing.T) {
 		assert.Equal(t, expectedMessage, err.Error())
 	})
 
-	t.Run("SL server error when get existing challenge ", func(t *testing.T) {
-		t.Skipf("doesn't work because of the impossible mock of rest-client")
+	t.Run("SL server error when get zone by domain  ", func(t *testing.T) {
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLListResponse(domainIdInt, domainName, 3))},
-				//remove challenge
-				RequestKey{Method: http.MethodDelete, Path: urlSlToRemoveTxtRecord}: {StatusCode: http.StatusServiceUnavailable, JsonBody: `{}`},
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusInternalServerError, JsonBody: `{"error":"Internal server error","code":"123456"}`},
 				//get existing txt record
 				RequestKey{Method: http.MethodGet, Path: urlSlToGetTxtRecord}: {StatusCode: http.StatusServiceUnavailable, JsonBody: "{}"},
 			},
 		}
 		slProvider := NewSoftlayerDNSProvider(providerConfig, rc)
-		err := slProvider.Present(domainName, tokenNotInUse, keyAuth)
-		expectedMessage := fmt.Sprintf(errorPattern, logdna.Error07060, fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer))
+		err := slProvider.CleanUp(domainName, tokenNotInUse, keyAuth)
+		expectedMessage := fmt.Sprintf(errorPattern, logdna.Error07045, fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer))
+		assert.Equal(t, expectedMessage, err.Error())
+
+	})
+
+	t.Run("SL server error when get existing challenge ", func(t *testing.T) {
+		rc := &RestClientFactoryMock{
+			Results: map[RequestKey]RequestResult{
+				//get zone id by domain name
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLDomainsResponse(domainIdInt, domainName, 3))},
+				//get existing txt record
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetTxtRecord}: {StatusCode: http.StatusServiceUnavailable, JsonBody: "{}"},
+			},
+		}
+		slProvider := NewSoftlayerDNSProvider(providerConfig, rc)
+		err := slProvider.CleanUp(domainName, tokenNotInUse, keyAuth)
+		expectedMessage := fmt.Sprintf(errorPattern, logdna.Error07057, fmt.Sprintf(errorResponseFromDNS, dnsProviderSoftLayer))
 		assert.Equal(t, expectedMessage, err.Error())
 
 	})
@@ -427,49 +434,43 @@ func Test_SL_Cleanup(t *testing.T) {
 	})
 
 	t.Run("SL client error when get existing challenge ", func(t *testing.T) {
-		t.Skipf("doesn't work because of the impossible mock of rest-client")
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLListResponse(domainIdInt, domainName, 3))},
-				//remove challenge
-				RequestKey{Method: http.MethodDelete, Path: urlSlToRemoveTxtRecord}: {StatusCode: http.StatusServiceUnavailable, JsonBody: `{}`},
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLDomainsResponse(domainIdInt, domainName, 3))},
 				//get existing txt record
 				RequestKey{Method: http.MethodGet, Path: urlSlToGetTxtRecord}: {Error: clientError},
 			},
 		}
 		slProvider := NewSoftlayerDNSProvider(providerConfig, rc)
-		err := slProvider.Present(domainName, tokenNotInUse, keyAuth)
-		expectedMessage := fmt.Sprintf(errorPattern, logdna.Error07063, fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer))
+		err := slProvider.CleanUp(domainName, tokenNotInUse, keyAuth)
+		expectedMessage := fmt.Sprintf(errorPattern, logdna.Error07054, fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer))
 		assert.Equal(t, expectedMessage, err.Error())
 	})
 
 	t.Run("Challenge record not found ", func(t *testing.T) {
-		t.Skipf("doesn't work because of the impossible mock of rest-client")
 		rc := &RestClientFactoryMock{
 			Results: map[RequestKey]RequestResult{
 				//get zone id by domain name
-				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLListResponse(domainIdInt, domainName, 3))},
-				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlSlToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildSLDomainsResponse(domainIdInt, domainName, 3))},
 				//get existing txt record
-				RequestKey{Method: http.MethodGet, Path: urlSlToGetTxtRecord}: {StatusCode: http.StatusOK, JsonBody: string(buildSLListResponse(-1, "", 0))},
+				RequestKey{Method: http.MethodGet, Path: urlSlToGetTxtRecord}: {StatusCode: http.StatusOK, JsonBody: string(buildSLDnsRecordsResponse(-1, "", "", 0))},
 			},
 		}
 		slProvider := NewSoftlayerDNSProvider(providerConfig, rc)
-		err := slProvider.Present(domainName, tokenNotInUse, keyAuth)
-		expectedMessage := fmt.Sprintf(errorPattern, logdna.Error07088, internalServerError)
+		err := slProvider.CleanUp(domainName, tokenNotInUse, keyAuth)
+		expectedMessage := fmt.Sprintf(errorPattern, logdna.Error07055, internalServerError)
 		assert.Equal(t, expectedMessage, err.Error())
 	})
 
 }
 
-func buildSLListResponse(foundId int, foundName string, resultsCount int) []byte {
+func buildSLDomainsResponse(foundId int, foundName string, resultsCount int) []byte {
 	var slListResp []SLDomainResponse
 	slListResp = make([]SLDomainResponse, resultsCount)
-	for i, response := range slListResp {
-		response.Id = i
-		response.Name = "domain" + strconv.Itoa(i)
+	for i, _ := range slListResp {
+		slListResp[i].Id = i + 100
+		slListResp[i].Name = "domain" + strconv.Itoa(i+100)
 	}
 	if foundId != -1 {
 		slListResp[1].Name = foundName
@@ -479,9 +480,27 @@ func buildSLListResponse(foundId int, foundName string, resultsCount int) []byte
 	return respListStr
 }
 
+func buildSLDnsRecordsResponse(foundId int, foundName, foundValue string, resultsCount int) []byte {
+	var slListResp []SLDnsRecordResponse
+	slListResp = make([]SLDnsRecordResponse, resultsCount)
+	for i, _ := range slListResp {
+		slListResp[i].Id = i
+		slListResp[i].Host = "domain" + strconv.Itoa(i)
+		slListResp[i].Data = "challenge" + strconv.Itoa(i)
+	}
+	if foundId != -1 {
+		slListResp[1].Id = foundId
+		slListResp[1].Host = foundName
+		slListResp[1].Data = foundValue
+	}
+	respListStr, _ := json.Marshal(slListResp)
+	return respListStr
+}
+
 func buildSLResponse() []byte {
 	cisResp := SLDnsRecordResponse{
-		Id: txtRecordIdInt,
+		Id:   txtRecordIdInt,
+		Host: "host",
 	}
 	respStr, _ := json.Marshal(cisResp)
 	return respStr
