@@ -1,7 +1,8 @@
 package publiccerts
 
 //common error
-const internalServerError = "Internal server Error" //Error07059,Error07061,Error07067,Error07088,Error07055,Error07091,Error07092,Error07001,Error07004,
+const internalServerError = "Internal server error. Your request couldn't be processed. If the issue persists, note the correlation-id in the response header and contact IBM Cloud support."
+ //Error07059,Error07061,Error07067,Error07088,Error07055,Error07091,Error07092,Error07001,Error07004,
 // Error07005,Error07007,Error07008,Error07010,Error07013,Error07014,Error07011,Error07022
 
 //errors in Configs
@@ -13,13 +14,13 @@ const (
 	nameAlreadyExists    = "%s configuration with name '%s' already exists"                                                        //Error07003
 	configNotFound       = "%s configuration with name '%s' was not found"                                                         //Error07006, Error07009, Error07012
 	configMissingField   = "%s configuration missing property %s"                                                                  //Error07025, Error07033, Error07034, Error07018
-	invalidConfigStruct  = "%s configuration of type '%s' has a wrong structure. It may contain only properties %s"                //Error07028, Error07035, Error07019
+	invalidConfigStruct  = "%s configuration of type '%s' has an invalid structure. It can contain only properties %s"             //Error07028, Error07035, Error07019
 	configWrongStructure = "'config' field is not valid. It should be key-value map"                                               //Error07017
-	invalidConfigType    = "Config type should be one of [%s]"                                                                     //Error07020
-	configNameWithSpace  = "Config name mustn't contain spaces"                                                                    //Error07043
+	invalidConfigType    = "Configuration type should be one of [%s]"                                                                     //Error07020
+	configNameWithSpace  = "Configuration name can't contain spaces"                                                                      //Error07043
 
 	//specific CA
-	invalidKey     = "Certificate authority private key is not valid : %s"                  //Error07039, Error07041, Error07021, Error07024, Error07064
+	invalidKey     = "Certificate authority private key is not valid: %s"                  //Error07039, Error07041, Error07021, Error07024,  Error07064
 	wrongCAAccount = "Failed to retrieve the certificate authority account information: %s" //Error07023
 )
 
@@ -32,14 +33,14 @@ const (
 
 //Order validation errors
 const (
-	commonNameTooLong = "A primary domain name cannot be longer than 64 bytes" //Error07106
-	redundantDomain   = `At least one of the domains is redundant with a wildcard domain in the same certificate. 
-Remove one or the other from the certificate order.`  //Error07109
+	commonNameTooLong = "A primary domain name can't be longer than 64 bytes" //Error07106
+	redundantDomain   = `At least one of the specified domains is already covered by a wildcard domain for this certificate. 
+Remove the extra domain or the wildcard domain from the certificate order.`  //Error07109
 	invalidDomain               = "Domain %s is not valid"                                                                  //Error07105, Error07107
 	duplicateDomain             = "Domain %s is duplicated"                                                                 //Error07108
 	invalidKeyAlgorithm         = "Key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384" //Error07040
-	orderAlreadyInProcess       = "Order for these domains is already in process"                                           //Error07042
-	secretShouldBeInActiveState = "Secret should be in Active state"                                                        //Error07062
+	orderAlreadyInProcess       = "A certificate order for these domains is already in process."                            //Error07042
+	secretShouldBeInActiveState = "Secret should be in the Active state"                                                    //Error07062
 )
 
 //Errors in communication with DNS providers
@@ -69,9 +70,9 @@ const (
 
 //config fields description
 const (
-	fieldConfigNameDescription     = "The config name"
-	fieldConfigTypeDescription     = "The config type"
-	fieldConfigSettingsDescription = "The set of config properties"
+	fieldConfigNameDescription     = "The configuration name"
+	fieldConfigTypeDescription     = "The configuration type"
+	fieldConfigSettingsDescription = "The set of configuration properties"
 )
 
 // Certificate Authorities config create and list path
