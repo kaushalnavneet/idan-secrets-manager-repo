@@ -3,7 +3,6 @@ package publiccerts
 import (
 	"context"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
@@ -321,13 +320,7 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 		return err
 	}
 
-	block, _ := pem.Decode([]byte(caConfig.Config[caConfigPrivateKey]))
-	if block == nil {
-		message := fmt.Sprintf(invalidKey, "valid PEM data is not found")
-		common.ErrorLogForCustomer(message, logdna.Error07064, logdna.BadRequestErrorMessage, true)
-		return commonErrors.GenerateCodedError(logdna.Error07064, http.StatusBadRequest, message)
-	}
-	caPrivKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	caPrivKey, err := DecodePrivateKey(caConfig.Config[caConfigPrivateKey])
 	if err != nil {
 		message := fmt.Sprintf(invalidKey, err.Error())
 		common.ErrorLogForCustomer(message, logdna.Error07039, logdna.BadRequestErrorMessage, true)

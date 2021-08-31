@@ -446,9 +446,6 @@ func (ob *OrdersBackend) pathRootConfigRead(ctx context.Context, req *logical.Re
 	if err != nil {
 		return nil, err
 	}
-	if res, err := ob.secretBackend.GetValidator().ValidateUnknownFields(req, d); err != nil {
-		return res, err
-	}
 	// lock for reading
 	secretsConfigLock.RLock()
 	defer secretsConfigLock.RUnlock()
@@ -465,7 +462,7 @@ func (ob *OrdersBackend) pathRootConfigRead(ctx context.Context, req *logical.Re
 	resp := &logical.Response{
 		Data: respData,
 	}
-	return resp, nil
+	return logical.RespondWithStatusCode(resp, req, http.StatusOK)
 }
 
 //************* Utils ***************//
@@ -484,7 +481,7 @@ func (ob *OrdersBackend) validateConfigName(d *framework.FieldData) (string, err
 }
 
 func (ob *OrdersBackend) createConfigToStore(name string, providerType string, d *framework.FieldData) (*ProviderConfig, error) {
-	configType := d.Get(FieldType).(string) //was already validate with enum
+	configType := d.Get(FieldType).(string) //was already validated with enum
 	config, ok := d.Get(FieldConfig).(map[string]string)
 	if !ok || config == nil {
 		common.ErrorLogForCustomer(configWrongStructure, logdna.Error07017, logdna.BadRequestErrorMessage, true)
@@ -495,7 +492,7 @@ func (ob *OrdersBackend) createConfigToStore(name string, providerType string, d
 	if providerType == providerTypeCA {
 		err = prepareCAConfigToStore(configToStore)
 	} else {
-		err = prepareDNSConfigToStore(configToStore, ob.ordersHandler.pluginConfig.Service.Instance.CRN, ob.secretBackend.GetValidator().GetAuth())
+		err = ob.prepareDNSConfigToStore(configToStore)
 	}
 	if err != nil {
 		return nil, err

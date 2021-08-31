@@ -44,14 +44,14 @@ func NewACMEClientWithCustomHttpClient(CAUserConfig *CAUserConfig, keyType certc
 		return nil, err
 	}
 	//create resty client for communication with dns provider
-	cf := &rest_client_impl.RestClientFactory{}
+	rc := &rest_client_impl.RestClientFactory{}
 	//init resty client with not default options
-	cf.InitClientWithOptions(rest_client.RestClientOptions{
+	rc.InitClientWithOptions(rest_client.RestClientOptions{
 		Timeout:    10 * time.Second,
 		Retries:    2,
 		RetryDelay: 1 * time.Second,
 	})
-	return &Client{LegoClient: legoClient, RestClient: cf}, nil
+	return &Client{LegoClient: legoClient, RestClient: rc}, nil
 }
 
 func (client *Client) setDNSProvider(dnsProvider *ProviderConfig, domains []string, challengeOption dns01.ChallengeOption) error {

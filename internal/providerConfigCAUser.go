@@ -112,7 +112,7 @@ func (u *CAUserConfig) initCAAccount() error {
 }
 
 func (u *CAUserConfig) getConfigToStore() (map[string]string, error) {
-	x509Encoded, err := x509.MarshalPKCS8PrivateKey(u.key)
+	x509Encoded, err := x509.MarshalPKCS8PrivateKey(u.key) //TODO different types of keys
 	if err != nil {
 		message := fmt.Sprintf(invalidKey, err.Error())
 		common.ErrorLogForCustomer(message, logdna.Error07024, logdna.BadRequestErrorMessage, true)

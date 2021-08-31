@@ -234,7 +234,7 @@ func (c *SoftlayerDNSConfig) getChallengeRecordId(domain *SLDomainData) (int, er
 		return -1, buildOrderError(logdna.Error07054, fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer))
 	}
 	if resp.StatusCode() == http.StatusOK {
-		//if an array is empty our unmarshal method can't distinguish between domains ad dns records
+		//if an array is empty our unmarshal method can't distinguish between domains and dns records
 		//so here we can get empty response.Domains instead of response.DnsRecords
 		//in this case we know that nothing was found
 		if response.DnsRecords != nil && len(response.DnsRecords) > 0 {
