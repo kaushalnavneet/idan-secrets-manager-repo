@@ -154,7 +154,7 @@ func (c *SoftlayerDNSConfig) getDomainData(originalDomain, domainToSetChallenge,
 func (c *SoftlayerDNSConfig) getZoneIdByDomain(domain string) (int, error) {
 	url := fmt.Sprintf("%s/SoftLayer_Dns_Domain/getByDomainName/%s", c.SoftlayerEndpoint, url.QueryEscape(domain))
 	headers := c.buildRequestHeader()
-	response := &SLCombineResponse{}
+	response := &SLCombinedResponse{}
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, response)
 	if err != nil {
 		common.Logger().Error(logdna.Error07058 + " Couldn't get zone by domain name: " + err.Error())
@@ -185,7 +185,7 @@ func (c *SoftlayerDNSConfig) setChallenge(domain *SLDomainData) (int, error) {
 	requestBody := createTxtRecordBody(domain, c.TTL)
 	url := fmt.Sprintf(`%s/SoftLayer_Dns_Domain_ResourceRecord`, c.SoftlayerEndpoint)
 	headers := c.buildRequestHeader()
-	response := &SLCombineResponse{}
+	response := &SLCombinedResponse{}
 	resp, err := c.restClient.SendRequest(url, http.MethodPost, *headers, requestBody, response)
 	if err != nil {
 		common.Logger().Error(logdna.Error07047 + " Couldn't set challenge for domain " + domain.name + ": " + err.Error())
@@ -205,7 +205,7 @@ func (c *SoftlayerDNSConfig) setChallenge(domain *SLDomainData) (int, error) {
 func (c *SoftlayerDNSConfig) removeChallenge(domain *SLDomainData) error {
 	url := fmt.Sprintf(`%s/SoftLayer_Dns_Domain_ResourceRecord/%d`, c.SoftlayerEndpoint, domain.txtRecordId)
 	headers := c.buildRequestHeader()
-	response := &SLCombineResponse{}
+	response := &SLCombinedResponse{}
 	resp, err := c.restClient.SendRequest(url, http.MethodDelete, *headers, nil, response)
 	if err != nil {
 		common.Logger().Error(logdna.Error07050 + " Couldn't remove txt record for domain " + domain.name + ": " + err.Error())
@@ -227,7 +227,7 @@ func (c *SoftlayerDNSConfig) getChallengeRecordId(domain *SLDomainData) (int, er
 	objectFilter := fmt.Sprintf(`{"resourceRecords":{"host":{"operation": "%s"},"data":{"operation": "%s"}}}`, domain.txtRecordName, domain.txtRecordValue)
 	url := fmt.Sprintf(`%s/SoftLayer_Dns_Domain/%d/getResourceRecords?objectFilter=%s`, c.SoftlayerEndpoint, domain.zoneId, url.QueryEscape(objectFilter))
 	headers := c.buildRequestHeader()
-	response := &SLCombineResponse{}
+	response := &SLCombinedResponse{}
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, response)
 	if err != nil {
 		common.Logger().Error(logdna.Error07054 + " Couldn't get txt record for domain " + domain.name + ": " + err.Error())
@@ -268,7 +268,7 @@ func (c *SoftlayerDNSConfig) validateConfig() error {
 	//try to get domains
 	url := fmt.Sprintf("%s/SoftLayer_Dns_Domain/getByDomainName/domain.com", c.SoftlayerEndpoint)
 	headers := c.buildRequestHeader()
-	domainsResponse := &SLCombineResponse{}
+	domainsResponse := &SLCombinedResponse{}
 	resp, err := c.restClient.SendRequest(url, http.MethodGet, *headers, nil, domainsResponse)
 	if err != nil {
 		message := fmt.Sprintf(unavailableDNSError, dnsProviderSoftLayer)
@@ -330,7 +330,7 @@ func (c *SoftlayerDNSConfig) Timeout() (timeout, interval time.Duration) {
 	return PropagationTimeout, PollingInterval
 }
 
-type SLCombineResponse struct {
+type SLCombinedResponse struct {
 	Domains    []SLDomainResponse
 	DnsRecords []SLDnsRecordResponse
 	DnsRecord  *SLDnsRecordResponse
@@ -338,7 +338,7 @@ type SLCombineResponse struct {
 	Other      []byte
 }
 
-func (r *SLCombineResponse) UnmarshalJSON(data []byte) error {
+func (r *SLCombinedResponse) UnmarshalJSON(data []byte) error {
 	var domains []SLDomainResponse
 	var dnsRec SLDnsRecordResponse
 	var dnsRecs []SLDnsRecordResponse
@@ -360,7 +360,7 @@ func (r *SLCombineResponse) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (r *SLCombineResponse) getErrorMessage() string {
+func (r *SLCombinedResponse) getErrorMessage() string {
 	if r.Error != nil {
 		return fmt.Sprintf(dnsProviderSoftLayer+" error code: %s, message: %s ", r.Error.Code, r.Error.Error)
 	} else {
