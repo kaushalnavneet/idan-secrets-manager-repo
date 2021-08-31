@@ -10,8 +10,8 @@ type RootConfig struct {
 	DnsConfigs []*ProviderConfig `json:"dns_providers"`
 }
 
-func getRootConfig(ctx context.Context, req *logical.Request) (*RootConfig, error) {
-	entry, err := req.Storage.Get(ctx, ConfigRootPath)
+func getRootConfig(ctx context.Context, storage logical.Storage) (*RootConfig, error) {
+	entry, err := storage.Get(ctx, ConfigRootPath)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (rc *RootConfig) getConfigsAsMap(providerType string) []map[string]interfac
 	return result
 }
 
-func (rc *RootConfig) save(ctx context.Context, req *logical.Request) error {
+func (rc *RootConfig) save(ctx context.Context, storage logical.Storage) error {
 	// Store the configuration to the backend storage
 	// Generate a new storage entry
 	entry, err := logical.StorageEntryJSON(ConfigRootPath, rc)
@@ -59,7 +59,7 @@ func (rc *RootConfig) save(ctx context.Context, req *logical.Request) error {
 		return err
 	}
 	// Save the storage entry
-	if err = req.Storage.Put(ctx, entry); err != nil {
+	if err = storage.Put(ctx, entry); err != nil {
 		return err
 	}
 	return nil

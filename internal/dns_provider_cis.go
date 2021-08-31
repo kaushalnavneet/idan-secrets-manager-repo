@@ -62,7 +62,7 @@ type CISRequest struct {
 	TTL     int    `json:"ttl"`
 }
 
-func NewCISDNSProvider(providerConfig map[string]string, cf rest_client.RestClientFactory, auth common.AuthUtils) *CISDNSConfig {
+func NewCISDNSProvider(providerConfig map[string]string, rc rest_client.RestClientFactory, auth common.AuthUtils) *CISDNSConfig {
 	cisCrn := providerConfig[dnsConfigCisCrn]
 	apikey := providerConfig[dnsConfigCisApikey]
 	smInstanceCrn := providerConfig[dnsConfigSMCrn]
@@ -88,9 +88,9 @@ func NewCISDNSProvider(providerConfig map[string]string, cf rest_client.RestClie
 		CISEndpoint:   cisURL,
 		IAMEndpoint:   iamURL,
 		APIKey:        apikey,
-		TTL:           120, //for TXT records
+		TTL:           txtRecordTtl, //for TXT records
 		Domains:       make(map[string]*CISDomainData),
-		restClient:    cf,
+		restClient:    rc,
 		smInstanceCrn: smInstanceCrn,
 		authUtils:     auth,
 	}
@@ -149,7 +149,7 @@ func (c *CISDNSConfig) getDomainData(originalDomain, domainToSetChallenge, keyAu
 			if len(domainParts) == 2 {
 				//we can't dive anymore, return error
 				message := fmt.Sprintf(domainIsNotFound, originalDomain, dnsProviderCISInstance)
-				common.Logger().Error(logdna.Error07072 + " Couldn't find neither domain " + originalDomain + "  nor its parent domains in " + dnsProviderCISInstance)
+				common.Logger().Error(logdna.Error07072 + " Couldn't find either domain " + originalDomain + " or its parent domains in " + dnsProviderCISInstance)
 				return nil, buildOrderError(logdna.Error07072, message)
 			}
 			parentDomain := strings.Join(domainParts[1:], ".")
@@ -197,12 +197,7 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 }
 
 func (c *CISDNSConfig) setChallenge(domain *CISDomainData) (string, error) {
-	requestBody, err := createCISTxtRecordBody(domain.txtRecordName, domain.txtRecordValue, c.TTL)
-	if err != nil {
-		common.Logger().Error(logdna.Error07075 + " Couldn't build txt record body: " + err.Error())
-		return "", buildOrderError(logdna.Error07075, internalServerError)
-	}
-
+	requestBody := createCISTxtRecordBody(domain.txtRecordName, domain.txtRecordValue, c.TTL)
 	reqUrl := fmt.Sprintf(`%s/%s/zones/%s/dns_records`, c.CISEndpoint, url.QueryEscape(c.CRN), url.QueryEscape(domain.zoneId))
 	headers, err := c.buildRequestHeader()
 	if err != nil {
@@ -301,11 +296,11 @@ func (c *CISDNSConfig) buildRequestHeader() (*map[string]string, error) {
 		msg = obtainCRNTokenError
 	}
 	if err != nil {
-		msg = msg + err.Error()
+		msg = msg + ": " + err.Error()
 		common.Logger().Error(msg)
 		return &headers, errors.New(msg)
 	}
-	headers["x-auth-user-token"] = iamToken
+	headers[authUserTokenHeader] = iamToken
 	headers[contentTypeHeader] = applicationJson
 	return &headers, nil
 }
@@ -342,18 +337,15 @@ func (c *CISDNSConfig) validateConfig() error {
 	return commonErrors.GenerateCodedError(logdna.Error07032, http.StatusBadRequest, message)
 }
 
-func createCISTxtRecordBody(key, value string, ttl int) (*bytes.Buffer, error) {
+func createCISTxtRecordBody(key, value string, ttl int) *bytes.Buffer {
 	postBody := CISRequest{
 		Name:    key,
 		Content: value,
 		Type:    "TXT",
 		TTL:     ttl,
 	}
-	marshalledPostBody, err := json.Marshal(postBody)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(marshalledPostBody), nil
+	marshalledPostBody, _ := json.Marshal(postBody)
+	return bytes.NewBuffer(marshalledPostBody)
 }
 
 func validateCISConfigStructure(config map[string]string, smInstanceCrn string) error {
@@ -362,7 +354,7 @@ func validateCISConfigStructure(config map[string]string, smInstanceCrn string) 
 		common.ErrorLogForCustomer(message, logdna.Error07025, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07025, http.StatusBadRequest, message)
 	} else if validCrn, err := crn.ToCRN(crnValue); err != nil {
-		common.ErrorLogForCustomer(invalidCISInstanceCrn, logdna.Error07026, logdna.BadRequestErrorMessage, true)
+		common.ErrorLogForCustomer(invalidCISInstanceCrn+": "+err.Error(), logdna.Error07026, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07026, http.StatusBadRequest, invalidCISInstanceCrn)
 	} else if validCrn.ServiceName != serviceCISint && validCrn.ServiceName != serviceCIS {
 		common.ErrorLogForCustomer(invalidCISInstanceCrn, logdna.Error07027, logdna.BadRequestErrorMessage, true)

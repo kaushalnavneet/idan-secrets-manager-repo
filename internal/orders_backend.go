@@ -6,6 +6,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
@@ -17,6 +18,7 @@ type OrdersBackend struct {
 	secretBackend secret_backend.SecretBackend
 	storage       logical.Storage
 	ordersHandler *OrdersHandler
+	RestClient    rest_client.RestClientFactory
 }
 
 func (ob *OrdersBackend) SetSecretBackend(secretBackend secret_backend.SecretBackend) {

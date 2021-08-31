@@ -1,5 +1,10 @@
 package publiccerts
 
+//common error
+const internalServerError = "Internal server error. Your request couldn't be processed. If the issue persists, note the correlation-id in the response header and contact IBM Cloud support."
+ //Error07059,Error07061,Error07067,Error07088,Error07055,Error07091,Error07092,Error07001,Error07004,
+// Error07005,Error07007,Error07008,Error07010,Error07013,Error07014,Error07011,Error07022
+
 //errors in Configs
 const (
 	providerTypeCA  = "Certificate authority"
@@ -15,7 +20,7 @@ const (
 	configNameWithSpace  = "Configuration name can't contain spaces"                                                                      //Error07043
 
 	//specific CA
-	invalidKey     = "Certificate authority private key is not valid: %s"                  //Error07039, Error07041, Error07021, Error07024
+	invalidKey     = "Certificate authority private key is not valid: %s"                  //Error07039, Error07041, Error07021, Error07024,  Error07064
 	wrongCAAccount = "Failed to retrieve the certificate authority account information: %s" //Error07023
 )
 
@@ -47,7 +52,7 @@ const (
 
 	domainIsNotFound     = "Domain %s is not found in %s"          //Error07072, Error07052
 	authorizationError   = "Authorization error when trying %s %s" //Error07073, Error07077, Error07080, Error07089, Error07031, Error07044, Error07048, Error07051, Error07056, Error07037
-	errorResponseFromDNS = "%s responded with an error"            //Error07074, Error07078, Error07081, Error07060, Error07032, Error07045, Error07049, Error07053, Error07057, Error07038
+	errorResponseFromDNS = "%s responded with an error"            //Error07074, Error07078, Error07081, Error07060, Error07032, Error07045, Error07049, Error07053, Error07057, Error07038, Error07063
 	unavailableDNSError  = "Couldn't call %s. Try again later"     //Error07030, Error07036, Error07047, Error07050, Error07054, Error07058, Error07071, Error07076, Error07079, Error07087
 
 	//specific CIS
@@ -261,6 +266,3 @@ const (
 	atGetSecretPolicy    = "Get secret policies"
 	atSetSecretPolicy    = "Set secret policies"
 )
-
-//common error
-const internalServerError = "Internal server error. Your request couldn't be processed. If the issue persists, note the correlation-id in the response header and contact IBM Cloud support."

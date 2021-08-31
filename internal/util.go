@@ -138,7 +138,15 @@ func DecodePrivateKey(pemEncoded string) (crypto.PrivateKey, error) {
 		return nil, fmt.Errorf("private key is not valid PEM formatted value")
 	}
 	x509Encoded := block.Bytes
-	privateKey, err := x509.ParsePKCS8PrivateKey(x509Encoded)
+	var privateKey crypto.PrivateKey
+	var err error
+	if block.Type == "PRIVATE KEY" {
+		privateKey, err = x509.ParsePKCS8PrivateKey(x509Encoded)
+	} else if block.Type == "RSA PRIVATE KEY" {
+		privateKey, err = x509.ParsePKCS1PrivateKey(x509Encoded)
+	} else {
+		return nil, fmt.Errorf("private key should be in unencrypted PKCS1 or PKCS8 format")
+	}
 	if err != nil {
 		return nil, err
 	}

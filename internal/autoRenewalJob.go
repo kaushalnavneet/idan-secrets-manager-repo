@@ -68,8 +68,8 @@ func ConfigAutoRenewalJob(config *common.ICAuthConfig, c *cron.Cron) error {
 	if cleanupEntryId == 0 {
 		cleanupEntryId, err = c.AddFunc(cleanupSchedule, arc.startCleanupProcess)
 		if err != nil {
-			common.Logger().Error(logdna.Error07061+" Failed to configure cron job for certificates auto-renewal cleanup: error while adding cron function ", err)
-			return errors.GenerateCodedError(logdna.Error07061, http.StatusInternalServerError, errors.InternalServerError)
+			common.Logger().Error(logdna.Error07067+" Failed to configure cron job for certificates auto-renewal cleanup: error while adding cron function ", err)
+			return errors.GenerateCodedError(logdna.Error07067, http.StatusInternalServerError, errors.InternalServerError)
 		}
 		common.Logger().Info(fmt.Sprintf("Certificates auto-renewal cleanup cron job is configured. Entry id = %d", cleanupEntryId))
 	} else {

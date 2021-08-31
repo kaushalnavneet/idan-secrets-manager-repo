@@ -59,13 +59,8 @@ func (u *CAUserConfig) GetPrivateKey() crypto.PrivateKey {
 }
 
 func NewCAUserConfig(caType, privateKeyPEM, caRootCertPath, email string) (*CAUserConfig, error) {
-	//set directory url according to ca
-	directoryUrl, ok := caProviders[caType]
-	if !ok { //should not happen because of input validation
-		message := fmt.Sprintf(invalidConfigType, validCaProviders)
-		common.ErrorLogForCustomer(message, logdna.Error07020, logdna.BadRequestErrorMessage, true)
-		return nil, commonErrors.GenerateCodedError(logdna.Error07020, http.StatusBadRequest, message)
-	}
+	//set directory url according to ca, should be ok because of input validation
+	directoryUrl := caProviders[caType]
 	var privateKey crypto.PrivateKey
 	var err error
 	byoa := privateKeyPEM != ""
@@ -117,7 +112,7 @@ func (u *CAUserConfig) initCAAccount() error {
 }
 
 func (u *CAUserConfig) getConfigToStore() (map[string]string, error) {
-	x509Encoded, err := x509.MarshalPKCS8PrivateKey(u.key)
+	x509Encoded, err := x509.MarshalPKCS8PrivateKey(u.key) //TODO different types of keys
 	if err != nil {
 		message := fmt.Sprintf(invalidKey, err.Error())
 		common.ErrorLogForCustomer(message, logdna.Error07024, logdna.BadRequestErrorMessage, true)

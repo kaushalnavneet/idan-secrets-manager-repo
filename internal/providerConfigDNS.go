@@ -3,9 +3,6 @@ package publiccerts
 import (
 	"fmt"
 	"github.com/go-acme/lego/v4/providers/dns"
-	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
-	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
-	"time"
 )
 
 func GetDNSTypesAllowedValues() []interface{} {
@@ -13,26 +10,21 @@ func GetDNSTypesAllowedValues() []interface{} {
 }
 
 //this function is used for dns config only
-func prepareDNSConfigToStore(p *ProviderConfig, smInstanceCrn string) error {
-	//create resty client
-	cf := &rest_client_impl.RestClientFactory{}
-	//init resty client with not default options
-	cf.InitClientWithOptions(rest_client.RestClientOptions{
-		Timeout:    10 * time.Second,
-		Retries:    2,
-		RetryDelay: 1 * time.Second,
-	})
+func (ob *OrdersBackend) prepareDNSConfigToStore(p *ProviderConfig) error {
+	smInstanceCrn := ob.ordersHandler.pluginConfig.Service.Instance.CRN
+	auth := ob.secretBackend.GetValidator().GetAuth()
+	rc := ob.RestClient
 	switch p.Type {
 	case dnsConfigTypeCIS:
 		if err := validateCISConfigStructure(p.Config, smInstanceCrn); err != nil {
 			return err
 		}
-		return NewCISDNSProvider(p.Config, cf, nil).validateConfig()
+		return NewCISDNSProvider(p.Config, rc, auth).validateConfig()
 	case dnsConfigTypeSoftLayer:
-		if err := validateSoftLayerStructure(p.Config); err != nil {
+		if err := validateSoftLayerConfigStructure(p.Config); err != nil {
 			return err
 		}
-		return NewSoftlayerDNSProvider(p.Config, cf).validateConfig()
+		return NewSoftlayerDNSProvider(p.Config, rc).validateConfig()
 	default:
 		//TODO we won't support ALL providers, it should be locked list
 		_, err := dns.NewDNSChallengeProviderByName(p.Type)

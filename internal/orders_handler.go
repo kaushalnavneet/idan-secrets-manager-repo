@@ -3,7 +3,6 @@ package publiccerts
 import (
 	"context"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
@@ -321,8 +320,7 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 		return err
 	}
 
-	block, _ := pem.Decode([]byte(caConfig.Config[caConfigPrivateKey]))
-	caPrivKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	caPrivKey, err := DecodePrivateKey(caConfig.Config[caConfigPrivateKey])
 	if err != nil {
 		message := fmt.Sprintf(invalidKey, err.Error())
 		common.ErrorLogForCustomer(message, logdna.Error07039, logdna.BadRequestErrorMessage, true)
@@ -552,7 +550,7 @@ func (oh *OrdersHandler) cleanupAfterRenewCertIfNeeded(entry *secretentry.Secret
 }
 
 func isRenewNeeded(entry *secretentry.SecretEntry) bool {
-	if entry.State == secretentry.StateActive && entry.Policies.Rotation.AutoRotate() {
+	if entry.State == secretentry.StateActive && entry.Policies.Rotation != nil && entry.Policies.Rotation.AutoRotate() {
 		now := time.Now().UTC()
 		midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 		startExpirationPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays)
