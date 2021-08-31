@@ -557,7 +557,7 @@ func (oh *OrdersHandler) cleanupAfterRenewCertIfNeeded(entry *secretentry.Secret
 }
 
 func isRenewNeeded(entry *secretentry.SecretEntry) bool {
-	if entry.State == secretentry.StateActive && entry.Policies.Rotation.AutoRotate() {
+	if entry.State == secretentry.StateActive && entry.Policies.Rotation != nil && entry.Policies.Rotation.AutoRotate() {
 		now := time.Now().UTC()
 		midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 		startExpirationPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays)
