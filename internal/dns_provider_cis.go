@@ -195,7 +195,7 @@ func (c *CISDNSConfig) getZoneIdByDomain(domain string) (string, error) {
 		common.Logger().Error(logdna.Error07073 + errorLog + errorAuthorization)
 		return "", buildOrderError(logdna.Error07073, fmt.Sprintf(authorizationError, "to get zones from", dnsProviderCISInstance))
 	}
-	common.Logger().Error(logdna.Error07074 + errorLog + fmt.Sprintf("statusCode=%d, errors='%+v'", resp.StatusCode(), response.Errors))
+	common.Logger().Error(logdna.Error07074 + errorLog + fmt.Sprintf(CisServerError, resp.StatusCode(), response.Errors))
 	return "", buildOrderError(logdna.Error07074, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 
 }
@@ -229,7 +229,7 @@ func (c *CISDNSConfig) setChallenge(domain *CISDomainData) (string, error) {
 		common.Logger().Error(logdna.Error07077 + errorLog + errorAuthorization)
 		return "", buildOrderError(logdna.Error07077, fmt.Sprintf(authorizationError, "to set txt record in", dnsProviderCISInstance))
 	}
-	common.Logger().Error(logdna.Error07078 + errorLog + fmt.Sprintf("statusCode=%d, errors='%+v'", resp.StatusCode(), response.Errors))
+	common.Logger().Error(logdna.Error07078 + errorLog + fmt.Sprintf(CisServerError, resp.StatusCode(), response.Errors))
 	return "", buildOrderError(logdna.Error07078, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 }
 
@@ -255,7 +255,7 @@ func (c *CISDNSConfig) removeChallenge(domain *CISDomainData) error {
 		common.Logger().Error(logdna.Error07080 + errorLog + errorAuthorization)
 		return buildOrderError(logdna.Error07080, fmt.Sprintf(authorizationError, "to delete txt record from", dnsProviderCISInstance))
 	}
-	common.Logger().Error(logdna.Error07081 + errorLog + fmt.Sprintf("statusCode=%d, errors='%+v'", resp.StatusCode(), response.Errors))
+	common.Logger().Error(logdna.Error07081 + errorLog + fmt.Sprintf(CisServerError, resp.StatusCode(), response.Errors))
 	return buildOrderError(logdna.Error07081, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 }
 
@@ -285,7 +285,7 @@ func (c *CISDNSConfig) getChallengeRecordId(domain *CISDomainData) (string, erro
 		common.Logger().Error(logdna.Error07089 + errorLog + errorAuthorization)
 		return "", buildOrderError(logdna.Error07089, fmt.Sprintf(authorizationError, "to get txt record from", dnsProviderCISInstance))
 	}
-	common.Logger().Error(logdna.Error07060 + errorLog + fmt.Sprintf("statusCode=%d, errors='%+v'", resp.StatusCode(), response.Errors))
+	common.Logger().Error(logdna.Error07060 + errorLog + fmt.Sprintf(CisServerError, resp.StatusCode(), response.Errors))
 	return "", buildOrderError(logdna.Error07060, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 }
 

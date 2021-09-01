@@ -143,4 +143,5 @@ const (
 	errorGetTxtRec         = " Couldn't get txt record for domain "
 	errorSetTxtRec         = " Couldn't set txt record for domain "
 	errorGetZoneByDomain   = " Couldn't get zone id by domain name "
+	CisServerError         = "statusCode=%d, errors='%+v'"
 )
