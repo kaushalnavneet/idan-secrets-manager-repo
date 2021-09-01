@@ -40,7 +40,7 @@ func (ob *OrdersBackend) pathCertificate() []*framework.Path {
 
 	return []*framework.Path{
 		{
-			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId),
+			Pattern:         PathSecrets + framework.GenericNameRegex(secretentry.FieldId),
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    pathSecretHelpSynopsis,
@@ -69,14 +69,14 @@ func (ob *OrdersBackend) pathGetVersion() []*framework.Path {
 
 	return []*framework.Path{
 		{
-			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId) + "/versions/" + framework.GenericNameRegex(secretentry.FieldVersionId),
+			Pattern:         PathSecrets + framework.GenericNameRegex(secretentry.FieldId) + PathVersions + framework.GenericNameRegex(secretentry.FieldVersionId),
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    pathVersionHelpSynopsis,
 			HelpDescription: pathVersionHelpDescription,
 		},
 		{
-			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/versions/" + framework.GenericNameRegex(secretentry.FieldVersionId),
+			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + PathVersions + framework.GenericNameRegex(secretentry.FieldVersionId),
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    pathVersionHelpSynopsis,
@@ -116,14 +116,14 @@ func (ob *OrdersBackend) pathCertificateMetadata() []*framework.Path {
 
 	return []*framework.Path{
 		{
-			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId) + "/metadata",
+			Pattern:         PathSecrets + framework.GenericNameRegex(secretentry.FieldId) + PathMetadata,
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    pathMetadataHelpSynopsis,
 			HelpDescription: pathMetadataHelpDescription,
 		},
 		{
-			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/metadata",
+			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + PathMetadata,
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    pathMetadataHelpSynopsis,
@@ -153,14 +153,14 @@ func (ob *OrdersBackend) pathGetVersionMetadata() []*framework.Path {
 
 	return []*framework.Path{
 		{
-			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId) + "/versions/" + framework.GenericNameRegex(secretentry.FieldVersionId) + "/metadata",
+			Pattern:         PathSecrets + framework.GenericNameRegex(secretentry.FieldId) + PathVersions + framework.GenericNameRegex(secretentry.FieldVersionId) + PathMetadata,
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    pathVersionMetaHelpSynopsis,
 			HelpDescription: pathVersionMetaHelpDescription,
 		},
 		{
-			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/versions/" + framework.GenericNameRegex(secretentry.FieldVersionId) + "/metadata",
+			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + PathVersions + framework.GenericNameRegex(secretentry.FieldVersionId) + PathMetadata,
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    pathVersionMetaHelpSynopsis,

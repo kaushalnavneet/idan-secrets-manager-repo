@@ -30,8 +30,9 @@ func main() {
 		BackendHelp:           "",
 		PathInvalidHelp:       "",
 		ResponseCodeForAction: map[string]int{
-			secret_backend.ActionCreation: http.StatusAccepted,
-			secret_backend.ActionRotation: http.StatusAccepted,
+			secret_backend.ActionCreation:     http.StatusAccepted,
+			secret_backend.ActionRotation:     http.StatusAccepted,
+			secret_backend.ActionUpdatePolicy: http.StatusAccepted,
 		},
 		PluginSetup: publiccerts.SetupPluginWithAutoRenewalJob,
 	}

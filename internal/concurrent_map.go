@@ -1,7 +1,6 @@
 package publiccerts
 
 // shared nothing map that is safe for concurrent access
-// TODO - test performance overhead
 
 type KeyValue struct {
 	Key   string

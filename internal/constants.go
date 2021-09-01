@@ -43,17 +43,26 @@ const (
 	txtRecordTtl                            = 120
 )
 
+//paths
+const (
+	PathConfig       = "config/"
+	PathSecrets      = "secrets/"
+	PathSecretGroups = "secrets/groups/"
+	PathVersions     = "/versions/"
+	PathMetadata     = "/metadata"
+)
+
 //cofigs common
 const (
 	Root             = "root"
-	ConfigRootPath   = "config/" + Root
+	ConfigRootPath   = PathConfig + Root
 	MaxNumberConfigs = 10
 )
 
 //CA configuration
 const (
 	CA           = "certificate_authorities"
-	ConfigCAPath = "config/" + CA
+	ConfigCAPath = PathConfig + CA
 
 	caConfigTypeLEProd  = "letsencrypt"
 	caConfigTypeLEStage = "letsencrypt-stage"
@@ -71,7 +80,7 @@ const (
 //dns configuration
 const (
 	DNS           = "dns_providers"
-	ConfigDNSPath = "config/" + DNS
+	ConfigDNSPath = PathConfig + DNS
 
 	dnsConfigTypeCIS   = "cis"
 	dnsConfigCisCrn    = "cis_crn"
@@ -118,4 +127,20 @@ var (
 			Required:    true,
 		},
 	}
+)
+
+//logs
+const (
+	errorAuthorization     = "Authorization error"
+	presentFunc            = " Present: "
+	startSetChallenge      = " Trying to set the challenge"
+	endSetChallenge        = " Challenge was set successfully"
+	startCleanup           = " Trying to remove the challenge from domain"
+	endCleanup             = " The domain was successfully cleaned up"
+	cleanupFunc            = " Cleanup: "
+	errorBuildHeaderFailed = " Couldn't build headers for CIS request: "
+	errorRemoveTxtRec      = " Couldn't remove txt record for domain "
+	errorGetTxtRec         = " Couldn't get txt record for domain "
+	errorSetTxtRec         = " Couldn't set txt record for domain "
+	errorGetZoneByDomain   = " Couldn't get zone id by domain name "
 )

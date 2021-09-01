@@ -91,7 +91,7 @@ func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 			HelpDescription: pathIssueListHelpDescription,
 		},
 		{
-			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/?$",
+			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/?$",
 			Fields:          fields,
 			Operations:      operations,
 			ExistenceCheck:  existenceCheck,
@@ -127,14 +127,14 @@ func (ob *OrdersBackend) pathRotateCertificate() []*framework.Path {
 
 	return []*framework.Path{
 		{
-			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId) + "/rotate",
+			Pattern:         PathSecrets + framework.GenericNameRegex(secretentry.FieldId) + "/rotate",
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    pathRotateHelpSynopsis,
 			HelpDescription: pathRotateHelpDescription,
 		},
 		{
-			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/rotate",
+			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/rotate",
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    pathRotateHelpSynopsis,
