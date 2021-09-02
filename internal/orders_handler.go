@@ -303,12 +303,12 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	dnsConfigName := data.IssuanceInfo[FieldDNSConfig].(string)
 	isBundle := data.IssuanceInfo[FieldBundleCert].(bool)
 	//get ca config from the storage
-	caConfig, err := getConfigByName(caConfigName, providerTypeCA, ctx, req)
+	caConfig, err := getConfigByName(caConfigName, providerTypeCA, ctx, req, http.StatusBadRequest)
 	if err != nil {
 		return err
 	}
 	//get dns config from the storage
-	dnsConfig, err := getConfigByName(dnsConfigName, providerTypeDNS, ctx, req)
+	dnsConfig, err := getConfigByName(dnsConfigName, providerTypeDNS, ctx, req, http.StatusBadRequest)
 	if err != nil {
 		return err
 	}
