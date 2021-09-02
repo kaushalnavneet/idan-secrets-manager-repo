@@ -145,3 +145,14 @@ const (
 	errorGetZoneByDomain   = " Couldn't get zone id by domain name "
 	CisServerError         = "statusCode=%d, errors='%+v'"
 )
+
+type ResponseBody struct {
+	RequestId     string                 `json:"request_id"`
+	LeaseId       string                 `json:"lease_id"`
+	Renewable     bool                   `json:"renewable"`
+	LeaseDuration int                    `json:"lease_duration"`
+	Data          map[string]interface{} `json:"data"`
+	WrapInfo      interface{}            `json:"wrap_info"`
+	Warnings      interface{}            `json:"warnings"`
+	Auth          interface{}            `json:"auth"`
+}
