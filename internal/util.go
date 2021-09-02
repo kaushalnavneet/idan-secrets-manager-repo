@@ -18,12 +18,10 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/idna"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
-	"time"
 )
 
 var (
@@ -32,22 +30,6 @@ var (
 		idna.VerifyDNSLength(true),
 	)
 )
-
-// LoadRootCertPoolFromPath builds a trust store (cert pool) containing our CA's root
-// certificate.
-func LoadRootCertPoolFromPath(rootCertPath string) (*x509.CertPool, error) {
-	root, err := ioutil.ReadFile(rootCertPath)
-	if err != nil {
-		return nil, err
-	}
-
-	pool := x509.NewCertPool() // [Navaneeth] Note: Change this to SystemCertPool to also add certs from system
-	if ok := pool.AppendCertsFromPEM(root); !ok {
-		return nil, errors.New("missing or invalid root certificate")
-	}
-
-	return pool, nil
-}
 
 // LoadRootCertPool builds a trust store (cert pool) containing our CA's root
 // certificate.
@@ -165,10 +147,6 @@ func ExtractFirstEmailFromAccount(retrievedAccount *registration.Resource) (stri
 		}
 	}
 	return "", fmt.Errorf("no email address in retrieved account")
-}
-
-func IsTimeExpired(timeNow time.Time, timeExpiry time.Time) bool {
-	return timeNow.After(timeExpiry)
 }
 
 func validateNames(names []string) error {

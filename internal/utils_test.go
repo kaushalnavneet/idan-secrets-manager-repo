@@ -1,6 +1,7 @@
 package publiccerts
 
 import (
+	"errors"
 	"fmt"
 	"github.com/hashicorp/go-hclog"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
@@ -44,5 +45,35 @@ func Test_Utils_ValidateDomains(t *testing.T) {
 		err := validateNames([]string{"longlonglonglonglonglonglonglong.longlonglonglonglonglonglonglong.longlonglonglonglonglonglonglong.test1.secrets-manager.test.appdomain.cloud"})
 		expectedMessage := commonNameTooLong
 		assert.DeepEqual(t, err, commonErrors.GenerateCodedError(logdna.Error07106, http.StatusBadRequest, expectedMessage))
+	})
+}
+
+func Test_Utils_GetOrderError(t *testing.T) {
+	common.SetLogger(hclog.L())
+	t.Run("Formatted error", func(t *testing.T) {
+		err := buildOrderError("errorCode", "errorMessage")
+		orderResult := Result{
+			workItem:    WorkItem{},
+			Error:       errors.New("some additional text from ACME client " + err.Error() + "another text"),
+			certificate: nil,
+		}
+		orderError := getOrderError(orderResult)
+		assert.DeepEqual(t, orderError, &OrderError{
+			Code:    "errorCode",
+			Message: "errorMessage",
+		})
+	})
+
+	t.Run("Not formatted error", func(t *testing.T) {
+		orderResult := Result{
+			workItem:    WorkItem{},
+			Error:       errors.New("some error from ACME client "),
+			certificate: nil,
+		}
+		orderError := getOrderError(orderResult)
+		assert.DeepEqual(t, orderError, &OrderError{
+			Code:    "ACME_Error",
+			Message: "some error from ACME client ",
+		})
 	})
 }
