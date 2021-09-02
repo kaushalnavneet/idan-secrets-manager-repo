@@ -62,6 +62,10 @@ type MockSecretBackend struct {
 	name string
 }
 
+func (sb *MockSecretBackend) MarkSecretAsDestroyedIfExpired(secret *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
+	return nil
+}
+
 func (sb *MockSecretBackend) Create(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	panic("implement me")
 }

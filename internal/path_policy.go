@@ -47,14 +47,14 @@ func (ob *OrdersBackend) pathSecretPolicies() []*framework.Path {
 	}
 	return []*framework.Path{
 		{
-			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId) + "/policies",
+			Pattern:         PathSecrets + framework.GenericNameRegex(secretentry.FieldId) + "/policies",
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    pathPoliciesHelpSynopsis,
 			HelpDescription: pathPoliciesHelpDescription,
 		},
 		{
-			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/policies",
+			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/policies",
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    pathPoliciesHelpSynopsis,

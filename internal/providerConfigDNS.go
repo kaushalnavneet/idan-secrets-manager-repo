@@ -2,7 +2,6 @@ package publiccerts
 
 import (
 	"fmt"
-	"github.com/go-acme/lego/v4/providers/dns"
 )
 
 func GetDNSTypesAllowedValues() []interface{} {
@@ -25,12 +24,12 @@ func (ob *OrdersBackend) prepareDNSConfigToStore(p *ProviderConfig) error {
 			return err
 		}
 		return NewSoftlayerDNSProvider(p.Config, rc).validateConfig()
-	default:
-		//TODO we won't support ALL providers, it should be locked list
-		_, err := dns.NewDNSChallengeProviderByName(p.Type)
-		if err != nil {
-			return err
-		}
+		//default:
+		//	//we won't support ALL providers, it should be locked list
+		//	_, err := dns.NewDNSChallengeProviderByName(p.Type)
+		//	if err != nil {
+		//		return err
+		//	}
 	}
 	return nil
 }

@@ -104,7 +104,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := "field: 'name' failed validation: length should be 2 to 256 chars"
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07015)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("Unknown field in data", func(t *testing.T) {
@@ -126,7 +126,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(smErrors.UnknownFields, []string{"SomeField"})
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error05111)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(422, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusUnprocessableEntity, expectedMessage)))
 	})
 
 	t.Run("Config name already exists", func(t *testing.T) {
@@ -158,7 +158,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(nameAlreadyExists, providerTypeDNS, existingName)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07003)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("DNS - Invalid type", func(t *testing.T) {
@@ -180,7 +180,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(smErrors.InvalidParamMustBeError, FieldType, GetDNSTypesAllowedValues())
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error05176)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("DNS - Invalid cis config - missing cis crn", func(t *testing.T) {
@@ -204,7 +204,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(configMissingField, providerTypeDNS, dnsConfigCisCrn)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07025)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("DNS - Invalid SL config - missing SL user", func(t *testing.T) {
@@ -228,7 +228,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(configMissingField, providerTypeDNS, dnsConfigSLUser)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07033)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("CA - Invalid type", func(t *testing.T) {
@@ -249,7 +249,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(smErrors.InvalidParamMustBeError, FieldType, GetCATypesAllowedValues())
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error05176)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("CA - Missing private key", func(t *testing.T) {
@@ -273,7 +273,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(configMissingField, providerTypeCA, caConfigPrivateKey)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07018)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("CA - Unexpected property in config", func(t *testing.T) {
@@ -297,7 +297,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(invalidConfigStruct, providerTypeCA, caConfigTypeLEProd, "["+caConfigPrivateKey+"]")
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07019)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("CA - Invalid private key", func(t *testing.T) {
@@ -321,7 +321,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(invalidKey, "private key is not valid PEM formatted value")
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07021)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("CA - wrong private key (staging in prod)", func(t *testing.T) {
@@ -345,7 +345,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(wrongCAAccount, "acme: error: 400 :: POST :: https://acme-v02.api.letsencrypt.org/acme/new-acct :: urn:ietf:params:acme:error:accountDoesNotExist :: No account exists with the provided key")
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07023)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("More than 10 dns configs exists", func(t *testing.T) {
@@ -378,7 +378,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(reachedTheMaximum, providerTypeDNS, MaxNumberConfigs)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07002)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 }
 
@@ -434,7 +434,7 @@ func Test_Config_Path_ListConfigs(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 		assert.Equal(t, resp.Data[logical.HTTPContentType], applicationJson)
-		assert.Equal(t, resp.Data[logical.HTTPStatusCode], 200)
+		assert.Equal(t, resp.Data[logical.HTTPStatusCode], http.StatusOK)
 		expectedBody := fmt.Sprintf(
 			"{\"request_id\":\"\",\"lease_id\":\"\",\"renewable\":false,\"lease_duration\":0,\"data\":{\"certificate_authorities\":%s},\"wrap_info\":null,\"warnings\":null,\"auth\":null}",
 			expectedCAListJson)
@@ -458,7 +458,7 @@ func Test_Config_Path_ListConfigs(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 		assert.Equal(t, resp.Data[logical.HTTPContentType], applicationJson)
-		assert.Equal(t, resp.Data[logical.HTTPStatusCode], 200)
+		assert.Equal(t, resp.Data[logical.HTTPStatusCode], http.StatusOK)
 		expectedBody := fmt.Sprintf(
 			"{\"request_id\":\"\",\"lease_id\":\"\",\"renewable\":false,\"lease_duration\":0,\"data\":{\"dns_providers\":%s},\"wrap_info\":null,\"warnings\":null,\"auth\":null}",
 			expectedDNSListJson)
@@ -484,7 +484,7 @@ func Test_Config_Path_ListConfigs(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
-		assert.Equal(t, resp.Data[logical.HTTPStatusCode], 200)
+		assert.Equal(t, resp.Data[logical.HTTPStatusCode], http.StatusOK)
 		expectedBody := fmt.Sprintf(responseBodyTemplate, expectedRootJson)
 		assert.Equal(t, resp.Data[logical.HTTPRawBody].(string), expectedBody)
 	})
@@ -524,7 +524,7 @@ func Test_Config_Path_UpdateConfig(t *testing.T) {
 		expectedMessage := "field: 'name' failed validation: length should be 2 to 256 chars"
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07015)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 		checkConfigInStorage(t, keyBeforeUpdate)
 	})
 
@@ -546,7 +546,7 @@ func Test_Config_Path_UpdateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(smErrors.UnknownFields, []string{"SomeField"})
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error05111)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(422, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusUnprocessableEntity, expectedMessage)))
 		checkConfigInStorage(t, keyBeforeUpdate)
 	})
 
@@ -572,7 +572,7 @@ func Test_Config_Path_UpdateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(configMissingField, providerTypeCA, caConfigPrivateKey)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07018)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 		checkConfigInStorage(t, keyBeforeUpdate)
 	})
 
@@ -598,7 +598,7 @@ func Test_Config_Path_UpdateConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(configNotFound, providerTypeCA, wrongConfigName)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07006)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(404, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusNotFound, expectedMessage)))
 		checkConfigInStorage(t, keyBeforeUpdate)
 	})
 
@@ -623,7 +623,7 @@ func Test_Config_Path_UpdateConfig(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 		assert.Equal(t, resp.Data[logical.HTTPContentType], applicationJson)
-		assert.Equal(t, resp.Data[logical.HTTPStatusCode], 200)
+		assert.Equal(t, resp.Data[logical.HTTPStatusCode], http.StatusOK)
 		checkConfigInStorage(t, validPrivateKey)
 	})
 }
@@ -656,7 +656,7 @@ func Test_Config_Path_DeleteConfig(t *testing.T) {
 		expectedMessage := "field: 'name' failed validation: length should be 2 to 256 chars"
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07015)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 		checkConfigInStorage(t, keyBeforeUpdate)
 	})
 
@@ -677,7 +677,7 @@ func Test_Config_Path_DeleteConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(configNotFound, providerTypeCA, wrongConfigName)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07009)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(404, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusNotFound, expectedMessage)))
 		checkConfigInStorage(t, keyBeforeUpdate)
 	})
 
@@ -740,7 +740,7 @@ func Test_Config_Path_ReadConfig(t *testing.T) {
 		expectedMessage := "field: 'name' failed validation: length should be 2 to 256 chars"
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07015)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(400, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("Config to read doesn't exist", func(t *testing.T) {
@@ -760,7 +760,7 @@ func Test_Config_Path_ReadConfig(t *testing.T) {
 		expectedMessage := fmt.Sprintf(configNotFound, providerTypeCA, wrongConfigName)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07012)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(404, expectedMessage)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusNotFound, expectedMessage)))
 	})
 
 	t.Run("Happy flow for CA config", func(t *testing.T) {
@@ -785,7 +785,7 @@ func Test_Config_Path_ReadConfig(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 		assert.Equal(t, resp.Data[logical.HTTPContentType], applicationJson)
-		assert.Equal(t, resp.Data[logical.HTTPStatusCode], 200)
+		assert.Equal(t, resp.Data[logical.HTTPStatusCode], http.StatusOK)
 		expectedBody := fmt.Sprintf(responseBodyTemplate, expectedCAConfigJson)
 		assert.Equal(t, resp.Data[logical.HTTPRawBody].(string), expectedBody)
 
@@ -814,7 +814,7 @@ func Test_Config_Path_ReadConfig(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 		assert.Equal(t, resp.Data[logical.HTTPContentType], applicationJson)
-		assert.Equal(t, resp.Data[logical.HTTPStatusCode], 200)
+		assert.Equal(t, resp.Data[logical.HTTPStatusCode], http.StatusOK)
 		expectedBody := fmt.Sprintf(responseBodyTemplate, expectedDNSConfigJson)
 		assert.Equal(t, resp.Data[logical.HTTPRawBody].(string), expectedBody)
 
@@ -845,7 +845,7 @@ func Test_Config_Path_AuthorizationCheck(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error05113)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(403, smErrors.StatusForbidden)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusForbidden, smErrors.StatusForbidden)))
 	})
 
 	t.Run("Authorization error when read CA config", func(t *testing.T) {
@@ -863,7 +863,7 @@ func Test_Config_Path_AuthorizationCheck(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error05113)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(403, smErrors.StatusForbidden)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusForbidden, smErrors.StatusForbidden)))
 	})
 
 	t.Run("Authorization error when list CA config", func(t *testing.T) {
@@ -881,7 +881,7 @@ func Test_Config_Path_AuthorizationCheck(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error05113)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(403, smErrors.StatusForbidden)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusForbidden, smErrors.StatusForbidden)))
 	})
 
 	t.Run("Authorization error when read root config", func(t *testing.T) {
@@ -899,7 +899,7 @@ func Test_Config_Path_AuthorizationCheck(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error05113)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(403, smErrors.StatusForbidden)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusForbidden, smErrors.StatusForbidden)))
 	})
 
 	t.Run("Authorization error when delete CA config", func(t *testing.T) {
@@ -917,7 +917,7 @@ func Test_Config_Path_AuthorizationCheck(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error05113)
-		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(403, smErrors.StatusForbidden)))
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusForbidden, smErrors.StatusForbidden)))
 	})
 
 }

@@ -44,7 +44,6 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 		common.ErrorLogForCustomer(secretShouldBeInActiveState, logdna.Error07062, logdna.BadRequestErrorMessage, false)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07062, http.StatusBadRequest, secretShouldBeInActiveState)
 	}
-	//TODO take rotate_key from policy and override with parameter if any
 	rotateKey := data.Get(policies.FieldRotateKeys).(bool)
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
 	var privateKey []byte

@@ -18,12 +18,10 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/idna"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
-	"time"
 )
 
 var (
@@ -32,22 +30,6 @@ var (
 		idna.VerifyDNSLength(true),
 	)
 )
-
-// LoadRootCertPoolFromPath builds a trust store (cert pool) containing our CA's root
-// certificate.
-func LoadRootCertPoolFromPath(rootCertPath string) (*x509.CertPool, error) {
-	root, err := ioutil.ReadFile(rootCertPath)
-	if err != nil {
-		return nil, err
-	}
-
-	pool := x509.NewCertPool() // [Navaneeth] Note: Change this to SystemCertPool to also add certs from system
-	if ok := pool.AppendCertsFromPEM(root); !ok {
-		return nil, errors.New("missing or invalid root certificate")
-	}
-
-	return pool, nil
-}
 
 // LoadRootCertPool builds a trust store (cert pool) containing our CA's root
 // certificate.
@@ -167,10 +149,6 @@ func ExtractFirstEmailFromAccount(retrievedAccount *registration.Resource) (stri
 	return "", fmt.Errorf("no email address in retrieved account")
 }
 
-func IsTimeExpired(timeNow time.Time, timeExpiry time.Time) bool {
-	return timeNow.After(timeExpiry)
-}
-
 func validateNames(names []string) error {
 	//regex copied from here - https://github.com/hashicorp/vault/blob/abfc7a844517c87d5dcd32069e6baf682dfa580d/builtin/logical/pki/cert_util.go#L44
 	// A note on hostnameRegex: although we set the StrictDomainName option
@@ -210,7 +188,7 @@ func validateNames(names []string) error {
 		converted, err := idnaValidator.ToASCII(sanitizedName)
 		if err != nil {
 			msg := fmt.Sprintf(invalidDomain, sanitizedName)
-			common.ErrorLogForCustomer(msg, logdna.Error07105, logdna.BadRequestErrorMessage, true)
+			common.ErrorLogForCustomer(msg+": "+err.Error(), logdna.Error07105, logdna.BadRequestErrorMessage, true)
 			return commonErrors.GenerateCodedError(logdna.Error07105, http.StatusBadRequest, msg)
 		}
 		//this check is for common name only (the first in the array)
