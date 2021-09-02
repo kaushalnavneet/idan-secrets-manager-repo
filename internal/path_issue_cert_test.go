@@ -179,6 +179,58 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07040)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
+
+	t.Run("Not existing CA config", func(t *testing.T) {
+		initBackend()
+		data := map[string]interface{}{
+			secretentry.FieldName:         certName1,
+			secretentry.FieldKeyAlgorithm: keyType,
+			secretentry.FieldCommonName:   commonName,
+			FieldCAConfig:                 "not exist",
+			FieldDNSConfig:                dnsConfig,
+		}
+
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      "secrets",
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := fmt.Sprintf(configNotFound, providerTypeCA, "not exist")
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07012)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
+	})
+
+	t.Run("Not existing DNS config", func(t *testing.T) {
+		initBackend()
+		data := map[string]interface{}{
+			secretentry.FieldName:         certName1,
+			secretentry.FieldKeyAlgorithm: keyType,
+			secretentry.FieldCommonName:   commonName,
+			FieldCAConfig:                 caConfig,
+			FieldDNSConfig:                "not exist",
+		}
+
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      "secrets",
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := fmt.Sprintf(configNotFound, providerTypeDNS, "not exist")
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07012)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
+	})
 }
 
 func initBackend() {
