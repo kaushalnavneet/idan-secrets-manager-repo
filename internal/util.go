@@ -210,7 +210,7 @@ func validateNames(names []string) error {
 		converted, err := idnaValidator.ToASCII(sanitizedName)
 		if err != nil {
 			msg := fmt.Sprintf(invalidDomain, sanitizedName)
-			common.ErrorLogForCustomer(msg, logdna.Error07105, logdna.BadRequestErrorMessage, true)
+			common.ErrorLogForCustomer(msg+": "+err.Error(), logdna.Error07105, logdna.BadRequestErrorMessage, true)
 			return commonErrors.GenerateCodedError(logdna.Error07105, http.StatusBadRequest, msg)
 		}
 		//this check is for common name only (the first in the array)

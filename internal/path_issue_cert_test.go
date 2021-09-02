@@ -181,10 +181,6 @@ func Test_Issue_cert(t *testing.T) {
 	})
 }
 
-func Test_List_cert(t *testing.T) {
-
-}
-
 func initBackend() {
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
 	existingConfigs := RootConfig{
