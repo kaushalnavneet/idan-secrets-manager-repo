@@ -481,14 +481,18 @@ func (ob *OrdersBackend) validateConfigName(d *framework.FieldData) (string, err
 }
 
 func (ob *OrdersBackend) createConfigToStore(name string, providerType string, d *framework.FieldData) (*ProviderConfig, error) {
-	configType := d.Get(FieldType).(string) //was already validated with enum
+	configType, err := ob.validateStringField(d, FieldType, "min=2,max=128", "length should be 2 to 128 chars")
+	if err != nil {
+		errorMessage := err.Error()
+		common.ErrorLogForCustomer(errorMessage, logdna.Error07016, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07016, http.StatusBadRequest, errorMessage)
+	}
 	config, ok := d.Get(FieldConfig).(map[string]string)
 	if !ok || config == nil {
 		common.ErrorLogForCustomer(configWrongStructure, logdna.Error07017, logdna.BadRequestErrorMessage, true)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07017, http.StatusBadRequest, configWrongStructure)
 	}
 	configToStore := NewProviderConfig(name, configType, config)
-	var err error
 	if providerType == providerTypeCA {
 		err = prepareCAConfigToStore(configToStore)
 	} else {
