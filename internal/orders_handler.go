@@ -136,7 +136,7 @@ func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical
 	if strings.Contains(req.Path, "rotate") && req.Operation == logical.UpdateOperation || req.Operation == logical.CreateOperation {
 		oh.startOrder(secretEntry)
 		//config iam endpoint
-	} else if strings.Contains(req.Path, "config/iam") && req.Operation == logical.UpdateOperation {
+	} else if strings.Contains(req.Path, secret_backend.SecretEngineConfigPath) && req.Operation == logical.UpdateOperation {
 		common.Logger().Debug("Get auth config and keep it in plugin configuration ")
 		auth, err := common.ObtainAuthConfigFromStorage(ctx, req.Storage)
 		if err == nil {
