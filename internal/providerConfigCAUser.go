@@ -59,8 +59,13 @@ func (u *CAUserConfig) GetPrivateKey() crypto.PrivateKey {
 }
 
 func NewCAUserConfig(caType, privateKeyPEM, caRootCertPath, email string) (*CAUserConfig, error) {
-	//set directory url according to ca, should be ok because of input validation
-	directoryUrl := caProviders[caType]
+	//set directory url according to ca
+	directoryUrl, ok := caProviders[caType]
+	if !ok { //should not happen because of input validation
+		message := fmt.Sprintf(invalidConfigType, validCaProviders)
+		common.ErrorLogForCustomer(message, logdna.Error07020, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07020, http.StatusBadRequest, message)
+	}
 	var privateKey crypto.PrivateKey
 	var err error
 	byoa := privateKeyPEM != ""

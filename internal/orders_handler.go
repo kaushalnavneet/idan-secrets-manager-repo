@@ -418,13 +418,13 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		extraData = map[string]interface{}{
 			FieldIssuanceInfo: metadata.IssuanceInfo,
 		}
-		err := secretEntry.UpdateSecretDataV2(data, secretEntry.CreatedBy, extraData)
-		if err != nil {
-			return
-		}
 		secretEntry.ExtraData = metadata
-		secretEntry.State = secretentry.StateDeactivated
+		//update secret state only in the first order, not in rotation
+		if secretEntry.State == secretentry.StatePreActivation {
+			secretEntry.State = secretentry.StateDeactivated
+		}
 	} else {
+		//update secret entry with the newly created certificate data
 		cert := string(res.certificate.Certificate)
 		inter := string(res.certificate.IssuerCertificate)
 		priv := string(res.certificate.PrivateKey)
@@ -453,6 +453,11 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 			secretentry.FieldSerialNumber: certData.Metadata.SerialNumber,
 			FieldIssuanceInfo:             certData.Metadata.IssuanceInfo,
 		}
+		//if entry state is PreActivation,it's the first order, remove first empty version
+		if secretEntry.State == secretentry.StatePreActivation {
+			secretEntry.Versions = make([]secretentry.SecretVersion, 0)
+		}
+		//add a new version with the new ordered certificate
 		err = secretEntry.UpdateSecretDataV2(data, secretEntry.CreatedBy, extraData)
 		if err != nil {
 			return
