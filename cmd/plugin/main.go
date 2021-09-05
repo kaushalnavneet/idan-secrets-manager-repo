@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/vault/sdk/plugin"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
+	"github.ibm.com/security-services/secrets-manager-vault-plugin-public-cert-secret/cmd/version"
 	"github.ibm.com/security-services/secrets-manager-vault-plugin-public-cert-secret/internal"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"net/http"
@@ -27,6 +28,8 @@ func main() {
 		ConcreteSecretBackend: &ordersBackend,
 		PluginName:            "Public Certificates",
 		PluginMountPath:       publiccerts.PluginMountPath,
+		PluginBuildId:         version.BuildId,
+		PluginCommitId:        version.GitCommit,
 		BackendHelp:           "",
 		PathInvalidHelp:       "",
 		ResponseCodeForAction: map[string]int{
