@@ -395,7 +395,7 @@ func (ob *OrdersBackend) pathConfigRead(ctx context.Context, req *logical.Reques
 	}
 
 	providerType := getProviderType(req)
-	foundConfig, err := getConfigByName(name, providerType, ctx, req)
+	foundConfig, err := getConfigByName(name, providerType, ctx, req, http.StatusNotFound)
 	if err != nil {
 		return nil, err
 	}
@@ -517,7 +517,7 @@ func (ob *OrdersBackend) validateRequest(ctx context.Context, req *logical.Reque
 	return nil, nil
 }
 
-func getConfigByName(name string, providerType string, ctx context.Context, req *logical.Request) (*ProviderConfig, error) {
+func getConfigByName(name string, providerType string, ctx context.Context, req *logical.Request, notFoundStatus int) (*ProviderConfig, error) {
 	// lock for reading
 	secretsConfigLock.RLock()
 	defer secretsConfigLock.RUnlock()
@@ -542,7 +542,7 @@ func getConfigByName(name string, providerType string, ctx context.Context, req 
 	if foundConfig == nil {
 		errorMessage := fmt.Sprintf(configNotFound, providerType, name)
 		common.ErrorLogForCustomer(errorMessage, logdna.Error07012, logdna.NotFoundErrorMessage, true)
-		return nil, commonErrors.GenerateCodedError(logdna.Error07012, http.StatusNotFound, errorMessage)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07012, notFoundStatus, errorMessage)
 	}
 
 	return foundConfig, nil

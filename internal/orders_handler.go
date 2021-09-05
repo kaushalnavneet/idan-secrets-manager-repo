@@ -136,7 +136,7 @@ func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical
 	if strings.Contains(req.Path, "rotate") && req.Operation == logical.UpdateOperation || req.Operation == logical.CreateOperation {
 		oh.startOrder(secretEntry)
 		//config iam endpoint
-	} else if strings.Contains(req.Path, "config/iam") && req.Operation == logical.UpdateOperation {
+	} else if strings.Contains(req.Path, secret_backend.SecretEngineConfigPath) && req.Operation == logical.UpdateOperation {
 		common.Logger().Debug("Get auth config and keep it in plugin configuration ")
 		auth, err := common.ObtainAuthConfigFromStorage(ctx, req.Storage)
 		if err == nil {
@@ -303,12 +303,12 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	dnsConfigName := data.IssuanceInfo[FieldDNSConfig].(string)
 	isBundle := data.IssuanceInfo[FieldBundleCert].(bool)
 	//get ca config from the storage
-	caConfig, err := getConfigByName(caConfigName, providerTypeCA, ctx, req)
+	caConfig, err := getConfigByName(caConfigName, providerTypeCA, ctx, req, http.StatusBadRequest)
 	if err != nil {
 		return err
 	}
 	//get dns config from the storage
-	dnsConfig, err := getConfigByName(dnsConfigName, providerTypeDNS, ctx, req)
+	dnsConfig, err := getConfigByName(dnsConfigName, providerTypeDNS, ctx, req, http.StatusBadRequest)
 	if err != nil {
 		return err
 	}
