@@ -129,6 +129,28 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusUnprocessableEntity, expectedMessage)))
 	})
 
+	t.Run("Invalid config type", func(t *testing.T) {
+		data := map[string]interface{}{
+			FieldName: configName,
+			FieldType: "",
+		}
+
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      ConfigDNSPath,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := "field: 'type' failed validation: length should be 2 to 128 chars"
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07016)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
+	})
+
 	t.Run("Config name already exists", func(t *testing.T) {
 		existingName := "existingName"
 		existingConfigs := RootConfig{
@@ -548,6 +570,27 @@ func Test_Config_Path_UpdateConfig(t *testing.T) {
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error05111)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusUnprocessableEntity, expectedMessage)))
 		checkConfigInStorage(t, keyBeforeUpdate)
+	})
+
+	t.Run("Wrong config type", func(t *testing.T) {
+		data := map[string]interface{}{
+			FieldName: configName + "2",
+		}
+
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      ConfigCAPath,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := "field: 'type' failed validation: length should be 2 to 128 chars"
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07016)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("CA - Missing private key", func(t *testing.T) {
