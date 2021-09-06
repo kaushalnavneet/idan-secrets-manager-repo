@@ -33,7 +33,7 @@ type HttpClientWrapper struct {
 type WorkItem struct {
 	requestID uuid.UUID //to identify order request in worker pool
 	//order data
-	userConfig *CAUserConfig
+	caConfig   *CAUserConfig
 	dnsConfig  *ProviderConfig
 	keyType    certcrypto.KeyType
 	privateKey []byte
@@ -163,13 +163,13 @@ func (w *WorkerPool) issueCertificate(workItem WorkItem) (*Result, error) {
 
 	// [Navaneeth] Note: - we want to avoid creating multiple connections, so create one only if a cached
 	// connection does not exist
-	httpClient, err := w.getOrCreateHttpClient(workItem.userConfig)
+	httpClient, err := w.getOrCreateHttpClient(workItem.caConfig)
 	if err != nil {
 		common.Logger().Error("Http client create/get error: " + err.Error())
 		return nil, err
 	}
 
-	client, err := NewACMEClientWithCustomHttpClient(workItem.userConfig, workItem.keyType, httpClient)
+	client, err := NewACMEClientWithCustomHttpClient(workItem.caConfig, workItem.keyType, httpClient)
 
 	if err != nil {
 		return nil, err

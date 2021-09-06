@@ -142,15 +142,15 @@ func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical
 		if err == nil {
 			oh.pluginConfig = auth
 		}
-		//configure certificates auto-renewal cron job if needed
-		ConfigAutoRenewalJob(auth, oh.cron)
+		//configure certificates auto-rotation cron job if needed
+		ConfigAutoRotationJob(auth, oh.cron)
 	}
 	return nil, nil
 }
 
 // MapSecretEntry Map secret entry to
 func (oh *OrdersHandler) MapSecretEntry(entry *secretentry.SecretEntry, operation logical.Operation, includeSecretData bool) map[string]interface{} {
-	//for order and renew
+	//for order and rotate
 	if operation == logical.CreateOperation || operation == logical.UpdateOperation {
 		return oh.buildOrderResponse(entry)
 	} else { //for all other cases
@@ -343,12 +343,12 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	}
 
 	workItem := WorkItem{
-		storage:    req.Storage,
-		userConfig: ca,
-		keyType:    keyType,
-		dnsConfig:  dnsConfig,
-		domains:    domains,
-		isBundle:   isBundle,
+		storage:   req.Storage,
+		caConfig:  ca,
+		keyType:   keyType,
+		dnsConfig: dnsConfig,
+		domains:   domains,
+		isBundle:  isBundle,
 	}
 	if privateKey != nil && len(privateKey) > 0 {
 		certPrivKey, err := certcrypto.ParsePEMPrivateKey(privateKey)
@@ -510,54 +510,71 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.
 	return nil
 }
 
-//is called from path_renew for every certificate in the storage
-func (oh *OrdersHandler) renewCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
-	if !isRenewNeeded(entry) {
-		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be renewed", entry.Name, entry.ID))
+//is called from path_rotate for every certificate in the storage
+func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
+	if !isRotationNeeded(entry) {
+		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be rotated", entry.Name, entry.ID))
 		return nil
 	}
-	common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s SHOULD be renewed", entry.Name, entry.ID))
+	startOrder := true
+	common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s SHOULD be rotated", entry.Name, entry.ID))
 	rotateKey := entry.Policies.Rotation.RotateKeys()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
 	var privateKey []byte
 	if !rotateKey {
-		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s will be renewed with the same private key", entry.Name, entry.ID))
+		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s will be rotated with the same private key", entry.Name, entry.ID))
 		rawdata, _ := certificate.DecodeRawData(entry.LastVersionData())
 		privateKey = []byte(rawdata.PrivateKey)
 	}
 
-	//validate all the data and prepare it for order
-	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
 	metadata.IssuanceInfo[FieldOrderedOn] = time.Now().UTC().Format(time.RFC3339)
 	metadata.IssuanceInfo[FieldAutoRotated] = true
 	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
 	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
 	entry.ExtraData = metadata
+	//validate all the data and prepare it for order
+	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
+	if err != nil {
+		startOrder = false
+		common.Logger().Error("Couldn't start auto rotation.", err)
+		if codedError, ok := err.(commonErrors.SMCodedError); ok {
+			metadata.IssuanceInfo[FieldErrorCode] = codedError.ErrCode()
+			metadata.IssuanceInfo[FieldErrorMessage] = codedError.Error()
+		} else {
+			metadata.IssuanceInfo[FieldErrorCode] = logdna.Error07110
+			metadata.IssuanceInfo[FieldErrorMessage] = err.Error()
+
+		}
+		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
+		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
+	}
 	//save updated entry
 	err = common.StoreSecretWithoutLocking(entry, req.Storage, context.Background())
 	if err != nil {
-		common.Logger().Error("Couldn't save order result to storage: " + err.Error())
+		startOrder = false
+		common.Logger().Error("Couldn't save auto rotation order data to storage: " + err.Error())
 	}
-
-	oh.startOrder(entry)
+	if startOrder {
+		oh.startOrder(entry)
+	}
 	return nil
 }
 
-func (oh *OrdersHandler) cleanupAfterRenewCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
-	if !isRenewNeeded(entry) {
-		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be renewed", entry.Name, entry.ID))
+func (oh *OrdersHandler) cleanupAfterRotationCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
+	if !isRotationNeeded(entry) {
+		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be rotated", entry.Name, entry.ID))
 		return nil
 	}
-	common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s  SHOULD have been renewed but WAS NOT ", entry.Name, entry.ID))
+	common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s  SHOULD have been rotated but WAS NOT ", entry.Name, entry.ID))
 	return nil
 }
 
-func isRenewNeeded(entry *secretentry.SecretEntry) bool {
+func isRotationNeeded(entry *secretentry.SecretEntry) bool {
 	if entry.State == secretentry.StateActive && entry.Policies.Rotation != nil && entry.Policies.Rotation.AutoRotate() {
 		now := time.Now().UTC()
 		midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		startExpirationPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays)
-		endExpirationPeriod := midnight.AddDate(0, 0, RenewIfExpirationIsInDays+1)
+		startExpirationPeriod := midnight.AddDate(0, 0, RotateIfExpirationIsInDays)
+		endExpirationPeriod := midnight.AddDate(0, 0, RotateIfExpirationIsInDays+1)
 		certExpiration := *entry.ExpirationDate
 		return certExpiration.After(startExpirationPeriod) && certExpiration.Before(endExpirationPeriod)
 	} else {
@@ -619,7 +636,7 @@ func getRotationPolicy(rawPolicy interface{}) (*policies.RotationPolicy, error) 
 	}
 	//todo 90 is for LetsEncrypt. need to set it according to CA
 	if autoRotate {
-		rotationPolicy.Rotation.Interval = 90 - RenewIfExpirationIsInDays
+		rotationPolicy.Rotation.Interval = 90 - RotateIfExpirationIsInDays
 	}
 
 	return &rotationPolicy, nil

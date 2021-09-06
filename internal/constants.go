@@ -20,10 +20,10 @@ const (
 	FieldAutoRotated  = "auto_rotated"
 	FieldIssuanceInfo = "issuance_info"
 
-	endCertificate       = "-----END CERTIFICATE-----"
-	errorPattern         = `{"error_code":"%s","error_message":"%s"}`
-	AutoRenewPath        = "autorenew"
-	AutoRenewCleanupPath = "autorenew/final"
+	endCertificate        = "-----END CERTIFICATE-----"
+	errorPattern          = `{"error_code":"%s","error_message":"%s"}`
+	AutoRotatePath        = "autorotate"
+	AutoRotateCleanupPath = "autorotate/final"
 )
 
 const (
@@ -36,11 +36,11 @@ const (
 )
 
 const (
-	MaxWorkers                              = 1
-	MaxCertRequest                          = 50
-	CertRequestTimeout        time.Duration = 60 * 20 //wait 20 minutes till fail order
-	RenewIfExpirationIsInDays               = 30
-	txtRecordTtl                            = 120
+	MaxWorkers                               = 1
+	MaxCertRequest                           = 50
+	CertRequestTimeout         time.Duration = 60 * 20 //wait 20 minutes till fail order
+	RotateIfExpirationIsInDays               = 30
+	txtRecordTtl                             = 120
 )
 
 //paths
