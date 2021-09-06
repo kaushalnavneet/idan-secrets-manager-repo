@@ -422,7 +422,6 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		//update secret state only in the first order, not in rotation
 		if secretEntry.State == secretentry.StatePreActivation {
 			secretEntry.State = secretentry.StateDeactivated
-			//add a new version with the new ordered certificate
 			err := secretEntry.UpdateSecretDataV2(data, secretEntry.CreatedBy, extraData)
 			if err != nil {
 				return
