@@ -150,6 +150,11 @@ func ExtractFirstEmailFromAccount(retrievedAccount *registration.Resource) (stri
 }
 
 func validateNames(names []string) error {
+	if len(names) > 100 {
+		msg := tooManyDomain
+		common.ErrorLogForCustomer(msg, logdna.Error07101, logdna.BadRequestErrorMessage, true)
+		return commonErrors.GenerateCodedError(logdna.Error07101, http.StatusBadRequest, msg)
+	}
 	//regex copied from here - https://github.com/hashicorp/vault/blob/abfc7a844517c87d5dcd32069e6baf682dfa580d/builtin/logical/pki/cert_util.go#L44
 	// A note on hostnameRegex: although we set the StrictDomainName option
 	// when doing the idna conversion, this appears to only affect output, not

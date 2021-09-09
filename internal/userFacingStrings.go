@@ -34,7 +34,8 @@ const (
 
 //Order validation errors
 const (
-	commonNameTooLong = "A primary domain name can't be longer than 64 bytes" //Error07106
+	tooManyDomain     = "The number of domains and subdomains can't exceed 100." //Error07101
+	commonNameTooLong = "A primary domain name can't be longer than 64 bytes"    //Error07106
 	redundantDomain   = `At least one of the specified domains is already covered by a wildcard domain for this certificate. 
 Remove the extra domain or the wildcard domain from the certificate order.`  //Error07109
 	invalidDomain               = "Domain %s is not valid"                                                                  //Error07105, Error07107
