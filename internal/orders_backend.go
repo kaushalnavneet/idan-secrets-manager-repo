@@ -60,8 +60,8 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 		ob.pathCertificate(),
 		ob.pathGetVersion(),
 		ob.pathGetVersionMetadata(),
-		//autorenew+cleanup
-		ob.pathAutoRenew(),
+		//autorotate+cleanup
+		ob.pathAutoRotate(),
 	)
 }
 

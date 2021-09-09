@@ -2,7 +2,8 @@ package publiccerts
 
 //common error
 const internalServerError = "Internal server error. Your request couldn't be processed. If the issue persists, note the correlation-id in the response header and contact IBM Cloud support."
- //Error07059,Error07061,Error07067,Error07088,Error07055,Error07091,Error07092,Error07001,Error07004,
+
+//Error07059,Error07061,Error07067,Error07088,Error07055,Error07091,Error07092,Error07001,Error07004,
 // Error07005,Error07007,Error07008,Error07010,Error07013,Error07014,Error07011,Error07022
 
 //errors in Configs
@@ -16,11 +17,11 @@ const (
 	configMissingField   = "%s configuration missing property %s"                                                                  //Error07025, Error07033, Error07034, Error07018
 	invalidConfigStruct  = "%s configuration of type '%s' has an invalid structure. It can contain only properties %s"             //Error07028, Error07035, Error07019
 	configWrongStructure = "'config' field is not valid. It should be key-value map"                                               //Error07017
-	invalidConfigType    = "Configuration type should be one of [%s]"                                                                     //Error07020
-	configNameWithSpace  = "Configuration name can't contain spaces"                                                                      //Error07043
+	invalidConfigType    = "Configuration type should be one of [%s]"                                                              //Error07020
+	configNameWithSpace  = "Configuration name can't contain spaces"                                                               //Error07043
 
 	//specific CA
-	invalidKey     = "Certificate authority private key is not valid: %s"                  //Error07039, Error07041, Error07021, Error07024,  Error07064
+	invalidKey     = "Certificate authority private key is not valid: %s"                   //Error07039, Error07041, Error07021, Error07024,  Error07064
 	wrongCAAccount = "Failed to retrieve the certificate authority account information: %s" //Error07023
 )
 
@@ -223,7 +224,7 @@ The limit and offset parameters are used for pagination.`
 
 //path  Rotate certificate
 const (
-	pathRotateHelpSynopsis    = "Renew a certificate"
+	pathRotateHelpSynopsis    = "Rotate a certificate"
 	pathRotateHelpDescription = "This path takes a secretId and attempts to perform a rotate operation on the secret with this secretId."
 
 	rotateOperationSummary     = "Rotate a certificate"

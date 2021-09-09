@@ -41,8 +41,8 @@ func TestOrdersBackend_GetConcretePath(t *testing.T) {
 	assert.Equal(t, res[15].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/(?P<version_id>\\w(([\\w-.]+)?\\w)?)")
 	assert.Equal(t, res[16].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/(?P<version_id>\\w(([\\w-.]+)?\\w)?)/metadata")
 	assert.Equal(t, res[17].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/(?P<version_id>\\w(([\\w-.]+)?\\w)?)/metadata")
-	assert.Equal(t, res[18].Pattern, "autorenew")
-	assert.Equal(t, res[19].Pattern, "autorenew/final")
+	assert.Equal(t, res[18].Pattern, "autorotate")
+	assert.Equal(t, res[19].Pattern, "autorotate/final")
 }
 
 func TestOrdersBackend_SetSecretBackend(t *testing.T) {

@@ -86,7 +86,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		//assert.Equal(t, resp.Data[logical.HTTPRawBody].(string), expectedBody)
 	})
 
-	t.Run("Invalid name", func(t *testing.T) {
+	t.Run("Invalid short name", func(t *testing.T) {
 		data := map[string]interface{}{
 			FieldName: "",
 		}
@@ -104,6 +104,27 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		expectedMessage := "field: 'name' failed validation: length should be 2 to 256 chars"
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07015)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
+	})
+
+	t.Run("Invalid name with spaces", func(t *testing.T) {
+		data := map[string]interface{}{
+			FieldName: "same same",
+		}
+
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      ConfigDNSPath,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := configNameWithSpace
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07043)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
@@ -127,6 +148,51 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error05111)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusUnprocessableEntity, expectedMessage)))
+	})
+
+	t.Run("Invalid short config type", func(t *testing.T) {
+		data := map[string]interface{}{
+			FieldName: configName + "wrong",
+			FieldType: "",
+		}
+
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      ConfigDNSPath,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := "field: 'type' failed validation: length should be 2 to 128 chars"
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07016)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
+	})
+
+	t.Run("Invalid config", func(t *testing.T) {
+		data := map[string]interface{}{
+			FieldName:   configName + "good",
+			FieldType:   dnsConfigTypeCIS,
+			FieldConfig: "{}",
+		}
+
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      ConfigDNSPath,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		assert.NilError(t, err)
+		assert.Equal(t, true, resp.IsError())
+		expectedMessage := `Field validation failed: error converting input {} for field "config": invalid key pair "{}"`
+		assert.Equal(t, resp.Data["error"], expectedMessage)
 	})
 
 	t.Run("Config name already exists", func(t *testing.T) {
@@ -548,6 +614,27 @@ func Test_Config_Path_UpdateConfig(t *testing.T) {
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error05111)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusUnprocessableEntity, expectedMessage)))
 		checkConfigInStorage(t, keyBeforeUpdate)
+	})
+
+	t.Run("Missing config type", func(t *testing.T) {
+		data := map[string]interface{}{
+			FieldName: configName + "2",
+		}
+
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      ConfigCAPath,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := "field: 'type' failed validation: length should be 2 to 128 chars"
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07016)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
 
 	t.Run("CA - Missing private key", func(t *testing.T) {
