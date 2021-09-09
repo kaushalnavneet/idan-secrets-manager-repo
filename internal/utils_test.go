@@ -41,10 +41,16 @@ func Test_Utils_ValidateDomains(t *testing.T) {
 		assert.DeepEqual(t, err, commonErrors.GenerateCodedError(logdna.Error07109, http.StatusBadRequest, expectedMessage))
 	})
 
-	t.Run("Too long domains", func(t *testing.T) {
+	t.Run("Too long domain", func(t *testing.T) {
 		err := validateNames([]string{"longlonglonglonglonglonglonglong.longlonglonglonglonglonglonglong.longlonglonglonglonglonglonglong.test1.secrets-manager.test.appdomain.cloud"})
 		expectedMessage := commonNameTooLong
 		assert.DeepEqual(t, err, commonErrors.GenerateCodedError(logdna.Error07106, http.StatusBadRequest, expectedMessage))
+	})
+
+	t.Run("Too many domains", func(t *testing.T) {
+		err := validateNames(make([]string, 101))
+		expectedMessage := tooManyDomain
+		assert.DeepEqual(t, err, commonErrors.GenerateCodedError(logdna.Error07101, http.StatusBadRequest, expectedMessage))
 	})
 }
 
