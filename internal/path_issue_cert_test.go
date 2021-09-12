@@ -24,7 +24,7 @@ const (
 
 	certDesc = "Description"
 	groupId  = "40d085c5-1abd-4086-9b09-3b641b600df5"
-	keyType  = "ECDSA256"
+	keyType  = "RSA2048"
 )
 
 var (
