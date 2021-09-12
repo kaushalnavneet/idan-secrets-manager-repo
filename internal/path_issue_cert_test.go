@@ -47,7 +47,7 @@ func Test_Issue_cert(t *testing.T) {
 
 		req := &logical.Request{
 			Operation: logical.CreateOperation,
-			Path:      "secrets",
+			Path:      PathSecrets,
 			Storage:   storage,
 			Data:      data,
 			Connection: &logical.Connection{
@@ -95,7 +95,7 @@ func Test_Issue_cert(t *testing.T) {
 
 		req := &logical.Request{
 			Operation: logical.CreateOperation,
-			Path:      "secrets",
+			Path:      PathSecrets,
 			Storage:   storage,
 			Data:      data,
 			Connection: &logical.Connection{
@@ -129,6 +129,50 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], true)
 	})
 
+	t.Run("Happy flow + rotation when it's still pre-activate", func(t *testing.T) {
+		initBackend()
+
+		data := map[string]interface{}{
+			secretentry.FieldName:       certName1,
+			secretentry.FieldCommonName: commonName,
+			FieldCAConfig:               caConfig,
+			FieldDNSConfig:              dnsConfig,
+		}
+
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      PathSecrets,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		assert.NilError(t, err)
+		assert.Equal(t, false, resp.IsError())
+
+		//rotate created secret
+		createdSecretId := resp.Data[secretentry.FieldId].(string)
+		data = map[string]interface{}{
+			policies.FieldRotateKeys: false,
+		}
+		req = &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      PathSecrets + createdSecretId + "/rotate",
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err = b.HandleRequest(context.Background(), req)
+		expectedMessage := secretShouldBeInActiveState
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07062)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
+	})
+
 	t.Run("Invalid domain", func(t *testing.T) {
 		initBackend()
 		data := map[string]interface{}{
@@ -140,7 +184,7 @@ func Test_Issue_cert(t *testing.T) {
 
 		req := &logical.Request{
 			Operation: logical.CreateOperation,
-			Path:      "secrets",
+			Path:      PathSecrets,
 			Storage:   storage,
 			Data:      data,
 			Connection: &logical.Connection{
@@ -166,7 +210,7 @@ func Test_Issue_cert(t *testing.T) {
 
 		req := &logical.Request{
 			Operation: logical.CreateOperation,
-			Path:      "secrets",
+			Path:      PathSecrets,
 			Storage:   storage,
 			Data:      data,
 			Connection: &logical.Connection{
@@ -192,7 +236,7 @@ func Test_Issue_cert(t *testing.T) {
 
 		req := &logical.Request{
 			Operation: logical.CreateOperation,
-			Path:      "secrets",
+			Path:      PathSecrets,
 			Storage:   storage,
 			Data:      data,
 			Connection: &logical.Connection{
@@ -218,7 +262,7 @@ func Test_Issue_cert(t *testing.T) {
 
 		req := &logical.Request{
 			Operation: logical.CreateOperation,
-			Path:      "secrets",
+			Path:      PathSecrets,
 			Storage:   storage,
 			Data:      data,
 			Connection: &logical.Connection{
