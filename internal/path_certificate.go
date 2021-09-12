@@ -46,6 +46,13 @@ func (ob *OrdersBackend) pathCertificate() []*framework.Path {
 			HelpSynopsis:    pathSecretHelpSynopsis,
 			HelpDescription: pathSecretHelpDescription,
 		},
+		{
+			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId),
+			Fields:          fields,
+			Operations:      operations,
+			HelpSynopsis:    pathSecretHelpSynopsis,
+			HelpDescription: pathSecretHelpDescription,
+		},
 	}
 
 }

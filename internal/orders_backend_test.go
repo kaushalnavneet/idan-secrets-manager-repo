@@ -22,7 +22,7 @@ func TestOrdersBackend_GetConcretePath(t *testing.T) {
 	res := b.GetConcretePath()
 
 	//We have 12 paths
-	assert.Equal(t, len(res), 20)
+	assert.Equal(t, len(res), 21)
 	assert.Equal(t, res[0].Pattern, "config/certificate_authorities")
 	assert.Equal(t, res[1].Pattern, "config/certificate_authorities/(?P<name>\\w(([\\w-.]+)?\\w)?)")
 	assert.Equal(t, res[2].Pattern, "config/dns_providers")
@@ -37,12 +37,13 @@ func TestOrdersBackend_GetConcretePath(t *testing.T) {
 	assert.Equal(t, res[11].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/metadata")
 	assert.Equal(t, res[12].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/metadata")
 	assert.Equal(t, res[13].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)")
-	assert.Equal(t, res[14].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/(?P<version_id>\\w(([\\w-.]+)?\\w)?)")
-	assert.Equal(t, res[15].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/(?P<version_id>\\w(([\\w-.]+)?\\w)?)")
-	assert.Equal(t, res[16].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/(?P<version_id>\\w(([\\w-.]+)?\\w)?)/metadata")
-	assert.Equal(t, res[17].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/(?P<version_id>\\w(([\\w-.]+)?\\w)?)/metadata")
-	assert.Equal(t, res[18].Pattern, "autorotate")
-	assert.Equal(t, res[19].Pattern, "autorotate/final")
+	assert.Equal(t, res[14].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)")
+	assert.Equal(t, res[15].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/(?P<version_id>\\w(([\\w-.]+)?\\w)?)")
+	assert.Equal(t, res[16].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/(?P<version_id>\\w(([\\w-.]+)?\\w)?)")
+	assert.Equal(t, res[17].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/(?P<version_id>\\w(([\\w-.]+)?\\w)?)/metadata")
+	assert.Equal(t, res[18].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/(?P<version_id>\\w(([\\w-.]+)?\\w)?)/metadata")
+	assert.Equal(t, res[19].Pattern, "autorotate")
+	assert.Equal(t, res[20].Pattern, "autorotate/final")
 }
 
 func TestOrdersBackend_SetSecretBackend(t *testing.T) {
