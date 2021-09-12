@@ -146,7 +146,7 @@ func ExtractFirstEmailFromAccount(retrievedAccount *registration.Resource) (stri
 			return email, nil
 		}
 	}
-	return "", fmt.Errorf("no email address in retrieved account")
+	return "", nil
 }
 
 func validateNames(names []string) error {

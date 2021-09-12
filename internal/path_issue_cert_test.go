@@ -16,11 +16,13 @@ import (
 )
 
 const (
-	certName1  = "certName1"
-	certName2  = "certName2"
-	dnsConfig  = "dnsConfig"
-	caConfig   = "caConfig"
-	commonName = "domain.com"
+	certName1   = "certName1"
+	certName2   = "certName2"
+	certName3   = "certName3"
+	dnsConfig   = "dnsConfig"
+	caConfig    = "caConfig"
+	commonName  = "domain.com"
+	commonName2 = "domain2.com"
 
 	certDesc = "Description"
 	groupId  = "40d085c5-1abd-4086-9b09-3b641b600df5"
@@ -34,6 +36,7 @@ var (
 )
 
 func Test_Issue_cert(t *testing.T) {
+	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
 
 	t.Run("Happy flow with required fields, check defaults", func(t *testing.T) {
 		initBackend()
@@ -133,8 +136,8 @@ func Test_Issue_cert(t *testing.T) {
 		initBackend()
 
 		data := map[string]interface{}{
-			secretentry.FieldName:       certName1,
-			secretentry.FieldCommonName: commonName,
+			secretentry.FieldName:       certName3,
+			secretentry.FieldCommonName: commonName2,
 			FieldCAConfig:               caConfig,
 			FieldDNSConfig:              dnsConfig,
 		}
@@ -278,7 +281,6 @@ func Test_Issue_cert(t *testing.T) {
 }
 
 func initBackend() {
-	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
 	existingConfigs := RootConfig{
 		CaConfigs: []*ProviderConfig{{
 			Name: caConfig,
