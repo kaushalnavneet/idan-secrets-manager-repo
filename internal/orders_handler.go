@@ -187,13 +187,23 @@ func (oh *OrdersHandler) GetInputPolicies(data *framework.FieldData) (*policies.
 		return nil, err
 	}
 	return requestPolicies, nil
-
 }
 
 func (oh *OrdersHandler) BuildPoliciesResponse(entry *secretentry.SecretEntry, policyType string) map[string]interface{} {
 	rotation := entry.Policies.Rotation.FieldsToMap([]string{policies.FieldAutoRotate, policies.FieldRotateKeys})
 	policyMap := make([]map[string]interface{}, 1)
 	policyMap[0] = rotation
+	certExpiration := *entry.ExpirationDate
+	//only if certificate is active and auto_rotate==true
+	//and less than RotateIfExpirationIsInDays days left from UpdatedAt date till certExpiration date
+	if entry.State == secretentry.StateActive &&
+		entry.Policies.Rotation.AutoRotate() &&
+		entry.Policies.Rotation.Metadata.UpdatedAt.Add(RotateIfExpirationIsInDays*24*time.Hour).After(certExpiration) {
+		rotation["warning"] = commonErrors.Warning{
+			Code:    logdna.Warn07001,
+			Message: policyWasUpdatedTooLate,
+		}
+	}
 	policiesMap := map[string]interface{}{policies.FieldPolicies: policyMap}
 	return policiesMap
 }
