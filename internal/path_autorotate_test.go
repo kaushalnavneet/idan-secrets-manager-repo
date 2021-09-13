@@ -19,13 +19,13 @@ import (
 //certificates ids and crns
 var (
 	expiresIn30Days_autoRotateTrue_id                = uuid.New().String()
-	expiresIn80Days_autoRotateTrue_id                = uuid.New().String()
+	expiresIn20Days_autoRotateTrue_id                = uuid.New().String()
 	expiresIn30Days_autoRotateFalse_id               = uuid.New().String()
 	failedOrder_id                                   = uuid.New().String()
 	expiresIn30Days_autoRotateTrue_notExistConfig_id = uuid.New().String()
 
 	expiresIn30Days_autoRotateTrue_crn                = strings.Replace(smInstanceCrn, "::", ":secret:", 1) + expiresIn30Days_autoRotateTrue_id
-	expiresIn80Days_autoRotateTrue_crn                = strings.Replace(smInstanceCrn, "::", ":secret:", 1) + expiresIn80Days_autoRotateTrue_id
+	expiresIn20Days_autoRotateTrue_crn                = strings.Replace(smInstanceCrn, "::", ":secret:", 1) + expiresIn20Days_autoRotateTrue_id
 	expiresIn30Days_autoRotateFalse_crn               = strings.Replace(smInstanceCrn, "::", ":secret:", 1) + expiresIn30Days_autoRotateFalse_id
 	failedOrder_crn                                   = strings.Replace(smInstanceCrn, "::", ":secret:", 1) + failedOrder_id
 	expiresIn30Days_autoRotateTrue_notExistConfig_crn = strings.Replace(smInstanceCrn, "::", ":secret:", 1) + expiresIn30Days_autoRotateTrue_notExistConfig_id
@@ -53,7 +53,7 @@ var (
 	}}
 	today              = time.Now()
 	expirationIn30Days = today.Add(RotateIfExpirationIsInDays * 24 * time.Hour)
-	expirationIn80Days = today.Add(80 * 24 * time.Hour)
+	expirationIn20Days = today.Add(20 * 24 * time.Hour)
 
 	certMetadata = certificate.CertificateMetadata{
 		KeyAlgorithm: keyType,
@@ -100,16 +100,16 @@ var (
 		GroupID: "",
 		State:   secretentry.StateActive,
 	}
-	expiresIn80Days_autoRotateTrue = &secretentry.SecretEntry{
-		ID:             expiresIn80Days_autoRotateTrue_id,
-		Name:           "expiresIn80Days_autoRotateTrue",
+	expiresIn20Days_autoRotateTrue = &secretentry.SecretEntry{
+		ID:             expiresIn20Days_autoRotateTrue_id,
+		Name:           "expiresIn20Days_autoRotateTrue",
 		Description:    certDesc,
 		Labels:         []string{},
 		ExtraData:      certMetadata,
 		Versions:       versions,
 		CreatedAt:      today.Add(-10 * 24 * time.Hour),
 		CreatedBy:      createdBy,
-		ExpirationDate: &expirationIn80Days,
+		ExpirationDate: &expirationIn20Days,
 		TTL:            0,
 		Policies: policies.Policies{
 			Rotation: &policies.RotationPolicy{
@@ -119,7 +119,7 @@ var (
 				},
 				Type: policies.MIMETypeForPolicyResource}},
 		Type:    secretentry.SecretTypePublicCert,
-		CRN:     expiresIn80Days_autoRotateTrue_crn,
+		CRN:     expiresIn20Days_autoRotateTrue_crn,
 		GroupID: "",
 		State:   secretentry.StateActive,
 	}
@@ -222,6 +222,14 @@ func Test_AutoRotate(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
+
+		//should not be changed
+		getSecretAndCheckItsContent(t, expiresIn20Days_autoRotateTrue_id, expiresIn20Days_autoRotateTrue, certMetadata.IssuanceInfo)
+		//should not be changed
+		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateFalse_id, expiresIn30Days_autoRotateFalse, certMetadata.IssuanceInfo)
+		//should not be changed
+		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateFalse_id, expiresIn30Days_autoRotateFalse, certMetadata.IssuanceInfo)
+		//should become Preactivation
 		expectedIssuanceInfoForRotatedCert := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StatePreActivation,
 			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StatePreActivation),
@@ -229,19 +237,32 @@ func Test_AutoRotate(t *testing.T) {
 			FieldCAConfig:                     caConfig,
 			FieldDNSConfig:                    dnsConfig,
 			FieldAutoRotated:                  true}
-
+		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateTrue_id, expiresIn30Days_autoRotateTrue, expectedIssuanceInfoForRotatedCert)
+		//should become Deactivated
 		expectedIssuanceInfoForFailedRotation := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StateDeactivated,
 			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StateDeactivated),
 			FieldErrorCode:                    "secrets-manager.Error07012",
 			FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
 			FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
-
-		getSecretAndCheckItsContent(t, expiresIn80Days_autoRotateTrue_id, expiresIn80Days_autoRotateTrue, certMetadata.IssuanceInfo)
-		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateFalse_id, expiresIn30Days_autoRotateFalse, certMetadata.IssuanceInfo)
-		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateFalse_id, expiresIn30Days_autoRotateFalse, certMetadata.IssuanceInfo)
-		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateTrue_id, expiresIn30Days_autoRotateTrue, expectedIssuanceInfoForRotatedCert)
 		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateTrue_notExistConfig_id, expiresIn30Days_autoRotateTrue_notExistConfig, expectedIssuanceInfoForFailedRotation)
+	})
+
+	t.Run("Cleanup after rotation", func(t *testing.T) {
+		//get secret
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      AutoRotateCleanupPath,
+			Storage:   storage,
+			Data:      make(map[string]interface{}),
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		assert.NilError(t, err)
+		assert.Equal(t, false, resp.IsError())
+
 	})
 }
 
@@ -281,7 +302,7 @@ func createCertificates() {
 
 	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue, storage, context.Background())
 
-	common.StoreSecretWithoutLocking(expiresIn80Days_autoRotateTrue, storage, context.Background())
+	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background())
 
 	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateFalse, storage, context.Background())
 
