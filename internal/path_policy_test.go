@@ -2,6 +2,7 @@ package publiccerts
 
 import (
 	"context"
+	"fmt"
 	"github.com/hashicorp/vault/sdk/logical"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
@@ -9,6 +10,8 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
 	"gotest.tools/v3/assert"
+	"net/http"
+	"reflect"
 	"testing"
 )
 
@@ -77,6 +80,59 @@ func Test_ReadPolicy_Happy(t *testing.T) {
 		assert.Equal(t, rotation[policies.FieldRotateKeys], expectedPolicy[policies.FieldRotateKeys])
 		assert.Equal(t, warning.Code, logdna.Warn07001)
 		assert.Equal(t, warning.Message, policyWasUpdatedTooLate)
+
+	})
+
+	t.Run("Update policy - missing auto_rotate", func(t *testing.T) {
+		data := map[string]interface{}{
+			policies.FieldPolicy: policies.PolicyTypeRotation,
+			policies.FieldPolicies: []map[string]interface{}{{
+				policies.PolicyTypeRotation: map[string]interface{}{
+					policies.FieldAutoRotate: true,
+					"wrong_field":            true,
+				}}}}
+
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      PathSecrets + expiresIn20Days_autoRotateTrue_id + "/policies",
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := fmt.Sprintf(policiesNotValidField, policies.FieldAutoRotate)
+		assert.Equal(t, len(resp.Headers[errors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[errors.ErrorCodeHeader][0], logdna.Error07098)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
+
+	})
+
+	t.Run("Update policy - missing rotate_key", func(t *testing.T) {
+		data := map[string]interface{}{
+			policies.FieldPolicy: policies.PolicyTypeRotation,
+			policies.FieldPolicies: []map[string]interface{}{{
+				policies.PolicyTypeRotation: map[string]interface{}{
+					"wrong_field": true,
+				}}}}
+
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      PathSecrets + expiresIn20Days_autoRotateTrue_id + "/policies",
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := fmt.Sprintf(policiesNotValidField, policies.FieldRotateKeys)
+		assert.Equal(t, len(resp.Headers[errors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[errors.ErrorCodeHeader][0], logdna.Error07099)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
 	})
 }
