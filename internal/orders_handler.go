@@ -644,7 +644,7 @@ func getRotationPolicy(rawPolicy interface{}) (*policies.RotationPolicy, error) 
 		},
 		Type: policies.MIMETypeForPolicyResource,
 	}
-	//todo 90 is for LetsEncrypt. need to set it according to CA
+	//90 is for LetsEncrypt. need to set it according to CA
 	if autoRotate {
 		rotationPolicy.Rotation.Interval = 90 - RotateIfExpirationIsInDays
 	}

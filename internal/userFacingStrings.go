@@ -227,10 +227,10 @@ The limit and offset parameters are used for pagination.`
 
 //path  Rotate certificate
 const (
-	pathRotateHelpSynopsis    = "Rotate a certificate"
+	pathRotateHelpSynopsis    = atRotateCertificate
 	pathRotateHelpDescription = "This path takes a secretId and attempts to perform a rotate operation on the secret with this secretId."
 
-	rotateOperationSummary     = "Rotate a certificate"
+	rotateOperationSummary     = atRotateCertificate
 	rotateOperationDescription = "This operation rotates the secret data that is associated with the given certifcate."
 
 	fieldRotateKeyDescription = "Specify if a private key should be rotated."

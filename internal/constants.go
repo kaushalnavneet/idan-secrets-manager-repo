@@ -50,6 +50,7 @@ const (
 	PathSecretGroups = "secrets/groups/"
 	PathVersions     = "/versions/"
 	PathMetadata     = "/metadata"
+	PathRotate       = "/rotate"
 )
 
 //cofigs common
@@ -107,6 +108,7 @@ const (
 const (
 	failedToSaveConfigError = "Failed to save configuration to the storage: %s"
 	failedToGetConfigError  = "Failed to get configuration from the storage: %s"
+	workerPoolIsFull        = "too many pending requests! Try again later"
 )
 
 var (

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/vault/sdk/logical"
+	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	smErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
@@ -37,10 +38,9 @@ var (
 
 func Test_Issue_cert(t *testing.T) {
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
+	initBackend()
 
 	t.Run("Happy flow with required fields, check defaults", func(t *testing.T) {
-		initBackend()
-
 		data := map[string]interface{}{
 			secretentry.FieldName:       certName1,
 			secretentry.FieldCommonName: commonName,
@@ -81,7 +81,6 @@ func Test_Issue_cert(t *testing.T) {
 	})
 
 	t.Run("Happy flow with all fields", func(t *testing.T) {
-		initBackend()
 		data := map[string]interface{}{
 			secretentry.FieldName:         certName2,
 			secretentry.FieldDescription:  certDesc,
@@ -133,8 +132,6 @@ func Test_Issue_cert(t *testing.T) {
 	})
 
 	t.Run("Happy flow + rotation when it's still pre-activate", func(t *testing.T) {
-		initBackend()
-
 		data := map[string]interface{}{
 			secretentry.FieldName:       certName3,
 			secretentry.FieldCommonName: commonName2,
@@ -177,7 +174,6 @@ func Test_Issue_cert(t *testing.T) {
 	})
 
 	t.Run("Invalid domain", func(t *testing.T) {
-		initBackend()
 		data := map[string]interface{}{
 			secretentry.FieldName:       certName1,
 			secretentry.FieldCommonName: "wrong+",
@@ -202,7 +198,6 @@ func Test_Issue_cert(t *testing.T) {
 	})
 
 	t.Run("Invalid key algorithm", func(t *testing.T) {
-		initBackend()
 		data := map[string]interface{}{
 			secretentry.FieldName:         certName1,
 			secretentry.FieldKeyAlgorithm: "wrong",
@@ -228,7 +223,6 @@ func Test_Issue_cert(t *testing.T) {
 	})
 
 	t.Run("Not existing CA config", func(t *testing.T) {
-		initBackend()
 		data := map[string]interface{}{
 			secretentry.FieldName:         certName1,
 			secretentry.FieldKeyAlgorithm: keyType,
@@ -254,7 +248,6 @@ func Test_Issue_cert(t *testing.T) {
 	})
 
 	t.Run("Not existing DNS config", func(t *testing.T) {
-		initBackend()
 		data := map[string]interface{}{
 			secretentry.FieldName:         certName1,
 			secretentry.FieldKeyAlgorithm: keyType,
@@ -277,6 +270,32 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07012)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
+	})
+}
+
+func Test_rotation(t *testing.T) {
+	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
+	initBackend()
+
+	t.Run("Happy flow", func(t *testing.T) {
+		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background())
+		data := map[string]interface{}{
+			policies.FieldRotateKeys: true,
+		}
+		//get secret
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      PathSecrets + expiresIn20Days_autoRotateTrue_id + PathRotate,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		assert.NilError(t, err)
+		//common fields
+		assert.Equal(t, false, resp.IsError())
 	})
 }
 

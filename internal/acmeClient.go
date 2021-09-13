@@ -2,7 +2,6 @@ package publiccerts
 
 import (
 	"crypto/x509"
-	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/certificate"
 	"github.com/go-acme/lego/v4/challenge/dns01"
@@ -57,20 +56,7 @@ func NewACMEClientWithCustomHttpClient(CAUserConfig *CAUserConfig, keyType certc
 func (client *Client) setDNSProvider(dnsProvider *ProviderConfig, domains []string, challengeOption dns01.ChallengeOption) error {
 	providerType := dnsProvider.Type
 	providerConfiguration := dnsProvider.Config
-	if providerType == "pebble" {
-		host, found := providerConfiguration["host"]
-		if !found {
-			return fmt.Errorf("host for pebble DNS challenge is not provided")
-		}
-		port, found := providerConfiguration["port"]
-		if !found {
-			return fmt.Errorf("port for pebble DNS challenge is not provided")
-		}
-
-		err := client.LegoClient.Challenge.SetDNS01Provider(NewPebbleDNSClient(host, port), challengeOption)
-		return err
-
-	} else if providerType == dnsConfigTypeCIS {
+	if providerType == dnsConfigTypeCIS {
 		err := client.LegoClient.Challenge.SetDNS01Provider(NewCISDNSProvider(providerConfiguration, client.RestClient, nil), challengeOption)
 		return err
 

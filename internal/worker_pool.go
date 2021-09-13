@@ -203,7 +203,7 @@ func (w *WorkerPool) ScheduleCertificateRequest(workItem WorkItem) (string, erro
 	case w.workChan <- workItem:
 		return workItem.requestID.String(), nil
 	default:
-		return "", fmt.Errorf("too many pending requests! Try again later")
+		return "", errors.New(workerPoolIsFull)
 	}
 }
 
