@@ -1,7 +1,6 @@
 package publiccerts
 
 import (
-	"fmt"
 	"github.com/google/uuid"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
@@ -42,7 +41,7 @@ func TestWorkerPoolFull(t *testing.T) {
 		_, err := pool.ScheduleCertificateRequest(workItem)
 		if err != nil {
 			errEncountered = true
-			assert.Equal(t, fmt.Errorf("too many pending requests! Try again later"), err)
+			assert.Equal(t, workerPoolIsFull, err.Error())
 		}
 	}
 	// assert that at least one error was encountered
