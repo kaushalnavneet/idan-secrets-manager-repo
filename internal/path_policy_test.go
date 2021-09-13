@@ -22,7 +22,7 @@ func Test_ReadPolicy_Happy(t *testing.T) {
 
 	t.Run("Read policy", func(t *testing.T) {
 		data := map[string]interface{}{
-			"policy": "rotation",
+			policies.FieldPolicy: policies.PolicyTypeRotation,
 		}
 		req := &logical.Request{
 			Operation: logical.ReadOperation,
@@ -88,8 +88,7 @@ func Test_ReadPolicy_Happy(t *testing.T) {
 			policies.FieldPolicy: policies.PolicyTypeRotation,
 			policies.FieldPolicies: []map[string]interface{}{{
 				policies.PolicyTypeRotation: map[string]interface{}{
-					policies.FieldAutoRotate: true,
-					"wrong_field":            true,
+					"wrong_field": true,
 				}}}}
 
 		req := &logical.Request{
@@ -115,7 +114,8 @@ func Test_ReadPolicy_Happy(t *testing.T) {
 			policies.FieldPolicy: policies.PolicyTypeRotation,
 			policies.FieldPolicies: []map[string]interface{}{{
 				policies.PolicyTypeRotation: map[string]interface{}{
-					"wrong_field": true,
+					policies.FieldAutoRotate: true,
+					"wrong_field":            true,
 				}}}}
 
 		req := &logical.Request{

@@ -50,6 +50,7 @@ const (
 	PathSecretGroups = "secrets/groups/"
 	PathVersions     = "/versions/"
 	PathMetadata     = "/metadata"
+	PathRotate       = "/rotate"
 )
 
 //cofigs common

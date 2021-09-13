@@ -53,7 +53,7 @@ var (
 	}}
 )
 
-func Test_orders_Handler(t *testing.T) {
+func Test_saveOrderResultToStorage(t *testing.T) {
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
 	oh := &OrdersHandler{
 		runningOrders: make(map[string]WorkItem),
