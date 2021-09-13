@@ -5,8 +5,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
@@ -117,18 +115,17 @@ func (u *CAUserConfig) initCAAccount() error {
 }
 
 func (u *CAUserConfig) getConfigToStore() (map[string]string, error) {
-	x509Encoded, err := x509.MarshalPKCS8PrivateKey(u.key) //TODO different types of keys
+	pemEncoded, err := EncodePrivateKeyToPKCS8PEM(u.key)
 	if err != nil {
 		message := fmt.Sprintf(invalidKey, err.Error())
 		common.ErrorLogForCustomer(message, logdna.Error07024, logdna.BadRequestErrorMessage, true)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07024, http.StatusBadRequest, message)
 	}
-	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509Encoded})
 
 	storageEntry := map[string]string{
 		caConfigRegistration: u.Registration.URI,
 		caConfigEmail:        u.Email,
-		caConfigPrivateKey:   string(pemEncoded),
+		caConfigPrivateKey:   pemEncoded,
 		caConfigDirectoryUrl: u.DirectoryURL,
 		caConfigCARootCert:   u.CARootCert,
 	}

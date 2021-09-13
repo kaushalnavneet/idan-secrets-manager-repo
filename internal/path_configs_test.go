@@ -18,6 +18,7 @@ import (
 const (
 	configName           = "configName"
 	validPrivateKey      = "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg4wf+/srUmsj0hSgx\ny0mtPjnFaNrOQHfgL2wvJ+jAuvGhRANCAARK33ZxVYYpFGi5y15tYJMtfHZGxVgy\ndthwHUvcbImrfts+9XrywwOmnY8jc1YMHfgT8AGCguGhUlOKcsC7fTRr\n-----END PRIVATE KEY-----\n"
+	validRSAPrivateKey   = "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAzYv8AYpZK9gm9KdSg3Qr2bLUNNYZpjSQeqWHr4jaaY3hc9mg\nrQ5BM5BQGZiroj8kmEABYiRlFUeTQsYP7GBeCvoZegJvoEdHf6ADjfqAZC+OgqV8\nIK19aKicTpEwPkU+hHDNNy+naFwrGZbJ1QlwWHg+5S/7HmmBnkIaqEguWN3meU8N\nDkVmhdQx5TKepQ2rw1VfsT3A58TAK62ODhyhvXUFDPViY6U4x2Khs/GWhajZxb0v\n/EcWYAHVfjKzcK0l2N2SrRkbLW4rcSEAGauslJZtrTaT7h1EB+rvzIsuuxIh3Lgk\nw8dI7QkBUCwy20NZhskEEkQQ+dz/q8TRgI3oawIDAQABAoIBADvvg65XTyUvxDw2\nxiK6r0atlJ9LhvMmBLMerXAL8dQxoPoNDYMo0u5cOF8eW33V96/FiiG6BxerZU9l\nPaNpfkKpJuCi8TXFUx3t5NtznhiYnW+PHaDRte3crKdkQrMFsfMgiVZ8OM5/gbnW\ndEgAlpfViFGAKjN2BGvHTsqfMZSLqi+RH06pLd9ZrSO92hF8kUoee8+FJoo5Gkol\nmX5aaD4RxdlkO4+ZMPrvBRCs4K0WK8JD7ckK6tUficnoS6+mwYc2012fgJiRra5+\n+vPl7f41vzBfZzHMJDRtCOhff/i22IGltUjakybGJplhB05PQqxMnpcmKf9MGvtY\nZ94H11ECgYEA5Xu5I9Z5A/yV70ygQHcLZsfOh1jpHBhGq7kTov+liBetP1Z0kTl0\nP45nJUw8QpDiKOCjpSqJ8cjpkQ+nHCixe14nkzW9wFZXMO7iPiy9jaZ6XwJHuJRq\nqj8ieZ5YT/I3urMNxugCg+ZL+Zc/A0GRIt0zFcxWW/df3HvBd2jfsQUCgYEA5Uw0\nDdGvw318yWVHMP1z6WyX1ROKw2po/MzWy4XMnPM1s7g+XAgFZs0d4yF1tH03vjRv\nkk7gRO2MZkch+zeNsdj89nwdP1myxawPGfrZrgaTDLywOOtt/FhtMHmWLz0lufiU\nRv9FL1HmZ+LVpzW6BhEzZ1m3ySNO1jGn1xKRLq8CgYBSHZqbO1SkW47fSUESsEZx\nKdA6WFNZzUoEir5/FhGKiEZjIrGlgbSaRX+dNhFeFHAJBpEoOfeQgD8rvDkk917C\n8Wch4xoaKAsdJG3qp6HQfSDOvIcjgmBEuUDB2ippuRe+A/JLGZxEzHSlRDy1EpI3\nsoVkKHFCiVtRDyukae+ZbQKBgQDJ7UvCB7DTZYUpDomdOPaEz97+BBGleeYvCmz2\nGkRQy1W1iUFRZrbrCyOQy/yOD9+xHxhKLjAOQ2vq/iWMyCV+Q2qx3icbjPCEZ7t8\n044zVRLWmqxN0/atzWmK0OhTfXPlzGU4CMFypJtVTUt9zzCc+zTbhQT2mqNouZ3n\nJzC3fQKBgQCd3RUbyTY6CwMpHZAkP5de/5QAUomgOxutpx9xi0ynX/y5CQm2YQeh\nBWvNf+ZvzGfyOWD63o8xv+5fMIuOqSXntziFkmi/QlVUgSJZqTambowWGWb+pzS8\nHt9g5Vn4EgazD1tGLaQXEAXXoJBB3UyQRTDBH7Xq9FwQkkHfjoy6jQ==\n-----END RSA PRIVATE KEY-----"
 	smInstanceCrn        = "crn:v1:staging:public:secrets-manager:us-south:a/791f5fb10986423e97aa8512f18b7e65:64be543a-3901-4f54-9d60-854382b21f29::"
 	responseBodyTemplate = "{\"request_id\":\"\",\"lease_id\":\"\",\"renewable\":false,\"lease_duration\":0,\"data\":%s,\"wrap_info\":null,\"warnings\":null,\"auth\":null}"
 )
@@ -62,6 +63,34 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		config := map[string]interface{}{caConfigPrivateKey: validPrivateKey}
 		data := map[string]interface{}{
 			FieldName:   configName,
+			FieldType:   caConfigTypeLEStage,
+			FieldConfig: config,
+		}
+
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      ConfigCAPath,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		assert.NilError(t, err)
+		assert.Equal(t, false, resp.IsError())
+		assert.Equal(t, resp.Data[logical.HTTPContentType], applicationJson)
+		assert.Equal(t, resp.Data[logical.HTTPStatusCode], 201)
+		//expectedBody := fmt.Sprintf(
+		//	"{\"request_id\":\"\",\"lease_id\":\"\",\"renewable\":false,\"lease_duration\":0,\"data\":{\"config\":{\"private_key\":%s},\"name\":%s,\"type\":%s},\"wrap_info\":null,\"warnings\":null,\"auth\":null}",
+		//	validPrivateKey, configName, caConfigTypeLEStage)
+		//assert.Equal(t, resp.Data[logical.HTTPRawBody].(string), expectedBody)
+	})
+
+	t.Run("Happy flow for CA config, RSA key", func(t *testing.T) {
+		config := map[string]interface{}{caConfigPrivateKey: validRSAPrivateKey}
+		data := map[string]interface{}{
+			FieldName:   configName + "RSA",
 			FieldType:   caConfigTypeLEStage,
 			FieldConfig: config,
 		}

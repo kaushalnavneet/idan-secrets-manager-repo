@@ -3,6 +3,7 @@ package publiccerts
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
@@ -124,16 +125,34 @@ func DecodePrivateKey(pemEncoded string) (crypto.PrivateKey, error) {
 	var err error
 	if block.Type == "PRIVATE KEY" {
 		privateKey, err = x509.ParsePKCS8PrivateKey(x509Encoded)
+		if err == nil {
+			switch privateKey.(type) {
+			case *rsa.PrivateKey, *ecdsa.PrivateKey:
+			default:
+				err = fmt.Errorf("unknown private key type in PKCS#8 wrapping")
+			}
+		}
 	} else if block.Type == "RSA PRIVATE KEY" {
 		privateKey, err = x509.ParsePKCS1PrivateKey(x509Encoded)
+	} else if block.Type == "EC PRIVATE KEY" {
+		privateKey, err = x509.ParseECPrivateKey(x509Encoded)
 	} else {
-		return nil, fmt.Errorf("private key should be in unencrypted PKCS1 or PKCS8 format")
+		err = fmt.Errorf("private key should be in unencrypted PKCS#1 or PKCS#8 format")
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	return privateKey, nil
+}
+
+func EncodePrivateKeyToPKCS8PEM(privateKey crypto.PrivateKey) (string, error) {
+	privateKeyDer, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		return "", err
+	}
+	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: privateKeyDer})
+	return string(pemEncoded), nil
 }
 
 func ExtractFirstEmailFromAccount(retrievedAccount *registration.Resource) (string, error) {
