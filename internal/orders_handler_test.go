@@ -12,6 +12,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
 	"gotest.tools/v3/assert"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -61,7 +62,8 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		parser:        &certificate.CertificateParserImpl{},
 	}
 
-	t.Run("order succeeded - First order", func(t *testing.T) {
+	t.Run("First order - order succeeded", func(t *testing.T) {
+		setOrdersInProgress(secretId, 2)
 		bundleCerts := false
 		orderResult := createOrderResult(false, bundleCerts, false)
 		oh.saveOrderResultToStorage(orderResult)
@@ -108,9 +110,12 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[0][secretentry.FieldSerialNumber], serialNumber)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[0][secretentry.FieldExpirationDate], expirationDate)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[0][secretentry.FieldPayloadAvailable], true)
+
+		checkOrdersInProgress(t, []string{"1"})
 	})
 
-	t.Run("order failed - First order", func(t *testing.T) {
+	t.Run("First order - order failed", func(t *testing.T) {
+		setOrdersInProgress(secretId, 1)
 		orderResult := createOrderResult(true, false, false)
 		expectedSecretData := map[string]string{}
 		oh.saveOrderResultToStorage(orderResult)
@@ -148,9 +153,11 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
 		//versions
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
+		checkOrdersInProgress(t, []string{})
 	})
 
-	t.Run("order succeeded - Rotation", func(t *testing.T) {
+	t.Run("Rotation - order succeeded", func(t *testing.T) {
+		setOrdersInProgress(secretId, 3)
 		bundleCerts := true
 		orderResult := createOrderResult(false, bundleCerts, true)
 		oh.saveOrderResultToStorage(orderResult)
@@ -198,10 +205,11 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldSerialNumber], serialNumber)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldExpirationDate], expirationDate)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldPayloadAvailable], true)
-
+		checkOrdersInProgress(t, []string{"1", "2"})
 	})
 
-	t.Run("order failed - Rotation", func(t *testing.T) {
+	t.Run("Rotation - order failed", func(t *testing.T) {
+		setOrdersInProgress(secretId, 0)
 		bundleCerts := true
 		orderResult := createOrderResult(true, bundleCerts, true)
 		//because of bundleCerts = false
@@ -246,6 +254,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
 		//versions
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
+		checkOrdersInProgress(t, []string{})
 	})
 }
 
@@ -311,4 +320,33 @@ func createOrderResult(withError bool, bundleCert bool, rotation bool) Result {
 		orderResult.certificate = nil
 	}
 	return orderResult
+}
+
+func resetOrdersInProgress() {
+	ordersInProgress := OrdersInProgress{Ids: []string{}}
+	ordersInProgress.save(storage)
+}
+
+func setOrdersInProgress(id string, count int) {
+	var ordersInProgress OrdersInProgress
+	switch count {
+	case 0:
+		ordersInProgress = OrdersInProgress{Ids: []string{}}
+	case 1:
+		ordersInProgress = OrdersInProgress{Ids: []string{id}}
+	default:
+		ids := make([]string, count)
+		for i, _ := range ids {
+			ids[i] = strconv.Itoa(i)
+		}
+		ids[0] = id
+		ordersInProgress = OrdersInProgress{Ids: ids}
+	}
+	ordersInProgress.save(storage)
+}
+
+func checkOrdersInProgress(t *testing.T, ids []string) {
+	ordersInProgress, err := getOrdersInProgress(storage)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, ordersInProgress, &OrdersInProgress{Ids: ids})
 }

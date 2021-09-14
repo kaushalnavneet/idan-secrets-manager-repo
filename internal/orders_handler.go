@@ -193,15 +193,16 @@ func (oh *OrdersHandler) BuildPoliciesResponse(entry *secretentry.SecretEntry, p
 	rotation := entry.Policies.Rotation.FieldsToMap([]string{policies.FieldAutoRotate, policies.FieldRotateKeys})
 	policyMap := make([]map[string]interface{}, 1)
 	policyMap[0] = rotation
-	certExpiration := *entry.ExpirationDate
 	//only if certificate is active and auto_rotate==true
 	//and less than RotateIfExpirationIsInDays days left from UpdatedAt date till certExpiration date
 	if entry.State == secretentry.StateActive &&
-		entry.Policies.Rotation.AutoRotate() &&
-		entry.Policies.Rotation.Metadata.UpdatedAt.Add(RotateIfExpirationIsInDays*24*time.Hour).After(certExpiration) {
-		rotation["warning"] = commonErrors.Warning{
-			Code:    logdna.Warn07001,
-			Message: policyWasUpdatedTooLate,
+		entry.Policies.Rotation.AutoRotate() {
+		certExpiration := *entry.ExpirationDate
+		if entry.Policies.Rotation.Metadata.UpdatedAt.Add(RotateIfExpirationIsInDays * 24 * time.Hour).After(certExpiration) {
+			rotation["warning"] = commonErrors.Warning{
+				Code:    logdna.Warn07001,
+				Message: policyWasUpdatedTooLate,
+			}
 		}
 	}
 	policiesMap := map[string]interface{}{policies.FieldPolicies: policyMap}
@@ -398,6 +399,7 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 	//empty beforeOrders, current workItem is moved to runningOrders
 	//some previous order requests could fail on validations so their beforeOrders should be removed too
 	delete(oh.beforeOrders, orderKey)
+	addWorkItemToOrdersInProgress(workItem)
 	//start an order
 	_, _ = oh.workerPool.ScheduleCertificateRequest(workItem)
 }
@@ -480,7 +482,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	if err != nil {
 		common.Logger().Error("Couldn't save order result to storage: " + err.Error())
 	}
-
+	removeWorkItemFromOrdersInProgress(res.workItem)
 }
 
 //build response for create and rotate requests
@@ -541,12 +543,14 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	metadata.IssuanceInfo[FieldAutoRotated] = true
 	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
 	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
+	delete(metadata.IssuanceInfo, FieldErrorCode)
+	delete(metadata.IssuanceInfo, FieldErrorMessage)
 	entry.ExtraData = metadata
 	//validate all the data and prepare it for order
 	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
 	if err != nil {
 		startOrder = false
-		common.Logger().Error("Couldn't start auto rotation.", err)
+		common.Logger().Error("Couldn't start auto rotation. Error: " + err.Error())
 		if codedError, ok := err.(commonErrors.SMCodedError); ok {
 			metadata.IssuanceInfo[FieldErrorCode] = codedError.ErrCode()
 			metadata.IssuanceInfo[FieldErrorMessage] = codedError.Error()
@@ -577,6 +581,48 @@ func (oh *OrdersHandler) cleanupAfterRotationCertIfNeeded(entry *secretentry.Sec
 	}
 	common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s  SHOULD have been rotated but WAS NOT ", entry.Name, entry.ID))
 	return nil
+}
+
+func addWorkItemToOrdersInProgress(workItem WorkItem) {
+	ordersInProgress, err := getOrdersInProgress(workItem.storage)
+	if err != nil {
+		common.Logger().Error("Failed to get orders in progress from storage:" + err.Error())
+		return
+	}
+	for _, id := range ordersInProgress.Ids {
+		if id == workItem.secretEntry.ID {
+			common.Logger().Info(fmt.Sprintf("The secret with id %s is already in the list of orders progress.", id))
+			return
+		}
+	}
+	ordersInProgress.Ids = append(ordersInProgress.Ids, workItem.secretEntry.ID)
+	err = ordersInProgress.save(workItem.storage)
+	if err != nil {
+		common.Logger().Error("Failed to save orders in progress to storage:" + err.Error())
+	}
+	return
+}
+
+func removeWorkItemFromOrdersInProgress(workItem WorkItem) {
+	ordersInProgress, err := getOrdersInProgress(workItem.storage)
+	if err != nil {
+		common.Logger().Error("Failed to get orders in progress:" + err.Error())
+		return
+	}
+	found := false
+	for i, id := range ordersInProgress.Ids {
+		if id == workItem.secretEntry.ID {
+			ordersInProgress.Ids = append(ordersInProgress.Ids[:i], ordersInProgress.Ids[i+1:]...)
+			found = true
+		}
+	}
+	if found {
+		err = ordersInProgress.save(workItem.storage)
+		if err != nil {
+			common.Logger().Error("Failed to save orders in progress:" + err.Error())
+		}
+	}
+	return
 }
 
 func isRotationNeeded(entry *secretentry.SecretEntry) bool {

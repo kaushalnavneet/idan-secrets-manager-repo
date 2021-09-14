@@ -51,6 +51,8 @@ const (
 	PathVersions     = "/versions/"
 	PathMetadata     = "/metadata"
 	PathRotate       = "/rotate"
+
+	PathOrdersInProgress = "orders"
 )
 
 //cofigs common
