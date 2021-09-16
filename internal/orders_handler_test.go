@@ -324,17 +324,18 @@ func createOrderResult(withError bool, bundleCert bool, rotation bool) Result {
 }
 
 func resetOrdersInProgress() {
-	ordersInProgress := OrdersInProgress{SecretIds: []SecretId{}}
+	ordersInProgress := getOrdersInProgress(storage)
+	ordersInProgress.SecretIds = []SecretId{}
 	ordersInProgress.save(storage)
 }
 
 func setOrdersInProgress(id string, count int) {
-	var ordersInProgress OrdersInProgress
+	ordersInProgress := getOrdersInProgress(storage)
 	switch count {
 	case 0:
-		ordersInProgress = OrdersInProgress{SecretIds: []SecretId{}}
+		ordersInProgress.SecretIds = []SecretId{}
 	case 1:
-		ordersInProgress = OrdersInProgress{SecretIds: []SecretId{{GroupId: defaultGroup, Id: id}}}
+		ordersInProgress.SecretIds = []SecretId{{GroupId: defaultGroup, Id: id}}
 	default:
 		ids := make([]SecretId, count)
 		//build array of ids of length count
@@ -343,7 +344,7 @@ func setOrdersInProgress(id string, count int) {
 		}
 		//the one before last will be expected id
 		ids[count-2] = SecretId{GroupId: defaultGroup, Id: id}
-		ordersInProgress = OrdersInProgress{SecretIds: ids}
+		ordersInProgress.SecretIds = ids
 	}
 	ordersInProgress.save(storage)
 }
