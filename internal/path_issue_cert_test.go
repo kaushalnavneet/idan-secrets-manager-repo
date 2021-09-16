@@ -80,7 +80,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldAutoRotate], false)
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], false)
 
-		checkOrdersInProgress(t, []string{resp.Data[secretentry.FieldId].(string)})
+		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: resp.Data[secretentry.FieldId].(string)}})
 	})
 
 	t.Run("Happy flow with all fields", func(t *testing.T) {
@@ -134,7 +134,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldAutoRotate], true)
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], true)
 
-		checkOrdersInProgress(t, []string{resp.Data[secretentry.FieldId].(string)})
+		checkOrdersInProgress(t, []SecretId{{GroupId: groupId, Id: resp.Data[secretentry.FieldId].(string)}})
 	})
 
 	t.Run("Happy flow + rotation when it's still pre-activate", func(t *testing.T) {
@@ -179,7 +179,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07062)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
-		checkOrdersInProgress(t, []string{createdSecretId})
+		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: createdSecretId}})
 	})
 
 	t.Run("Invalid domain", func(t *testing.T) {
@@ -206,7 +206,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07107)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
-		checkOrdersInProgress(t, []string{})
+		checkOrdersInProgress(t, []SecretId{})
 	})
 
 	t.Run("Invalid key algorithm", func(t *testing.T) {
@@ -234,7 +234,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07040)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
-		checkOrdersInProgress(t, []string{})
+		checkOrdersInProgress(t, []SecretId{})
 	})
 
 	t.Run("Not existing CA config", func(t *testing.T) {
@@ -262,7 +262,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07012)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
-		checkOrdersInProgress(t, []string{})
+		checkOrdersInProgress(t, []SecretId{})
 	})
 
 	t.Run("Not existing DNS config", func(t *testing.T) {
@@ -290,7 +290,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07012)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
-		checkOrdersInProgress(t, []string{})
+		checkOrdersInProgress(t, []SecretId{})
 	})
 }
 
@@ -318,7 +318,7 @@ func Test_rotation(t *testing.T) {
 		assert.NilError(t, err)
 		//common fields
 		assert.Equal(t, false, resp.IsError())
-		checkOrdersInProgress(t, []string{expiresIn20Days_autoRotateTrue_id})
+		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id}})
 	})
 }
 

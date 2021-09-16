@@ -35,6 +35,7 @@ const (
 	createdBy    = "CreatedBy"
 	errorCode    = "errorCode"
 	errorMessage = "errorMessage"
+	defaultGroup = "default"
 )
 
 var (
@@ -111,7 +112,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[0][secretentry.FieldExpirationDate], expirationDate)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[0][secretentry.FieldPayloadAvailable], true)
 
-		checkOrdersInProgress(t, []string{"1"})
+		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: "1"}}) //only the second of 2
 	})
 
 	t.Run("First order - order failed", func(t *testing.T) {
@@ -153,7 +154,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
 		//versions
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
-		checkOrdersInProgress(t, []string{})
+		checkOrdersInProgress(t, []SecretId{})
 	})
 
 	t.Run("Rotation - order succeeded", func(t *testing.T) {
@@ -205,7 +206,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldSerialNumber], serialNumber)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldExpirationDate], expirationDate)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldPayloadAvailable], true)
-		checkOrdersInProgress(t, []string{"1", "2"})
+		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: "0"}, {GroupId: defaultGroup, Id: "2"}}) //the first and the last should remain, the one before last (current order) should be removed
 	})
 
 	t.Run("Rotation - order failed", func(t *testing.T) {
@@ -254,7 +255,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
 		//versions
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
-		checkOrdersInProgress(t, []string{})
+		checkOrdersInProgress(t, []SecretId{})
 	})
 }
 
@@ -323,7 +324,7 @@ func createOrderResult(withError bool, bundleCert bool, rotation bool) Result {
 }
 
 func resetOrdersInProgress() {
-	ordersInProgress := OrdersInProgress{Ids: []string{}}
+	ordersInProgress := OrdersInProgress{SecretIds: []SecretId{}}
 	ordersInProgress.save(storage)
 }
 
@@ -331,22 +332,23 @@ func setOrdersInProgress(id string, count int) {
 	var ordersInProgress OrdersInProgress
 	switch count {
 	case 0:
-		ordersInProgress = OrdersInProgress{Ids: []string{}}
+		ordersInProgress = OrdersInProgress{SecretIds: []SecretId{}}
 	case 1:
-		ordersInProgress = OrdersInProgress{Ids: []string{id}}
+		ordersInProgress = OrdersInProgress{SecretIds: []SecretId{{GroupId: defaultGroup, Id: id}}}
 	default:
-		ids := make([]string, count)
-		for i, _ := range ids {
-			ids[i] = strconv.Itoa(i)
+		ids := make([]SecretId, count)
+		//build array of ids of length count
+		for i := range ids {
+			ids[i] = SecretId{GroupId: defaultGroup, Id: strconv.Itoa(i)}
 		}
-		ids[0] = id
-		ordersInProgress = OrdersInProgress{Ids: ids}
+		//the one before last will be expected id
+		ids[count-2] = SecretId{GroupId: defaultGroup, Id: id}
+		ordersInProgress = OrdersInProgress{SecretIds: ids}
 	}
 	ordersInProgress.save(storage)
 }
 
-func checkOrdersInProgress(t *testing.T, ids []string) {
-	ordersInProgress, err := getOrdersInProgress(storage)
-	assert.NilError(t, err)
-	assert.DeepEqual(t, ordersInProgress, &OrdersInProgress{Ids: ids})
+func checkOrdersInProgress(t *testing.T, secretIds []SecretId) {
+	ordersInProgress := getOrdersInProgress(storage)
+	assert.DeepEqual(t, ordersInProgress, &OrdersInProgress{SecretIds: secretIds})
 }

@@ -31,7 +31,7 @@ const (
 	policiesNotValidStructure = "Rotation policy doesn't have a valid structure" // Error07095, Error07096, Error07097
 	policiesNotValidField     = "Field %s in rotation policy is not valid"       //Error07098, Error07099
 
-	policyWasUpdatedTooLate = "The policy was updated after the auto-rotate time interval, so the changes will be applied only in the next automatic rotation cycle. Before this you may need to rotate the certificate manually" //Warn07001
+	policyWasUpdatedTooLate = "Automatic rotation is enabled for this certificate, but the changes won't be applied until the next rotation cycle. Before automatic rotation can take place for the certificate, you must manually rotate it." //Warn07001
 )
 
 //Order validation errors
