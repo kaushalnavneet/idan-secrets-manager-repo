@@ -2,7 +2,7 @@ module github.ibm.com/security-services/secrets-manager-vault-plugin-public-cert
 
 go 1.14
 
-replace github.com/pkg/sftp => github.com/pkg/sftp v1.13.2
+replace github.com/pkg/sftp => github.com/pkg/sftp v1.13.3
 
 replace github.com/labstack/echo/v4 => github.com/labstack/echo/v4 v4.5.0
 
@@ -18,8 +18,8 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.ibm.com/project-fortress/vault-client-golang v0.0.4
 	github.ibm.com/security-services/secrets-manager-common-utils v0.0.7972
-	github.ibm.com/security-services/secrets-manager-iam v0.0.7531
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.8002
-	golang.org/x/net v0.0.0-20210825183410-e898025ed96a
+	github.ibm.com/security-services/secrets-manager-iam v0.0.8072
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.8012
+	golang.org/x/net v0.0.0-20210916014120-12bc252f5db8
 	gotest.tools/v3 v3.0.3
 )
