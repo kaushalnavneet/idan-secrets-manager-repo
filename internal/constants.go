@@ -102,8 +102,11 @@ const (
 	dnsConfigSLPassword    = "classic_infrastructure_password"
 	urlSLApi               = "https://api.softlayer.com/rest/v3"
 
-	PropagationTimeout = 15 * time.Minute
-	PollingInterval    = 2 * time.Second
+	PropagationTimeoutCIS = 15 * time.Minute
+	PollingIntervalCIS    = 2 * time.Second
+
+	PropagationTimeoutSL = 30 * time.Minute
+	PollingIntervalSL    = 10 * time.Second
 )
 
 //internal errors
