@@ -24,6 +24,7 @@ const (
 	errorPattern          = `{"error_code":"%s","error_message":"%s"}`
 	AutoRotatePath        = "autorotate"
 	AutoRotateCleanupPath = "autorotate/final"
+	ResumeOrderPath       = "resume"
 )
 
 const (
@@ -52,7 +53,7 @@ const (
 	PathMetadata     = "/metadata"
 	PathRotate       = "/rotate"
 
-	PathOrdersInProgress = "orders"
+	PathOrdersInProgress = "ordersInProgress"
 )
 
 //cofigs common

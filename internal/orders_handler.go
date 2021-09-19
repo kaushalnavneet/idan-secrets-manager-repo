@@ -381,6 +381,7 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 		common.ErrorLogForCustomer(message, logdna.Error07042, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07042, http.StatusBadRequest, message)
 	}
+	//todo need to prevent "concurrent map writes"
 	oh.beforeOrders[orderKey] = workItem
 	return nil
 }
@@ -551,16 +552,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	if err != nil {
 		startOrder = false
 		common.Logger().Error("Couldn't start auto rotation. Error: " + err.Error())
-		if codedError, ok := err.(commonErrors.SMCodedError); ok {
-			metadata.IssuanceInfo[FieldErrorCode] = codedError.ErrCode()
-			metadata.IssuanceInfo[FieldErrorMessage] = codedError.Error()
-		} else {
-			metadata.IssuanceInfo[FieldErrorCode] = logdna.Error07110
-			metadata.IssuanceInfo[FieldErrorMessage] = err.Error()
-
-		}
-		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
-		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
+		updateIssuanceInfoWithError(metadata, err)
 	}
 	//save updated entry
 	err = common.StoreSecretWithoutLocking(entry, req.Storage, context.Background())
@@ -583,25 +575,12 @@ func (oh *OrdersHandler) cleanupAfterRotationCertIfNeeded(entry *secretentry.Sec
 	return nil
 }
 
-func (oh *OrdersHandler) ResumeOrdersInProgress(storage logical.Storage) {
-	//ordersInProgress, err := getOrdersInProgress(storage)
-	//if err != nil {
-	//	common.Logger().Error("Failed to get orders in progress from storage:" + err.Error())
-	//	return
-	//}
-	//for _, id := range ordersInProgress.Ids {
-	//	secretPath := secretGroupID + "/" + secretId
-	//	// lock for writing
-	//	lock := common.GetLockForSecret(secretPath)
-	//	lock.Lock()
-	//	defer lock.Unlock()
-	//
-	//	secretEntry, res, err := b.getSecretEntry(ctx, req, secretGroupID, secretId, false, true)
-	//
-	//}
-}
-
 func addWorkItemToOrdersInProgress(workItem WorkItem) {
+	// lock for writing
+	lock := common.GetLockForName(PathOrdersInProgress)
+	lock.Lock()
+	defer lock.Unlock()
+
 	ordersInProgress := getOrdersInProgress(workItem.storage)
 	//check if current work item already in the list, if yes, no need to add it
 	for _, secret := range ordersInProgress.SecretIds {
@@ -617,16 +596,25 @@ func addWorkItemToOrdersInProgress(workItem WorkItem) {
 }
 
 func removeWorkItemFromOrdersInProgress(workItem WorkItem) {
-	ordersInProgress := getOrdersInProgress(workItem.storage)
+	removeOrderFromOrdersInProgress(workItem.storage, SecretId{Id: workItem.secretEntry.ID, GroupId: workItem.secretEntry.GroupID})
+}
+
+func removeOrderFromOrdersInProgress(storage logical.Storage, itemToRemove SecretId) {
+	// lock for writing
+	lock := common.GetLockForName(PathOrdersInProgress)
+	lock.Lock()
+	defer lock.Unlock()
+
+	ordersInProgress := getOrdersInProgress(storage)
 	//find the current work item and remove it
 	for i, secret := range ordersInProgress.SecretIds {
-		if secret.Id == workItem.secretEntry.ID {
+		if secret.Id == itemToRemove.Id {
 			ordersInProgress.SecretIds = append(ordersInProgress.SecretIds[:i], ordersInProgress.SecretIds[i+1:]...)
-			ordersInProgress.save(workItem.storage)
+			common.Logger().Info(fmt.Sprintf("Removing the secret entry '%s' from 'orders in progress'", itemToRemove.GroupId+"/"+itemToRemove.Id))
+			ordersInProgress.save(storage)
 			break
 		}
 	}
-	return
 }
 
 func isRotationNeeded(entry *secretentry.SecretEntry) bool {
@@ -700,4 +688,17 @@ func getRotationPolicy(rawPolicy interface{}) (*policies.RotationPolicy, error) 
 	}
 
 	return &rotationPolicy, nil
+}
+
+func updateIssuanceInfoWithError(metadata *certificate.CertificateMetadata, err error) {
+	if codedError, ok := err.(commonErrors.SMCodedError); ok {
+		metadata.IssuanceInfo[FieldErrorCode] = codedError.ErrCode()
+		metadata.IssuanceInfo[FieldErrorMessage] = codedError.Error()
+	} else {
+		metadata.IssuanceInfo[FieldErrorCode] = logdna.Error07110
+		metadata.IssuanceInfo[FieldErrorMessage] = err.Error()
+
+	}
+	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
+	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
 }

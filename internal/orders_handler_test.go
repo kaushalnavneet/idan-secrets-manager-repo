@@ -56,13 +56,8 @@ var (
 )
 
 func Test_saveOrderResultToStorage(t *testing.T) {
-	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
-	oh := &OrdersHandler{
-		runningOrders: make(map[string]WorkItem),
-		beforeOrders:  make(map[string]WorkItem),
-		parser:        &certificate.CertificateParserImpl{},
-	}
-
+	oh := initOrdersHandler()
+	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
 	t.Run("First order - order succeeded", func(t *testing.T) {
 		setOrdersInProgress(secretId, 2)
 		bundleCerts := false
@@ -324,6 +319,7 @@ func createOrderResult(withError bool, bundleCert bool, rotation bool) Result {
 }
 
 func resetOrdersInProgress() {
+	oh.runningOrders = make(map[string]WorkItem)
 	ordersInProgress := getOrdersInProgress(storage)
 	ordersInProgress.SecretIds = []SecretId{}
 	ordersInProgress.save(storage)

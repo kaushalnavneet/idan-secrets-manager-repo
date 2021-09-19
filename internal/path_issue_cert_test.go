@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/vault/sdk/logical"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
 	smErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
@@ -14,6 +15,7 @@ import (
 	"net/http"
 	"reflect"
 	"testing"
+	"time"
 )
 
 const (
@@ -37,7 +39,8 @@ var (
 )
 
 func Test_Issue_cert(t *testing.T) {
-	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
+	oh := initOrdersHandler()
+	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
 	initBackend()
 
 	t.Run("Happy flow with required fields, check defaults", func(t *testing.T) {
@@ -81,6 +84,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], false)
 
 		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: resp.Data[secretentry.FieldId].(string)}})
+		assert.Equal(t, len(oh.runningOrders), 1)
 	})
 
 	t.Run("Happy flow with all fields", func(t *testing.T) {
@@ -135,6 +139,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], true)
 
 		checkOrdersInProgress(t, []SecretId{{GroupId: groupId, Id: resp.Data[secretentry.FieldId].(string)}})
+		assert.Equal(t, len(oh.runningOrders), 1)
 	})
 
 	t.Run("Happy flow + rotation when it's still pre-activate", func(t *testing.T) {
@@ -158,6 +163,7 @@ func Test_Issue_cert(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
+		assert.Equal(t, len(oh.runningOrders), 1)
 
 		//rotate created secret
 		createdSecretId := resp.Data[secretentry.FieldId].(string)
@@ -207,6 +213,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
 		checkOrdersInProgress(t, []SecretId{})
+		assert.Equal(t, len(oh.runningOrders), 0)
 	})
 
 	t.Run("Invalid key algorithm", func(t *testing.T) {
@@ -235,6 +242,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
 		checkOrdersInProgress(t, []SecretId{})
+		assert.Equal(t, len(oh.runningOrders), 0)
 	})
 
 	t.Run("Not existing CA config", func(t *testing.T) {
@@ -263,6 +271,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
 		checkOrdersInProgress(t, []SecretId{})
+		assert.Equal(t, len(oh.runningOrders), 0)
 	})
 
 	t.Run("Not existing DNS config", func(t *testing.T) {
@@ -291,14 +300,26 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
 		checkOrdersInProgress(t, []SecretId{})
+		assert.Equal(t, len(oh.runningOrders), 0)
 	})
 }
 
+func initOrdersHandler() *OrdersHandler {
+	oh = &OrdersHandler{
+		runningOrders: make(map[string]WorkItem),
+		beforeOrders:  make(map[string]WorkItem),
+		parser:        &certificate.CertificateParserImpl{},
+	}
+	oh.workerPool = NewWorkerPool(oh, 1, 1, 1*time.Second)
+	return oh
+}
+
 func Test_rotation(t *testing.T) {
-	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
+	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
 	initBackend()
 
 	t.Run("Happy flow", func(t *testing.T) {
+		oh.runningOrders = make(map[string]WorkItem)
 		setOrdersInProgress(expiresIn20Days_autoRotateTrue_id, 1)
 		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background())
 		data := map[string]interface{}{
@@ -319,6 +340,7 @@ func Test_rotation(t *testing.T) {
 		//common fields
 		assert.Equal(t, false, resp.IsError())
 		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id}})
+		assert.Equal(t, len(oh.runningOrders), 1)
 	})
 }
 

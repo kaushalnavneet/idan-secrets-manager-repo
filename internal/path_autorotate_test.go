@@ -59,9 +59,11 @@ var (
 		KeyAlgorithm: keyType,
 		CommonName:   certCommonName,
 		IssuanceInfo: map[string]interface{}{
-			//secretentry.FieldState: secretentry.StateActive,
+			secretentry.FieldState:            secretentry.StateActive,
 			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StateActive),
-			FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldDNSConfig: dnsConfig, FieldAutoRotated: true}}
+			FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldDNSConfig: dnsConfig, FieldAutoRotated: true,
+			FieldOrderedOn: time.Now().UTC().Add(1 * time.Hour).Format(time.RFC3339),
+		}}
 
 	certMetadataWithWrongConfig = certificate.CertificateMetadata{
 		KeyAlgorithm: keyType,
@@ -199,12 +201,8 @@ var (
 var oh *OrdersHandler
 
 func Test_AutoRotate(t *testing.T) {
-	oh = &OrdersHandler{
-		runningOrders: make(map[string]WorkItem),
-		beforeOrders:  make(map[string]WorkItem),
-		parser:        &certificate.CertificateParserImpl{},
-	}
-	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
+	oh := initOrdersHandler()
+	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
 	initBackend()
 
 	t.Run("Rotate certificates", func(t *testing.T) {

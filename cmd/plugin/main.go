@@ -37,7 +37,7 @@ func main() {
 			secret_backend.ActionRotation:     http.StatusAccepted,
 			secret_backend.ActionUpdatePolicy: http.StatusAccepted,
 		},
-		PluginSetup: publiccerts.SetupPluginWithAutoRotationJob,
+		PluginSetup: publiccerts.SetupPublicCertPlugin,
 	}
 
 	if err := plugin.Serve(&plugin.ServeOpts{
@@ -50,3 +50,12 @@ func main() {
 		os.Exit(1)
 	}
 }
+
+//catch exception
+
+//defer func() {
+//	if r := recover(); r != nil {
+//		// XXX it is better to check r.Error() to has "unhashable type ..."
+//		err = fmt.Errorf("mapSet: %v", r)
+//	}
+//}()

@@ -12,7 +12,9 @@ go build -o ./local/out/secrets ./local/cmd/secrets
 
 cd $VAULT_ROOT
 vault login token=root
-vault secrets disable ibmcloud/$PLUGIN_NAME
+if ! vault secrets disable ibmcloud/$PLUGIN_NAME; then
+	echo "Couldn't disable"
+fi
 
 SHA256=$(shasum -a 256 "$PLUGIN_DIR/$PLUGIN_NAME" | cut -d' ' -f1)
 echo $SHA256

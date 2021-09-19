@@ -14,21 +14,16 @@ type SecretId struct {
 	Id      string `json:"id"`
 }
 
-var orders *OrdersInProgress
-
 func getOrdersInProgress(storage logical.Storage) *OrdersInProgress {
-	if orders != nil {
-		return orders
-	}
 	//it's empty by default
-	orders = &OrdersInProgress{SecretIds: make([]SecretId, 0)}
+	orders := &OrdersInProgress{SecretIds: make([]SecretId, 0)}
 	//get from storage
 	entry, err := storage.Get(context.Background(), PathOrdersInProgress)
-	if err != nil { //will use default
+	if err != nil { //will use the default
 		common.Logger().Error("Failed to get Orders in progress from the storage: " + err.Error())
-	} else if entry == nil { //will use default
+	} else if entry == nil { //will use the default
 		common.Logger().Info("Orders in progress doesn't exist in the storage.")
-	} else if err = entry.DecodeJSON(orders); err != nil { //try to unmarshal it, if no use default
+	} else if err = entry.DecodeJSON(orders); err != nil { //try to unmarshal it, if not, use the default
 		common.Logger().Error("Orders in progress data was corrupted: " + err.Error() + "Data: " + string(entry.Value))
 	}
 	return orders
