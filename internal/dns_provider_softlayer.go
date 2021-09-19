@@ -333,7 +333,7 @@ func validateSoftLayerConfigStructure(config map[string]string) error {
 // Timeout returns the timeout and interval to use when checking for DNS propagation.
 // Adjusting here to cope with spikes in propagation times.
 func (c *SoftlayerDNSConfig) Timeout() (timeout, interval time.Duration) {
-	return PropagationTimeout, PollingInterval
+	return PropagationTimeoutSL, PollingIntervalSL
 }
 
 type SLCombinedResponse struct {
