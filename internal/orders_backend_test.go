@@ -4,11 +4,13 @@ import (
 	"context"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
 	"gotest.tools/v3/assert"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -18,11 +20,14 @@ var storage logical.Storage
 
 func TestOrdersBackend_GetConcretePath(t *testing.T) {
 
+	os.Setenv("featureToggels", "{\"GetSecretVersion\":true}")
+	feature_util.LoadFeaturesConfig()
+
 	b := OrdersBackend{secretBackend: &secret_backend.SecretBackendImpl{}}
 	res := b.GetConcretePath()
 
 	//We have 12 paths
-	assert.Equal(t, len(res), 21)
+	assert.Equal(t, len(res), 23)
 	assert.Equal(t, res[0].Pattern, "config/certificate_authorities")
 	assert.Equal(t, res[1].Pattern, "config/certificate_authorities/(?P<name>\\w(([\\w-.]+)?\\w)?)")
 	assert.Equal(t, res[2].Pattern, "config/dns_providers")
@@ -44,6 +49,8 @@ func TestOrdersBackend_GetConcretePath(t *testing.T) {
 	assert.Equal(t, res[18].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/(?P<version_id>\\w(([\\w-.]+)?\\w)?)/metadata")
 	assert.Equal(t, res[19].Pattern, "autorotate")
 	assert.Equal(t, res[20].Pattern, "autorotate/final")
+	assert.Equal(t, res[21].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/?$")
+	assert.Equal(t, res[22].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/?$")
 }
 
 func TestOrdersBackend_SetSecretBackend(t *testing.T) {
