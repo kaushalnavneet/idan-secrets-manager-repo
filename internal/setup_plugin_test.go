@@ -7,6 +7,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"gotest.tools/v3/assert"
 	"testing"
+	"time"
 )
 
 func Test_setup_plugin(t *testing.T) {
@@ -24,8 +25,10 @@ func Test_setup_plugin(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, len(c.Entries()), 2)
 		assert.Equal(t, c.Entries()[0].Valid(), true)
-		//parser:=cron.NewParser(cron.ParseOption)
-		//schedule, err := c.parser.Parse("5 */3 * * *")
-		//assert.Equal(t,b.Cron.Entries()[0].Schedule, )
+		//next rotation should be in less than 3 hours
+		assert.Equal(t, true, b.Cron.Entries()[0].Next.Before(time.Now().Add(3*time.Hour)))
+		assert.Equal(t, c.Entries()[1].Valid(), true)
+		//next cleanup should be in less than 24 hours
+		assert.Equal(t, true, b.Cron.Entries()[1].Next.Before(time.Now().Add(24*time.Hour)))
 	})
 }

@@ -7,7 +7,10 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
+	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
+	"net/http"
 	"strconv"
 	"time"
 )
@@ -47,12 +50,28 @@ func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, 
 		return
 	}
 	certMetadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
-	if !isResumingNeeded(certMetadata, secretPath, req.Storage, item) {
-		return
+	resumeInProgress := false
+	if item.Attempt == 2 {
+		common.Logger().Info(fmt.Sprintf("The secret entry '%s' has %d attempts to order. Stop trying", secretPath, item.Attempt))
+		setOrderFailed(secretEntry, certMetadata, secretPath, req.Storage)
+	} else if isResumingNeeded(certMetadata, secretPath, req.Storage, item) {
+		common.Logger().Info(fmt.Sprintf("Trying to resume the secret entry '%s' order ", secretPath))
+		err = ob.prepareAndStartOrder(ctx, req, secretEntry, certMetadata)
+		resumeInProgress = err == nil
 	}
-	common.Logger().Info(fmt.Sprintf("Trying to resume the secret entry '%s' order ", secretPath))
-	if err = ob.prepareAndStartOrder(ctx, req, secretEntry, certMetadata); err != nil {
+	if !resumeInProgress {
 		removeOrderFromOrdersInProgress(req.Storage, item)
+	}
+}
+
+func setOrderFailed(secretEntry *secretentry.SecretEntry, certMetadata *certificate.CertificateMetadata, secretPath string, storage logical.Storage) {
+	common.Logger().Error(fmt.Sprintf("Couldn't resume '%s' order in 2 attempts. Stop trying", secretPath))
+	err := commonErrors.GenerateCodedError(logdna.Error07046, http.StatusInternalServerError, orderCouldNotBeProcessed)
+	updateIssuanceInfoWithError(certMetadata, err)
+	secretEntry.ExtraData = certMetadata
+	errToStore := common.StoreSecretWithoutLocking(secretEntry, storage, context.Background())
+	if errToStore != nil {
+		common.Logger().Error(fmt.Sprintf("Couldn't save failed resumed '%s' order data to storage. Error:%s ", secretPath, errToStore.Error()))
 	}
 }
 
@@ -98,9 +117,6 @@ func isResumingNeeded(certMetadata *certificate.CertificateMetadata, secretPath 
 	} else if orderState == secretentry.StatePreActivation && orderStartTime.Add(3*time.Hour).Before(time.Now().UTC()) {
 		common.Logger().Info(fmt.Sprintf("The secret entry '%s' order was started more than 3 hours ago (at %s).", secretPath, orderTimeString))
 		needToResume = false
-	}
-	if !needToResume {
-		removeOrderFromOrdersInProgress(storage, item)
 	}
 	return needToResume
 }

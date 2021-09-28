@@ -12,6 +12,7 @@ type OrdersInProgress struct {
 type SecretId struct {
 	GroupId string `json:"group_id"`
 	Id      string `json:"id"`
+	Attempt int    `json:"attempt"`
 }
 
 func getOrdersInProgress(storage logical.Storage) *OrdersInProgress {

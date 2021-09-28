@@ -244,7 +244,7 @@ func Test_AutoRotate(t *testing.T) {
 			FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
 			FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
 		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateTrue_notExistConfig_id, expiresIn30Days_autoRotateTrue_notExistConfig, expectedIssuanceInfoForFailedRotation)
-		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: expiresIn30Days_autoRotateTrue_id}})
+		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: expiresIn30Days_autoRotateTrue_id, Attempt: 1}})
 	})
 
 	t.Run("Cleanup after rotation", func(t *testing.T) {

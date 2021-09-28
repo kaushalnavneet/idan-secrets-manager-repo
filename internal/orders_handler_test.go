@@ -107,7 +107,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[0][secretentry.FieldExpirationDate], expirationDate)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[0][secretentry.FieldPayloadAvailable], true)
 
-		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: "1"}}) //only the second of 2
+		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: "1", Attempt: 1}}) //only the second of 2
 	})
 
 	t.Run("First order - order failed", func(t *testing.T) {
@@ -201,7 +201,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldSerialNumber], serialNumber)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldExpirationDate], expirationDate)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldPayloadAvailable], true)
-		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: "0"}, {GroupId: defaultGroup, Id: "2"}}) //the first and the last should remain, the one before last (current order) should be removed
+		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: "0", Attempt: 1}, {GroupId: defaultGroup, Id: "2", Attempt: 1}}) //the first and the last should remain, the one before last (current order) should be removed
 	})
 
 	t.Run("Rotation - order failed", func(t *testing.T) {
@@ -331,15 +331,15 @@ func setOrdersInProgress(id string, count int) {
 	case 0:
 		ordersInProgress.SecretIds = []SecretId{}
 	case 1:
-		ordersInProgress.SecretIds = []SecretId{{GroupId: defaultGroup, Id: id}}
+		ordersInProgress.SecretIds = []SecretId{{GroupId: defaultGroup, Id: id, Attempt: 1}}
 	default:
 		ids := make([]SecretId, count)
 		//build array of ids of length count
 		for i := range ids {
-			ids[i] = SecretId{GroupId: defaultGroup, Id: strconv.Itoa(i)}
+			ids[i] = SecretId{GroupId: defaultGroup, Id: strconv.Itoa(i), Attempt: 1}
 		}
 		//the one before last will be expected id
-		ids[count-2] = SecretId{GroupId: defaultGroup, Id: id}
+		ids[count-2] = SecretId{GroupId: defaultGroup, Id: id, Attempt: 1}
 		ordersInProgress.SecretIds = ids
 	}
 	ordersInProgress.save(storage)

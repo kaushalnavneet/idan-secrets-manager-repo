@@ -583,14 +583,19 @@ func addWorkItemToOrdersInProgress(workItem WorkItem) {
 
 	ordersInProgress := getOrdersInProgress(workItem.storage)
 	//check if current work item already in the list, if yes, no need to add it
-	for _, secret := range ordersInProgress.SecretIds {
+	found := false
+	for i, secret := range ordersInProgress.SecretIds {
 		if secret.Id == workItem.secretEntry.ID {
-			common.Logger().Info(fmt.Sprintf("The secret with id %s is already in the list of orders in progress, no need to add it.", secret.Id))
-			return
+			ordersInProgress.SecretIds[i].Attempt++
+			common.Logger().Info(fmt.Sprintf("The secret with id %s is already in the list of orders in progress, encreasing attempts count to %d .", secret.Id, ordersInProgress.SecretIds[i].Attempt))
+			found = true
+			break
 		}
 	}
-	//add it to the list
-	ordersInProgress.SecretIds = append(ordersInProgress.SecretIds, SecretId{Id: workItem.secretEntry.ID, GroupId: workItem.secretEntry.GroupID})
+	if !found {
+		//add it to the list
+		ordersInProgress.SecretIds = append(ordersInProgress.SecretIds, SecretId{Id: workItem.secretEntry.ID, GroupId: workItem.secretEntry.GroupID, Attempt: 1})
+	}
 	ordersInProgress.save(workItem.storage)
 	return
 }
