@@ -51,7 +51,7 @@ func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, 
 	}
 	certMetadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
 	resumeInProgress := false
-	if item.Attempt == 2 {
+	if item.Attempt >= MaxAttemptsToOrder {
 		common.Logger().Info(fmt.Sprintf("The secret entry '%s' has %d attempts to order. Stop trying", secretPath, item.Attempt))
 		setOrderFailed(secretEntry, certMetadata, secretPath, req.Storage)
 	} else if isResumingNeeded(certMetadata, secretPath, req.Storage, item) {

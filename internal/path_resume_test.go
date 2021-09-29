@@ -177,7 +177,7 @@ func Test_Resume(t *testing.T) {
 		entryToTest.ExtraData = certMetadataToTest
 		entryToTest.ID = uuid.New().String()
 		common.StoreSecretWithoutLocking(entryToTest, storage, context.Background())
-		setOrdersInProgressWithAttempts(entryToTest.ID, 2)
+		setOrdersInProgressWithAttempts(entryToTest.ID, MaxAttemptsToOrder)
 		//resume orders
 		req := &logical.Request{
 			Operation: logical.UpdateOperation,
