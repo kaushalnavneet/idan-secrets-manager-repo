@@ -28,16 +28,16 @@ func (ob *OrdersBackend) pathResume() []*framework.Path {
 func (ob *OrdersBackend) resumeOrdersInProgress(ctx context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
 	common.Logger().Info("Start resuming orders in progress")
 	ordersInProgress := getOrdersInProgress(req.Storage)
-	ordersToResume := len(ordersInProgress.SecretIds)
+	ordersToResume := len(ordersInProgress.Orders)
 	common.Logger().Info(strconv.Itoa(ordersToResume) + " orders will be checked for resuming")
 	//go from the last to the first because they can be deleted in process
 	for i := ordersToResume - 1; i >= 0; i-- {
-		ob.resumeOrder(ctx, req, ordersInProgress.SecretIds[i])
+		ob.resumeOrder(ctx, req, ordersInProgress.Orders[i])
 	}
 	return nil, nil
 }
 
-func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, item SecretId) {
+func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, item OrderDetails) {
 	secretPath := item.GroupId + "/" + item.Id
 	secretEntry, err := common.GetSecretWithoutLocking(secretPath, req.Storage, ctx)
 	if err != nil {
@@ -51,8 +51,8 @@ func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, 
 	}
 	certMetadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
 	resumeInProgress := false
-	if item.Attempt >= MaxAttemptsToOrder {
-		common.Logger().Info(fmt.Sprintf("The secret entry '%s' has %d attempts to order. Stop trying", secretPath, item.Attempt))
+	if item.Attempts >= MaxAttemptsToOrder {
+		common.Logger().Info(fmt.Sprintf("The secret entry '%s' has %d attempts to order. Stop trying", secretPath, item.Attempts))
 		setOrderFailed(secretEntry, certMetadata, secretPath, req.Storage)
 	} else if isResumingNeeded(certMetadata, secretPath, req.Storage, item) {
 		common.Logger().Info(fmt.Sprintf("Trying to resume the secret entry '%s' order ", secretPath))
@@ -100,23 +100,23 @@ func (ob *OrdersBackend) prepareAndStartOrder(ctx context.Context, req *logical.
 	return nil
 }
 
-func isResumingNeeded(certMetadata *certificate.CertificateMetadata, secretPath string, storage logical.Storage, item SecretId) bool {
-	needToResume := true
+func isResumingNeeded(certMetadata *certificate.CertificateMetadata, secretPath string, storage logical.Storage, item OrderDetails) bool {
+	needToResume := false
 
 	orderState := int(certMetadata.IssuanceInfo[secretentry.FieldState].(float64))
 	orderTimeString := certMetadata.IssuanceInfo[FieldOrderedOn].(string)
 	orderStartTime, err := time.Parse(time.RFC3339, orderTimeString)
 	if err != nil {
 		common.Logger().Info(fmt.Sprintf("The secret entry '%s' has invalid order time %s.", secretPath, orderTimeString))
-		needToResume = false
 		//check that order indeed in the progress
 	} else if orderState != secretentry.StatePreActivation {
 		common.Logger().Info(fmt.Sprintf("The secret entry '%s' is in state %s. No need to resume", secretPath, secretentry.GetNistStateDescription(orderState)))
-		needToResume = false
-		//check that order is in progress not more than 3 hours
-	} else if orderState == secretentry.StatePreActivation && orderStartTime.Add(3*time.Hour).Before(time.Now().UTC()) {
-		common.Logger().Info(fmt.Sprintf("The secret entry '%s' order was started more than 3 hours ago (at %s).", secretPath, orderTimeString))
-		needToResume = false
+		//check that order is in progress not more than 12 hours
+	} else if orderState == secretentry.StatePreActivation && orderStartTime.Add(12*time.Hour).Before(time.Now().UTC()) {
+		common.Logger().Info(fmt.Sprintf("The secret entry '%s' order was started more than 12 hours ago (at %s).", secretPath, orderTimeString))
+	} else {
+		needToResume = true
 	}
+
 	return needToResume
 }

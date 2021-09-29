@@ -107,7 +107,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[0][secretentry.FieldExpirationDate], expirationDate)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[0][secretentry.FieldPayloadAvailable], true)
 
-		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: "1", Attempt: 1}}) //only the second of 2
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: "1", Attempts: 1}}) //only the second of 2
 	})
 
 	t.Run("First order - order failed", func(t *testing.T) {
@@ -149,7 +149,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
 		//versions
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
-		checkOrdersInProgress(t, []SecretId{})
+		checkOrdersInProgress(t, []OrderDetails{})
 	})
 
 	t.Run("Rotation - order succeeded", func(t *testing.T) {
@@ -201,7 +201,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldSerialNumber], serialNumber)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldExpirationDate], expirationDate)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldPayloadAvailable], true)
-		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: "0", Attempt: 1}, {GroupId: defaultGroup, Id: "2", Attempt: 1}}) //the first and the last should remain, the one before last (current order) should be removed
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: "0", Attempts: 1}, {GroupId: defaultGroup, Id: "2", Attempts: 1}}) //the first and the last should remain, the one before last (current order) should be removed
 	})
 
 	t.Run("Rotation - order failed", func(t *testing.T) {
@@ -250,7 +250,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
 		//versions
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
-		checkOrdersInProgress(t, []SecretId{})
+		checkOrdersInProgress(t, []OrderDetails{})
 	})
 }
 
@@ -321,7 +321,7 @@ func createOrderResult(withError bool, bundleCert bool, rotation bool) Result {
 func resetOrdersInProgress() {
 	oh.runningOrders = make(map[string]WorkItem)
 	ordersInProgress := getOrdersInProgress(storage)
-	ordersInProgress.SecretIds = []SecretId{}
+	ordersInProgress.Orders = []OrderDetails{}
 	ordersInProgress.save(storage)
 }
 
@@ -329,23 +329,23 @@ func setOrdersInProgress(id string, count int) {
 	ordersInProgress := getOrdersInProgress(storage)
 	switch count {
 	case 0:
-		ordersInProgress.SecretIds = []SecretId{}
+		ordersInProgress.Orders = []OrderDetails{}
 	case 1:
-		ordersInProgress.SecretIds = []SecretId{{GroupId: defaultGroup, Id: id, Attempt: 1}}
+		ordersInProgress.Orders = []OrderDetails{{GroupId: defaultGroup, Id: id, Attempts: 1}}
 	default:
-		ids := make([]SecretId, count)
+		ids := make([]OrderDetails, count)
 		//build array of ids of length count
 		for i := range ids {
-			ids[i] = SecretId{GroupId: defaultGroup, Id: strconv.Itoa(i), Attempt: 1}
+			ids[i] = OrderDetails{GroupId: defaultGroup, Id: strconv.Itoa(i), Attempts: 1}
 		}
 		//the one before last will be expected id
-		ids[count-2] = SecretId{GroupId: defaultGroup, Id: id, Attempt: 1}
-		ordersInProgress.SecretIds = ids
+		ids[count-2] = OrderDetails{GroupId: defaultGroup, Id: id, Attempts: 1}
+		ordersInProgress.Orders = ids
 	}
 	ordersInProgress.save(storage)
 }
 
-func checkOrdersInProgress(t *testing.T, secretIds []SecretId) {
+func checkOrdersInProgress(t *testing.T, secretIds []OrderDetails) {
 	ordersInProgress := getOrdersInProgress(storage)
-	assert.DeepEqual(t, ordersInProgress, &OrdersInProgress{SecretIds: secretIds})
+	assert.DeepEqual(t, ordersInProgress, &OrdersInProgress{Orders: secretIds})
 }

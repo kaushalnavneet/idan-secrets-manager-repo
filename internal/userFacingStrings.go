@@ -45,7 +45,7 @@ Remove the extra domain or the wildcard domain from the certificate order.`  //E
 	invalidKeyAlgorithm         = "Key algorithm is not valid. The valid options are: RSA2048, RSA4096, ECDSA256, ECDSA384" //Error07040
 	orderAlreadyInProcess       = "A certificate order for these domains is already in process."                            //Error07042
 	secretShouldBeInActiveState = "Secret should be in the Active state"                                                    //Error07062
-	orderCouldNotBeProcessed    = "The order could not be processed after 2 attempts."                                      //Error07046
+	orderCouldNotBeProcessed    = "The order could not be resumed after 2 attempts."                                        //Error07046
 )
 
 //Errors in communication with DNS providers

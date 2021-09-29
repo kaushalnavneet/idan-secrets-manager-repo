@@ -7,17 +7,17 @@ import (
 )
 
 type OrdersInProgress struct {
-	SecretIds []SecretId `json:"secret_ids"`
+	Orders []OrderDetails `json:"orders"`
 }
-type SecretId struct {
-	GroupId string `json:"group_id"`
-	Id      string `json:"id"`
-	Attempt int    `json:"attempt"`
+type OrderDetails struct {
+	GroupId  string `json:"group_id"`
+	Id       string `json:"id"`
+	Attempts int    `json:"attempts"`
 }
 
 func getOrdersInProgress(storage logical.Storage) *OrdersInProgress {
 	//it's empty by default
-	orders := &OrdersInProgress{SecretIds: make([]SecretId, 0)}
+	orders := &OrdersInProgress{Orders: make([]OrderDetails, 0)}
 	//get from storage
 	entry, err := storage.Get(context.Background(), PathOrdersInProgress)
 	if err != nil { //will use the default

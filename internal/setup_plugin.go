@@ -23,7 +23,7 @@ type AutoRotateConfig struct {
 	client      *vault_cliient_impl.VaultClientFactory
 }
 
-const startResumeOrdersInSec = 30 * time.Second
+const startResumeOrdersInSec = 120 * time.Second
 
 func SetupPublicCertPlugin(ctx context.Context, conf *logical.BackendConfig, backend *secret_backend.SecretBackendImpl) error {
 	common.Logger().Debug("SetupPublicCertPlugin: Trying to get Auth config")

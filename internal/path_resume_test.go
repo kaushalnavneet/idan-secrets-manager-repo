@@ -33,7 +33,7 @@ func Test_Resume(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
-		checkOrdersInProgress(t, []SecretId{})
+		checkOrdersInProgress(t, []OrderDetails{})
 		assert.Equal(t, len(oh.runningOrders), 0)
 	})
 
@@ -53,7 +53,7 @@ func Test_Resume(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
-		checkOrdersInProgress(t, []SecretId{})
+		checkOrdersInProgress(t, []OrderDetails{})
 		assert.Equal(t, len(oh.runningOrders), 0)
 	})
 
@@ -62,7 +62,7 @@ func Test_Resume(t *testing.T) {
 			secretentry.FieldState:            secretentry.StatePreActivation,
 			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StatePreActivation),
 			FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldDNSConfig: dnsConfig, FieldAutoRotated: true,
-			FieldOrderedOn: time.Now().UTC().Add(-4 * time.Hour),
+			FieldOrderedOn: time.Now().UTC().Add(-14 * time.Hour),
 		}
 		certMetadataToTest := certMetadata
 		certMetadataToTest.IssuanceInfo = issuanceInfoToTest
@@ -84,7 +84,7 @@ func Test_Resume(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
-		checkOrdersInProgress(t, []SecretId{})
+		checkOrdersInProgress(t, []OrderDetails{})
 		assert.Equal(t, len(oh.runningOrders), 0)
 	})
 
@@ -118,7 +118,7 @@ func Test_Resume(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 		assert.Equal(t, len(oh.runningOrders), 0)
-		checkOrdersInProgress(t, []SecretId{})
+		checkOrdersInProgress(t, []OrderDetails{})
 		//should become Deactivated
 		expectedIssuanceInfoForFailedRotation := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StateDeactivated,
@@ -159,7 +159,7 @@ func Test_Resume(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 		assert.Equal(t, len(oh.runningOrders), 1)
-		checkOrdersInProgress(t, []SecretId{{GroupId: defaultGroup, Id: entryToTest.ID, Attempt: 2}})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: entryToTest.ID, Attempts: 2}})
 	})
 
 	t.Run("Resume order - third attempt = failure", func(t *testing.T) {
@@ -192,7 +192,7 @@ func Test_Resume(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 		assert.Equal(t, len(oh.runningOrders), 0)
-		checkOrdersInProgress(t, []SecretId{})
+		checkOrdersInProgress(t, []OrderDetails{})
 
 		//check secret
 		req = &logical.Request{
@@ -222,6 +222,6 @@ func Test_Resume(t *testing.T) {
 
 func setOrdersInProgressWithAttempts(id string, attempt int) {
 	ordersInProgress := getOrdersInProgress(storage)
-	ordersInProgress.SecretIds = []SecretId{{GroupId: defaultGroup, Id: id, Attempt: attempt}}
+	ordersInProgress.Orders = []OrderDetails{{GroupId: defaultGroup, Id: id, Attempts: attempt}}
 	ordersInProgress.save(storage)
 }

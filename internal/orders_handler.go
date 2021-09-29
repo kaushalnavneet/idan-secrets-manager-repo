@@ -407,6 +407,8 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 
 //gets result of order and save it to secret entry
 func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
+	// at the end always remove order from orders in progress
+	defer removeWorkItemFromOrdersInProgress(res.workItem)
 	//delete the order from cache of orders in process
 	orderKey := getOrderID(res.workItem.domains)
 	delete(oh.runningOrders, orderKey)
@@ -483,7 +485,6 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	if err != nil {
 		common.Logger().Error("Couldn't save order result to storage: " + err.Error())
 	}
-	removeWorkItemFromOrdersInProgress(res.workItem)
 }
 
 //build response for create and rotate requests
@@ -584,27 +585,27 @@ func addWorkItemToOrdersInProgress(workItem WorkItem) {
 	ordersInProgress := getOrdersInProgress(workItem.storage)
 	//check if current work item already in the list, if yes, no need to add it
 	found := false
-	for i, secret := range ordersInProgress.SecretIds {
+	for i, secret := range ordersInProgress.Orders {
 		if secret.Id == workItem.secretEntry.ID {
-			ordersInProgress.SecretIds[i].Attempt++
-			common.Logger().Info(fmt.Sprintf("The secret with id %s is already in the list of orders in progress, encreasing attempts count to %d .", secret.Id, ordersInProgress.SecretIds[i].Attempt))
+			ordersInProgress.Orders[i].Attempts++
+			common.Logger().Info(fmt.Sprintf("The secret with id %s is already in the list of orders in progress, encreasing attempts count to %d .", secret.Id, ordersInProgress.Orders[i].Attempts))
 			found = true
 			break
 		}
 	}
 	if !found {
 		//add it to the list
-		ordersInProgress.SecretIds = append(ordersInProgress.SecretIds, SecretId{Id: workItem.secretEntry.ID, GroupId: workItem.secretEntry.GroupID, Attempt: 1})
+		ordersInProgress.Orders = append(ordersInProgress.Orders, OrderDetails{Id: workItem.secretEntry.ID, GroupId: workItem.secretEntry.GroupID, Attempts: 1})
 	}
 	ordersInProgress.save(workItem.storage)
 	return
 }
 
 func removeWorkItemFromOrdersInProgress(workItem WorkItem) {
-	removeOrderFromOrdersInProgress(workItem.storage, SecretId{Id: workItem.secretEntry.ID, GroupId: workItem.secretEntry.GroupID})
+	removeOrderFromOrdersInProgress(workItem.storage, OrderDetails{Id: workItem.secretEntry.ID, GroupId: workItem.secretEntry.GroupID})
 }
 
-func removeOrderFromOrdersInProgress(storage logical.Storage, itemToRemove SecretId) {
+func removeOrderFromOrdersInProgress(storage logical.Storage, itemToRemove OrderDetails) {
 	// lock for writing
 	lock := common.GetLockForName(PathOrdersInProgress)
 	lock.Lock()
@@ -612,9 +613,9 @@ func removeOrderFromOrdersInProgress(storage logical.Storage, itemToRemove Secre
 
 	ordersInProgress := getOrdersInProgress(storage)
 	//find the current work item and remove it
-	for i, secret := range ordersInProgress.SecretIds {
+	for i, secret := range ordersInProgress.Orders {
 		if secret.Id == itemToRemove.Id {
-			ordersInProgress.SecretIds = append(ordersInProgress.SecretIds[:i], ordersInProgress.SecretIds[i+1:]...)
+			ordersInProgress.Orders = append(ordersInProgress.Orders[:i], ordersInProgress.Orders[i+1:]...)
 			common.Logger().Info(fmt.Sprintf("Removing the secret entry '%s' from 'orders in progress'", itemToRemove.GroupId+"/"+itemToRemove.Id))
 			ordersInProgress.save(storage)
 			break
