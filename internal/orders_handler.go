@@ -407,8 +407,6 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 
 //gets result of order and save it to secret entry
 func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
-	// at the end always remove order from orders in progress
-	defer removeWorkItemFromOrdersInProgress(res.workItem)
 	//delete the order from cache of orders in process
 	orderKey := getOrderID(res.workItem.domains)
 	delete(oh.runningOrders, orderKey)
@@ -485,6 +483,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	if err != nil {
 		common.Logger().Error("Couldn't save order result to storage: " + err.Error())
 	}
+	removeWorkItemFromOrdersInProgress(res.workItem)
 }
 
 //build response for create and rotate requests
