@@ -427,19 +427,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
 		metadata.IssuanceInfo[FieldErrorCode] = errorObj.Code
 		metadata.IssuanceInfo[FieldErrorMessage] = errorObj.Message
-
-		extraData = map[string]interface{}{
-			FieldIssuanceInfo: metadata.IssuanceInfo,
-		}
-		secretEntry.ExtraData = metadata
-		//update secret state only in the first order, not in rotation
-		if secretEntry.State == secretentry.StatePreActivation {
-			secretEntry.State = secretentry.StateDeactivated
-			err := secretEntry.UpdateSecretDataV2(data, secretEntry.CreatedBy, extraData)
-			if err != nil {
-				return
-			}
-		}
+		updateSecretEntryWithFailure(secretEntry, metadata)
 	} else {
 		//update secret entry with the newly created certificate data
 		cert := string(res.certificate.Certificate)
@@ -453,37 +441,58 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		}
 		certData, err := oh.parser.ParseCertificate(cert, inter, priv)
 		if err != nil {
-			return
+			common.Logger().Error(fmt.Sprintf("Failed to parse an order result for the secret %s. Error: %s", secretEntry.ID, err.Error()))
+			codedErr := commonErrors.GenerateCodedError(logdna.Error07063, http.StatusInternalServerError, failedToParseCertificate)
+			updateIssuanceInfoWithError(metadata, codedErr)
+			updateSecretEntryWithFailure(secretEntry, metadata)
+		} else {
+			metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateActive
+			metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateActive)
+			delete(metadata.IssuanceInfo, FieldErrorCode)
+			delete(metadata.IssuanceInfo, FieldErrorMessage)
+
+			certData.Metadata.IssuanceInfo = metadata.IssuanceInfo
+			data = certData.RawData
+
+			extraData = map[string]interface{}{
+				secretentry.FieldNotBefore:    certData.Metadata.NotBefore,
+				secretentry.FieldNotAfter:     certData.Metadata.NotAfter,
+				secretentry.FieldSerialNumber: certData.Metadata.SerialNumber,
+				FieldIssuanceInfo:             certData.Metadata.IssuanceInfo,
+			}
+			updateLatestSecretVersion(secretEntry, data, extraData)
+			secretEntry.ExtraData = certData.Metadata
+			secretEntry.ExpirationDate = certData.Metadata.NotAfter
+			secretEntry.State = secretentry.StateActive
 		}
-
-		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateActive
-		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateActive)
-		delete(metadata.IssuanceInfo, FieldErrorCode)
-		delete(metadata.IssuanceInfo, FieldErrorMessage)
-
-		certData.Metadata.IssuanceInfo = metadata.IssuanceInfo
-		data = certData.RawData
-
-		extraData = map[string]interface{}{
-			secretentry.FieldNotBefore:    certData.Metadata.NotBefore,
-			secretentry.FieldNotAfter:     certData.Metadata.NotAfter,
-			secretentry.FieldSerialNumber: certData.Metadata.SerialNumber,
-			FieldIssuanceInfo:             certData.Metadata.IssuanceInfo,
-		}
-		err = secretEntry.UpdateSecretDataV2(data, secretEntry.CreatedBy, extraData)
-		if err != nil {
-			return
-		}
-
-		secretEntry.ExtraData = certData.Metadata
-		secretEntry.ExpirationDate = certData.Metadata.NotAfter
-		secretEntry.State = secretentry.StateActive
 	}
 	err := common.StoreSecretWithoutLocking(secretEntry, storage, context.Background())
 	if err != nil {
 		common.Logger().Error("Couldn't save order result to storage: " + err.Error())
+		return
 	}
 	removeWorkItemFromOrdersInProgress(res.workItem)
+}
+
+func updateSecretEntryWithFailure(secretEntry *secretentry.SecretEntry, metadata *certificate.CertificateMetadata) {
+	var secretData interface{}
+	extraData := map[string]interface{}{
+		FieldIssuanceInfo: metadata.IssuanceInfo,
+	}
+	secretEntry.ExtraData = metadata
+	//update secret state and data only in the first order, not in rotation
+	if secretEntry.State == secretentry.StatePreActivation {
+		secretEntry.State = secretentry.StateDeactivated
+		updateLatestSecretVersion(secretEntry, secretData, extraData)
+	}
+	return
+}
+
+func updateLatestSecretVersion(secretEntry *secretentry.SecretEntry, secretData interface{}, extraData map[string]interface{}) {
+	err := secretEntry.UpdateSecretDataV2(secretData, secretEntry.CreatedBy, extraData)
+	if err != nil {
+		common.Logger().Error(fmt.Sprintf("IT SHOULD NOT HAPPEN! Failed to update secret %s version with order result. Error: %s", secretEntry.ID, err.Error()))
+	}
 }
 
 //build response for create and rotate requests

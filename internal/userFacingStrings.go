@@ -46,6 +46,7 @@ Remove the extra domain or the wildcard domain from the certificate order.`  //E
 	orderAlreadyInProcess       = "A certificate order for these domains is already in process."                            //Error07042
 	secretShouldBeInActiveState = "Secret should be in the Active state"                                                    //Error07062
 	orderCouldNotBeProcessed    = "The order could not be resumed after 2 attempts."                                        //Error07046
+	failedToParseCertificate    = "Failed to parse ordered certificate"                                                     //Error07063
 )
 
 //Errors in communication with DNS providers
@@ -57,7 +58,7 @@ const (
 
 	domainIsNotFound     = "Domain %s is not found in %s"          //Error07072, Error07052
 	authorizationError   = "Authorization error when trying %s %s" //Error07073, Error07077, Error07080, Error07089, Error07031, Error07044, Error07048, Error07051, Error07056, Error07037
-	errorResponseFromDNS = "%s responded with an error"            //Error07074, Error07078, Error07081, Error07060, Error07032, Error07045, Error07049, Error07053, Error07057, Error07038, Error07063
+	errorResponseFromDNS = "%s responded with an error"            //Error07074, Error07078, Error07081, Error07060, Error07032, Error07045, Error07049, Error07053, Error07057, Error07038
 	unavailableDNSError  = "Couldn't call %s. Try again later"     //Error07030, Error07036, Error07047, Error07050, Error07054, Error07058, Error07071, Error07076, Error07079, Error07087
 
 	//specific CIS
