@@ -22,7 +22,7 @@ func TestOrdersBackend_GetConcretePath(t *testing.T) {
 	res := b.GetConcretePath()
 
 	//We have 12 paths
-	assert.Equal(t, len(res), 22)
+	assert.Equal(t, len(res), 24)
 	assert.Equal(t, res[0].Pattern, "config/certificate_authorities")
 	assert.Equal(t, res[1].Pattern, "config/certificate_authorities/(?P<name>\\w(([\\w-.]+)?\\w)?)")
 	assert.Equal(t, res[2].Pattern, "config/dns_providers")
@@ -45,6 +45,8 @@ func TestOrdersBackend_GetConcretePath(t *testing.T) {
 	assert.Equal(t, res[19].Pattern, AutoRotatePath)
 	assert.Equal(t, res[20].Pattern, AutoRotateCleanupPath)
 	assert.Equal(t, res[21].Pattern, ResumeOrderPath)
+	assert.Equal(t, res[21].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/?$")
+	assert.Equal(t, res[22].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/?$")
 }
 
 func TestOrdersBackend_SetSecretBackend(t *testing.T) {
