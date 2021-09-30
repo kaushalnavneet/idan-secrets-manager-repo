@@ -158,14 +158,14 @@ func (ob *OrdersBackend) pathListVersions() []*framework.Path {
 
 	return []*framework.Path{
 		{
-			Pattern:         "secrets/" + framework.GenericNameRegex(secretentry.FieldId) + "/versions/?$",
+			Pattern:         PathSecrets + framework.GenericNameRegex(secretentry.FieldId) + "/versions/?$",
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    listVersionsHelpSynopsis,
 			HelpDescription: listVersionsHelpDescription,
 		},
 		{
-			Pattern:         "secrets/groups/" + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/versions/?$",
+			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/versions/?$",
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    listVersionsHelpSynopsis,
