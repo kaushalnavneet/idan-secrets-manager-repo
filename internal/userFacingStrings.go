@@ -192,6 +192,14 @@ const (
 	updateMetadataOperationDescription = "The update operation updates the name, description, or labels that are associated with a certificate."
 )
 
+const (
+	listVersionsOperationDescription = `The list versions operation returns a list of all the versions of a secret in the public certificate secrets store.
+It receives the secretId parameter and and optionally also the group ID as part of the path.`
+
+	listVersionsHelpSynopsis    = `List the versions of a secret in the public certificate secrets store.`
+	listVersionsHelpDescription = `This path takes a secretId and lists the versions of the secret with this secretId.`
+)
+
 // path get version metadata
 const (
 	pathVersionMetaHelpSynopsis    = `Read metadata for secrets version in the public certificate secrets store.`

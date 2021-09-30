@@ -222,14 +222,13 @@ func (oh *OrdersHandler) UpdatePoliciesData(ctx context.Context, req *logical.Re
 func (oh *OrdersHandler) MapSecretVersion(version *secretentry.SecretVersion, secretId string, crn string, operation logical.Operation, includeSecretData bool) map[string]interface{} {
 	extraData := version.ExtraData.(map[string]interface{})
 	res := map[string]interface{}{
-		secretentry.FieldId:               secretId,
-		secretentry.FieldCrn:              crn,
-		secretentry.FieldVersionId:        version.ID,
-		secretentry.FieldCreatedBy:        version.CreatedBy,
-		secretentry.FieldCreatedAt:        version.CreationDate,
-		secretentry.FieldSerialNumber:     extraData[secretentry.FieldSerialNumber],
-		secretentry.FieldExpirationDate:   extraData[secretentry.FieldNotAfter],
-		secretentry.FieldPayloadAvailable: version.VersionData != nil,
+		secretentry.FieldId:             secretId,
+		secretentry.FieldCrn:            crn,
+		secretentry.FieldVersionId:      version.ID,
+		secretentry.FieldCreatedBy:      version.CreatedBy,
+		secretentry.FieldCreatedAt:      version.CreationDate,
+		secretentry.FieldSerialNumber:   extraData[secretentry.FieldSerialNumber],
+		secretentry.FieldExpirationDate: extraData[secretentry.FieldNotAfter],
 		secretentry.FieldValidity: map[string]interface{}{
 			secretentry.FieldNotAfter:  extraData[secretentry.FieldNotAfter],
 			secretentry.FieldNotBefore: extraData[secretentry.FieldNotBefore],
@@ -286,12 +285,11 @@ func (oh *OrdersHandler) mapSecretVersionForVersionsList(version *secretentry.Se
 
 	extraData := version.ExtraData.(map[string]interface{})
 	res := map[string]interface{}{
-		secretentry.FieldId:               version.ID,
-		secretentry.FieldCreatedBy:        version.CreatedBy,
-		secretentry.FieldCreatedAt:        version.CreationDate,
-		secretentry.FieldSerialNumber:     extraData[secretentry.FieldSerialNumber],
-		secretentry.FieldExpirationDate:   extraData[secretentry.FieldNotAfter],
-		secretentry.FieldPayloadAvailable: version.VersionData != nil,
+		secretentry.FieldId:             version.ID,
+		secretentry.FieldCreatedBy:      version.CreatedBy,
+		secretentry.FieldCreatedAt:      version.CreationDate,
+		secretentry.FieldSerialNumber:   extraData[secretentry.FieldSerialNumber],
+		secretentry.FieldExpirationDate: extraData[secretentry.FieldNotAfter],
 		secretentry.FieldValidity: map[string]interface{}{
 			secretentry.FieldNotAfter:  extraData[secretentry.FieldNotAfter],
 			secretentry.FieldNotBefore: extraData[secretentry.FieldNotBefore],

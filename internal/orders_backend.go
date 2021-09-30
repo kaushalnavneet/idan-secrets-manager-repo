@@ -6,6 +6,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
@@ -44,7 +45,7 @@ func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendH
 }
 
 func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
-	return framework.PathAppend(
+	path := framework.PathAppend(
 		// set + get config
 		ob.pathConfigCA(),
 		ob.pathConfigDNS(),
@@ -64,6 +65,10 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 		ob.pathAutoRotate(),
 		ob.pathResume(),
 	)
+	if feature_util.IsFeatureEnabled("GetSecretVersion") {
+		path = framework.PathAppend(path, ob.pathListVersions())
+	}
+	return path
 }
 
 func (ob *OrdersBackend) PeriodicFunc(ctx context.Context, req *logical.Request) error {
