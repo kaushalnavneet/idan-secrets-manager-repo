@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
@@ -35,6 +36,7 @@ const (
 	createdBy    = "CreatedBy"
 	errorCode    = "errorCode"
 	errorMessage = "errorMessage"
+	defaultGroup = "default"
 )
 
 var (
@@ -55,13 +57,8 @@ var (
 )
 
 func Test_saveOrderResultToStorage(t *testing.T) {
-	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
-	oh := &OrdersHandler{
-		runningOrders: make(map[string]WorkItem),
-		beforeOrders:  make(map[string]WorkItem),
-		parser:        &certificate.CertificateParserImpl{},
-	}
-
+	oh := initOrdersHandler()
+	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
 	t.Run("First order - order succeeded", func(t *testing.T) {
 		setOrdersInProgress(secretId, 2)
 		bundleCerts := false
@@ -111,7 +108,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[0][secretentry.FieldExpirationDate], expirationDate)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[0][secretentry.FieldPayloadAvailable], true)
 
-		checkOrdersInProgress(t, []string{"1"})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: "1", Attempts: 1}}) //only the second of 2
 	})
 
 	t.Run("First order - order failed", func(t *testing.T) {
@@ -153,7 +150,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
 		//versions
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
-		checkOrdersInProgress(t, []string{})
+		checkOrdersInProgress(t, []OrderDetails{})
 	})
 
 	t.Run("Rotation - order succeeded", func(t *testing.T) {
@@ -205,7 +202,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldSerialNumber], serialNumber)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldExpirationDate], expirationDate)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[1][secretentry.FieldPayloadAvailable], true)
-		checkOrdersInProgress(t, []string{"1", "2"})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: "0", Attempts: 1}, {GroupId: defaultGroup, Id: "2", Attempts: 1}}) //the first and the last should remain, the one before last (current order) should be removed
 	})
 
 	t.Run("Rotation - order failed", func(t *testing.T) {
@@ -254,8 +251,50 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
 		//versions
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
-		checkOrdersInProgress(t, []string{})
+		checkOrdersInProgress(t, []OrderDetails{})
 	})
+
+	t.Run("First order - order succeeded, but parsing failed", func(t *testing.T) {
+		badParserHandler := &OrdersHandler{
+			runningOrders: make(map[string]WorkItem),
+			beforeOrders:  make(map[string]WorkItem),
+			parser:        &parserMock{},
+		}
+		setOrdersInProgress(secretId, 2)
+		bundleCerts := false
+		orderResult := createOrderResult(false, bundleCerts, false)
+		badParserHandler.saveOrderResultToStorage(orderResult)
+		//get secret
+		req := &logical.Request{
+			Operation: logical.ReadOperation,
+			Path:      PathSecrets + secretId,
+			Storage:   storage,
+			Data:      make(map[string]interface{}),
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		assert.NilError(t, err)
+		//common fields
+		assert.Equal(t, false, resp.IsError())
+		assert.Equal(t, resp.Data[secretentry.FieldSecretType], secretentry.SecretTypePublicCert)
+		assert.Equal(t, resp.Data[secretentry.FieldName], certName1)
+		assert.Equal(t, resp.Data[secretentry.FieldDescription], certDesc)
+		assert.Equal(t, true, reflect.DeepEqual(resp.Data[secretentry.FieldLabels].([]string), labels))
+		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
+		assert.Equal(t, resp.Data[secretentry.FieldCreatedBy], createdBy)
+		//issuance info
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldAutoRotated], false)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldBundleCert], false)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldCAConfig], caConfig)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldDNSConfig], dnsConfig)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorCode], logdna.Error07063)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorMessage], failedToParseCertificate)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: "1", Attempts: 1}}) //only the second of 2
+	})
+
 }
 
 func createOrderResult(withError bool, bundleCert bool, rotation bool) Result {
@@ -323,30 +362,33 @@ func createOrderResult(withError bool, bundleCert bool, rotation bool) Result {
 }
 
 func resetOrdersInProgress() {
-	ordersInProgress := OrdersInProgress{Ids: []string{}}
+	oh.runningOrders = make(map[string]WorkItem)
+	ordersInProgress := getOrdersInProgress(storage)
+	ordersInProgress.Orders = []OrderDetails{}
 	ordersInProgress.save(storage)
 }
 
 func setOrdersInProgress(id string, count int) {
-	var ordersInProgress OrdersInProgress
+	ordersInProgress := getOrdersInProgress(storage)
 	switch count {
 	case 0:
-		ordersInProgress = OrdersInProgress{Ids: []string{}}
+		ordersInProgress.Orders = []OrderDetails{}
 	case 1:
-		ordersInProgress = OrdersInProgress{Ids: []string{id}}
+		ordersInProgress.Orders = []OrderDetails{{GroupId: defaultGroup, Id: id, Attempts: 1}}
 	default:
-		ids := make([]string, count)
-		for i, _ := range ids {
-			ids[i] = strconv.Itoa(i)
+		ids := make([]OrderDetails, count)
+		//build array of ids of length count
+		for i := range ids {
+			ids[i] = OrderDetails{GroupId: defaultGroup, Id: strconv.Itoa(i), Attempts: 1}
 		}
-		ids[0] = id
-		ordersInProgress = OrdersInProgress{Ids: ids}
+		//the one before last will be expected id
+		ids[count-2] = OrderDetails{GroupId: defaultGroup, Id: id, Attempts: 1}
+		ordersInProgress.Orders = ids
 	}
 	ordersInProgress.save(storage)
 }
 
-func checkOrdersInProgress(t *testing.T, ids []string) {
-	ordersInProgress, err := getOrdersInProgress(storage)
-	assert.NilError(t, err)
-	assert.DeepEqual(t, ordersInProgress, &OrdersInProgress{Ids: ids})
+func checkOrdersInProgress(t *testing.T, secretIds []OrderDetails) {
+	ordersInProgress := getOrdersInProgress(storage)
+	assert.DeepEqual(t, ordersInProgress, &OrdersInProgress{Orders: secretIds})
 }

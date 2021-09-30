@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/go-resty/resty/v2"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -74,4 +75,12 @@ func (rcm RestClientFactoryMock) GetClient() *resty.Client {
 
 func (rcm RestClientFactoryMock) InitClientWithOptions(opts rest_client.RestClientOptions) *resty.Client {
 	return nil
+}
+
+//CertificateParse implementation.
+type parserMock struct {
+}
+
+func (cp *parserMock) ParseCertificate(cert string, inter string, privateKey string) (*certificate.Certificate, error) {
+	return nil, errors.New("parsing error")
 }

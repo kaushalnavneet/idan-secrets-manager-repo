@@ -24,6 +24,7 @@ const (
 	errorPattern          = `{"error_code":"%s","error_message":"%s"}`
 	AutoRotatePath        = "autorotate"
 	AutoRotateCleanupPath = "autorotate/final"
+	ResumeOrderPath       = "resume"
 )
 
 const (
@@ -41,6 +42,7 @@ const (
 	CertRequestTimeout         time.Duration = 60 * 20 //wait 20 minutes till fail order
 	RotateIfExpirationIsInDays               = 30
 	txtRecordTtl                             = 120
+	MaxAttemptsToOrder                       = 2
 )
 
 //paths
@@ -52,7 +54,7 @@ const (
 	PathMetadata     = "/metadata"
 	PathRotate       = "/rotate"
 
-	PathOrdersInProgress = "orders"
+	PathOrdersInProgress = "ordersInProgress"
 )
 
 //cofigs common

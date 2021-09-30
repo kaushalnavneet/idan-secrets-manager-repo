@@ -13,6 +13,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_cliient_impl"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type AutoRotateConfig struct {
@@ -22,14 +23,19 @@ type AutoRotateConfig struct {
 	client      *vault_cliient_impl.VaultClientFactory
 }
 
-func SetupPluginWithAutoRotationJob(ctx context.Context, conf *logical.BackendConfig, backend *secret_backend.SecretBackendImpl) error {
-	common.Logger().Debug("SetupPluginWithAutoRotationJob: Trying to get Auth config")
+const startResumeOrdersInSec = 120 * time.Second
+
+func SetupPublicCertPlugin(ctx context.Context, conf *logical.BackendConfig, backend *secret_backend.SecretBackendImpl) error {
+	common.Logger().Debug("SetupPublicCertPlugin: Trying to get Auth config")
 	authConfig, err := common.ObtainAuthConfigFromStorage(ctx, conf.StorageView)
 	if err != nil || authConfig == nil {
-		common.Logger().Warn("SetupPluginWithAutoRotationJob: Couldn't get auth config and configure cron job for certificates auto-rotation. Will try to configure it later")
+		common.Logger().Warn("SetupPublicCertPlugin: Couldn't get auth config and configure cron job for certificates auto-rotation. Will try to configure it later")
 		return nil
 	}
-	common.Logger().Info("SetupPluginWithAutoRotationJob: Auth config is found. Configuring job for certificates auto-rotation.")
+	common.Logger().Info("SetupPublicCertPlugin: Engine config is found.")
+	common.Logger().Info("SetupPublicCertPlugin: Resume orders will run in " + startResumeOrdersInSec.String())
+	time.AfterFunc(startResumeOrdersInSec, func() { resumeOrders(authConfig) })
+	common.Logger().Info("SetupPublicCertPlugin: Configuring job for certificates auto-rotation.")
 	return ConfigAutoRotationJob(authConfig, backend.Cron)
 }
 
@@ -114,4 +120,26 @@ func (c *AutoRotateConfig) startCleanupProcess() {
 	if err != nil {
 		common.Logger().Error("Failed to send request for certificates auto-rotation cleanup", err)
 	}
+}
+
+func resumeOrders(config *common.ICAuthConfig) {
+	common.Logger().Debug("Send request to resume orders in progress.")
+	options := &vault_client_factory.RequestOptions{
+		URL:    config.Vault.Endpoint + PluginMountPath + ResumeOrderPath,
+		Method: http.MethodPost,
+		Headers: map[string]string{
+			vaultTokenHeader:  config.Vault.UpToken,
+			acceptHeader:      applicationJson,
+			contentTypeHeader: applicationJson,
+		},
+		Body:               []byte("{}"),
+		ResponseScheme:     nil,
+		ExpectedStatusCode: http.StatusNoContent,
+	}
+	vaultClient := &vault_cliient_impl.VaultClientFactory{Logger: common.Logger()}
+	_, _, err := vaultClient.SendRequest(options)
+	if err != nil {
+		common.Logger().Error("Failed to send request for certificates auto-rotation cleanup", err)
+	}
+	common.Logger().Info("All orders in progress were handled")
 }

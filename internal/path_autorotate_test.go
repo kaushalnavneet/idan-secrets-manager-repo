@@ -59,9 +59,11 @@ var (
 		KeyAlgorithm: keyType,
 		CommonName:   certCommonName,
 		IssuanceInfo: map[string]interface{}{
-			//secretentry.FieldState: secretentry.StateActive,
+			secretentry.FieldState:            secretentry.StateActive,
 			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StateActive),
-			FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldDNSConfig: dnsConfig, FieldAutoRotated: true}}
+			FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldDNSConfig: dnsConfig, FieldAutoRotated: true,
+			FieldOrderedOn: time.Now().UTC().Add(1 * time.Hour).Format(time.RFC3339),
+		}}
 
 	certMetadataWithWrongConfig = certificate.CertificateMetadata{
 		KeyAlgorithm: keyType,
@@ -97,7 +99,7 @@ var (
 				Type: policies.MIMETypeForPolicyResource}},
 		Type:    secretentry.SecretTypePublicCert,
 		CRN:     expiresIn30Days_autoRotateTrue_crn,
-		GroupID: "",
+		GroupID: defaultGroup,
 		State:   secretentry.StateActive,
 	}
 	expiresIn20Days_autoRotateTrue = &secretentry.SecretEntry{
@@ -120,7 +122,7 @@ var (
 				Type: policies.MIMETypeForPolicyResource}},
 		Type:    secretentry.SecretTypePublicCert,
 		CRN:     expiresIn20Days_autoRotateTrue_crn,
-		GroupID: "",
+		GroupID: defaultGroup,
 		State:   secretentry.StateActive,
 	}
 	expiresIn30Days_autoRotateFalse = &secretentry.SecretEntry{
@@ -199,12 +201,8 @@ var (
 var oh *OrdersHandler
 
 func Test_AutoRotate(t *testing.T) {
-	oh = &OrdersHandler{
-		runningOrders: make(map[string]WorkItem),
-		beforeOrders:  make(map[string]WorkItem),
-		parser:        &certificate.CertificateParserImpl{},
-	}
-	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
+	oh := initOrdersHandler()
+	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
 	initBackend()
 
 	t.Run("Rotate certificates", func(t *testing.T) {
@@ -246,6 +244,7 @@ func Test_AutoRotate(t *testing.T) {
 			FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
 			FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
 		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateTrue_notExistConfig_id, expiresIn30Days_autoRotateTrue_notExistConfig, expectedIssuanceInfoForFailedRotation)
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn30Days_autoRotateTrue_id, Attempts: 1}})
 	})
 
 	t.Run("Cleanup after rotation", func(t *testing.T) {

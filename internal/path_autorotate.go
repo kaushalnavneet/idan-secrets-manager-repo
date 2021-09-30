@@ -12,18 +12,12 @@ func (ob *OrdersBackend) pathAutoRotate() []*framework.Path {
 		{
 			Pattern: AutoRotatePath,
 			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.UpdateOperation: &framework.PathOperation{
-					Callback: ob.autoRotateCertificates,
-				},
-			},
+				logical.UpdateOperation: &framework.PathOperation{Callback: ob.autoRotateCertificates}},
 		},
 		{
 			Pattern: AutoRotateCleanupPath,
 			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.UpdateOperation: &framework.PathOperation{
-					Callback: ob.autoRotateCleanup,
-				},
-			},
+				logical.UpdateOperation: &framework.PathOperation{Callback: ob.autoRotateCleanup}},
 		},
 	}
 }
