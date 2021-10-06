@@ -219,7 +219,7 @@ func (oh *OrdersHandler) UpdatePoliciesData(ctx context.Context, req *logical.Re
 	return nil, nil
 }
 
-func (oh *OrdersHandler) MapSecretVersion(version *secretentry.SecretVersion, secretId string, crn string, operation logical.Operation, includeSecretData bool) map[string]interface{} {
+func (oh *OrdersHandler) MapSecretVersion(version *secretentry.SecretVersion, secretId string, crn string, operation logical.Operation, includeSecretData, isListVersions bool) map[string]interface{} {
 	extraData := version.ExtraData.(map[string]interface{})
 	res := map[string]interface{}{
 		secretentry.FieldId:             secretId,
@@ -234,6 +234,13 @@ func (oh *OrdersHandler) MapSecretVersion(version *secretentry.SecretVersion, se
 			secretentry.FieldNotBefore: extraData[secretentry.FieldNotBefore],
 		},
 	}
+	// For list secret versions mapping response
+	if isListVersions {
+		delete(res, secretentry.FieldVersionId)
+		delete(res, secretentry.FieldCrn)
+		res[secretentry.FieldId] = version.ID
+	}
+
 	if includeSecretData {
 		res[secretentry.FieldSecretData] = version.VersionData
 	}
@@ -246,7 +253,7 @@ func (oh *OrdersHandler) AllowedPolicyTypes() []interface{} {
 
 func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, includeSecretData bool, includeVersion bool) map[string]interface{} {
 	var metadata *certificate.CertificateMetadata
-	e := entry.ToMapWithVersionsMapper(oh.mapSecretVersionForVersionsList, logical.ReadOperation)
+	e := entry.ToMapWithVersionsMapper(oh.MapSecretVersion, logical.ReadOperation)
 	metadata, _ = certificate.DecodeMetadata(entry.ExtraData)
 	e[secretentry.FieldCommonName] = metadata.CommonName
 	e[secretentry.FieldAlgorithm] = metadata.Algorithm
@@ -279,26 +286,6 @@ func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, include
 	}
 
 	return e
-}
-
-func (oh *OrdersHandler) mapSecretVersionForVersionsList(version *secretentry.SecretVersion, secretId string, crn string, operation logical.Operation, includeSecretData bool) map[string]interface{} {
-
-	extraData := version.ExtraData.(map[string]interface{})
-	res := map[string]interface{}{
-		secretentry.FieldId:             version.ID,
-		secretentry.FieldCreatedBy:      version.CreatedBy,
-		secretentry.FieldCreatedAt:      version.CreationDate,
-		secretentry.FieldSerialNumber:   extraData[secretentry.FieldSerialNumber],
-		secretentry.FieldExpirationDate: extraData[secretentry.FieldNotAfter],
-		secretentry.FieldValidity: map[string]interface{}{
-			secretentry.FieldNotAfter:  extraData[secretentry.FieldNotAfter],
-			secretentry.FieldNotBefore: extraData[secretentry.FieldNotBefore],
-		},
-	}
-	if includeSecretData {
-		res[secretentry.FieldSecretData] = version.VersionData
-	}
-	return res
 }
 
 //builds work item (with validation) and save it in memory
