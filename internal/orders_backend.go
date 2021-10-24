@@ -30,10 +30,11 @@ func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendH
 	//first time create order handler
 	if ob.ordersHandler == nil {
 		oh := &OrdersHandler{
-			runningOrders: make(map[string]WorkItem),
-			beforeOrders:  make(map[string]WorkItem),
-			parser:        &certificate.CertificateParserImpl{},
-			cron:          ob.secretBackend.(*secret_backend.SecretBackendImpl).Cron,
+			runningOrders:  make(map[string]WorkItem),
+			beforeOrders:   make(map[string]WorkItem),
+			parser:         &certificate.CertificateParserImpl{},
+			cron:           ob.secretBackend.(*secret_backend.SecretBackendImpl).Cron,
+			metadataClient: ob.secretBackend.GetMetadataClient(),
 		}
 		oh.workerPool = NewWorkerPool(oh,
 			GetEnv("MAX_WORKERS", MaxWorkers).(int),
@@ -72,7 +73,7 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 }
 
 func (ob *OrdersBackend) PeriodicFunc(ctx context.Context, req *logical.Request) error {
-	return common.PerformOperationOnAllSecrets(ctx, req, ob.secretBackend.MarkSecretAsDestroyedIfExpired)
+	return common.PerformOperationOnAllSecrets(ctx, req, ob.secretBackend.GetMetadataClient(), ob.secretBackend.GetPluginSecretType(), ob.secretBackend.MarkSecretAsDestroyedIfExpired)
 }
 
 func existenceCheck(ctx context.Context, request *logical.Request, data *framework.FieldData) (bool, error) {

@@ -18,8 +18,8 @@ import (
 func Test_ReadPolicy_Happy(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
-	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue, storage, context.Background())
-	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background())
+	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue, storage, context.Background(), nil, false)
+	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
 
 	t.Run("Read policy", func(t *testing.T) {
 		data := map[string]interface{}{

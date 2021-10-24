@@ -323,7 +323,7 @@ func Test_rotation(t *testing.T) {
 		oh.runningOrders = make(map[string]WorkItem)
 		//the order was already in progress, it's the second attempt
 		setOrdersInProgress(expiresIn20Days_autoRotateTrue_id, 1)
-		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background())
+		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
 		data := map[string]interface{}{
 			policies.FieldRotateKeys: true,
 		}

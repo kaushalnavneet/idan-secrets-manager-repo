@@ -11,7 +11,7 @@ import (
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_cliient_impl"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_client_impl"
 	"net/http"
 	"net/url"
 	"strings"
@@ -68,7 +68,7 @@ func NewCISDNSProvider(providerConfig map[string]string, rc rest_client.RestClie
 	smInstanceCrn := providerConfig[dnsConfigSMCrn]
 
 	if auth == nil { //it's always nil except tests
-		auth = &common.AuthUtilsImpl{Client: &vault_cliient_impl.VaultClientFactory{Logger: common.Logger()}}
+		auth = &common.AuthUtilsImpl{Client: &vault_client_impl.VaultClientFactory{Logger: common.Logger()}}
 	}
 
 	var cisURL, iamURL string

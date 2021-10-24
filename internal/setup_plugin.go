@@ -10,8 +10,9 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_client_factory"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_cliient_impl"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_client_impl"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 )
@@ -20,10 +21,15 @@ type AutoRotateConfig struct {
 	rotatePath  string
 	cleanupPath string
 	usageToken  string
-	client      *vault_cliient_impl.VaultClientFactory
+	client      *vault_client_impl.VaultClientFactory
 }
 
 const startResumeOrdersInSec = 120 * time.Second
+
+var (
+	instanceCRN              string
+	metadataManagerWhitelist string
+)
 
 func SetupPublicCertPlugin(ctx context.Context, conf *logical.BackendConfig, backend *secret_backend.SecretBackendImpl) error {
 	common.Logger().Debug("SetupPublicCertPlugin: Trying to get Auth config")
@@ -36,6 +42,9 @@ func SetupPublicCertPlugin(ctx context.Context, conf *logical.BackendConfig, bac
 	common.Logger().Info("SetupPublicCertPlugin: Resume orders will run in " + startResumeOrdersInSec.String())
 	time.AfterFunc(startResumeOrdersInSec, func() { resumeOrders(authConfig) })
 	common.Logger().Info("SetupPublicCertPlugin: Configuring job for certificates auto-rotation.")
+	// TODO: remove after we are fully working with metadata manager
+	instanceCRN = os.Getenv("CRN")
+	metadataManagerWhitelist = os.Getenv("METADATA_MANAGER_WHITELIST")
 	return ConfigAutoRotationJob(authConfig, backend.Cron)
 }
 
@@ -51,7 +60,7 @@ func ConfigAutoRotationJob(config *common.ICAuthConfig, c *cron.Cron) error {
 		rotatePath:  config.Vault.Endpoint + PluginMountPath + AutoRotatePath,
 		cleanupPath: config.Vault.Endpoint + PluginMountPath + AutoRotateCleanupPath,
 		usageToken:  config.Vault.UpToken,
-		client:      &vault_cliient_impl.VaultClientFactory{Logger: common.Logger()},
+		client:      &vault_client_impl.VaultClientFactory{Logger: common.Logger()},
 	}
 	common.Logger().Info(fmt.Sprintf("Certificates auto-rotation cron job will call to path `%s` with schedule %s", arc.rotatePath, rotationSchedule))
 	var err error
@@ -136,7 +145,7 @@ func resumeOrders(config *common.ICAuthConfig) {
 		ResponseScheme:     nil,
 		ExpectedStatusCode: http.StatusNoContent,
 	}
-	vaultClient := &vault_cliient_impl.VaultClientFactory{Logger: common.Logger()}
+	vaultClient := &vault_client_impl.VaultClientFactory{Logger: common.Logger()}
 	_, _, err := vaultClient.SendRequest(options)
 	if err != nil {
 		common.Logger().Error("Failed to send request for certificates auto-rotation cleanup", err)

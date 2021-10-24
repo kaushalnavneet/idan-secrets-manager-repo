@@ -299,13 +299,13 @@ func getSecretAndCheckItsContent(t *testing.T, secretId string, expectedentry *s
 
 func createCertificates() {
 
-	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue, storage, context.Background())
+	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue, storage, context.Background(), nil, false)
 
-	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background())
+	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
 
-	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateFalse, storage, context.Background())
+	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateFalse, storage, context.Background(), nil, false)
 
-	common.StoreSecretWithoutLocking(failedOrder, storage, context.Background())
+	common.StoreSecretWithoutLocking(failedOrder, storage, context.Background(), nil, false)
 
-	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue_notExistConfig, storage, context.Background())
+	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue_notExistConfig, storage, context.Background(), nil, false)
 }

@@ -16,18 +16,20 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_client_impl"
 	"net/http"
 	"strings"
 	"time"
 )
 
 type OrdersHandler struct {
-	workerPool    *WorkerPool
-	beforeOrders  map[string]WorkItem
-	runningOrders map[string]WorkItem
-	parser        certificate.CertificateParser
-	pluginConfig  *common.ICAuthConfig
-	cron          *cron.Cron
+	workerPool     *WorkerPool
+	beforeOrders   map[string]WorkItem
+	runningOrders  map[string]WorkItem
+	parser         certificate.CertificateParser
+	pluginConfig   *common.ICAuthConfig
+	cron           *cron.Cron
+	metadataClient common.MetadataClient
 }
 
 func (oh *OrdersHandler) GetPolicyHandler() secret_backend.PolicyHandler {
@@ -451,7 +453,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 			secretEntry.State = secretentry.StateActive
 		}
 	}
-	err := common.StoreSecretWithoutLocking(secretEntry, storage, context.Background())
+	err := common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.getMetadataClient(), false)
 	if err != nil {
 		common.Logger().Error("Couldn't save order result to storage: " + err.Error())
 		return
@@ -517,6 +519,19 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.
 	return nil
 }
 
+//is called from endpoints where we need metadata client
+// this is to prevent a nil metadata client in orders handler
+func (oh *OrdersHandler) getMetadataClient() common.MetadataClient {
+	if oh.metadataClient == nil {
+		logger := common.Logger()
+		auth := &common.AuthUtilsImpl{Client: &vault_client_impl.VaultClientFactory{Logger: logger}}
+		mc := &common.MetadataClientImpl{}
+		mc.Config(common.MetadataMsUrl, auth, common.Logger())
+		oh.metadataClient = mc
+	}
+	return oh.metadataClient
+}
+
 //is called from path_rotate for every certificate in the storage
 func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
 	if !isRotationNeeded(entry) {
@@ -529,6 +544,18 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
 	var privateKey []byte
 	if !rotateKey {
+		if strings.Contains(metadataManagerWhitelist, instanceCRN) {
+			common.Logger().Debug("In new metadata manager flow of rotate certificate if needed")
+			// we need to add the secret version to the secret entry because we dont have versions in metadata manager
+			secretPath := entry.GroupID + "/" + entry.ID
+			secretEntry, err := common.GetSecretWithoutLocking(secretPath, req.Storage, ctx, oh.getMetadataClient())
+			if err != nil {
+				// todo: improve autorotation
+				common.Logger().Error("Couldn't get the secret entry from COS. Error: " + err.Error())
+				return nil
+			}
+			entry.Versions = secretEntry.Versions
+		}
 		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s will be rotated with the same private key", entry.Name, entry.ID))
 		rawdata, _ := certificate.DecodeRawData(entry.LastVersionData())
 		privateKey = []byte(rawdata.PrivateKey)
@@ -549,7 +576,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 		updateIssuanceInfoWithError(metadata, err)
 	}
 	//save updated entry
-	err = common.StoreSecretWithoutLocking(entry, req.Storage, context.Background())
+	err = common.StoreSecretWithoutLocking(entry, req.Storage, context.Background(), oh.getMetadataClient(), false)
 	if err != nil {
 		startOrder = false
 		common.Logger().Error("Couldn't save auto rotation order data to storage: " + err.Error())

@@ -8,6 +8,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugin-public-cert-secret/cmd/version"
 	"github.ibm.com/security-services/secrets-manager-vault-plugin-public-cert-secret/internal"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
 	"os"
 	"time"
@@ -28,6 +29,7 @@ func main() {
 		ConcreteSecretBackend: &ordersBackend,
 		PluginName:            "Public Certificates",
 		PluginMountPath:       publiccerts.PluginMountPath,
+		PluginSecretType:      secretentry.SecretTypePublicCert,
 		PluginBuildId:         version.BuildId,
 		PluginCommitId:        version.GitCommit,
 		BackendHelp:           "",

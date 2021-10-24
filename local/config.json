@@ -1,5 +1,0 @@
-{
-  "iam_endpoint": "https://iam.test.cloud.ibm.com",
-  "vault_endpoint": "http://127.0.0.1:8200",
-  "instance_crn": "crn:v1:staging:public:secrets-manager:us-south:a/791f5fb10986423e97aa8512f18b7e65:64be543a-3901-4f54-9d60-854382b21f29::"
-}

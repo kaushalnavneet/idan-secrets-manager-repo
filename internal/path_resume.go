@@ -39,7 +39,7 @@ func (ob *OrdersBackend) resumeOrdersInProgress(ctx context.Context, req *logica
 
 func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, item OrderDetails) {
 	secretPath := item.GroupId + "/" + item.Id
-	secretEntry, err := common.GetSecretWithoutLocking(secretPath, req.Storage, ctx)
+	secretEntry, err := common.GetSecretWithoutLocking(secretPath, req.Storage, ctx, ob.secretBackend.GetMetadataClient())
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf("Couldn't get secret entry '%s' in order to resume its order: %s", secretPath, err.Error()))
 		return
@@ -53,7 +53,7 @@ func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, 
 	resumeInProgress := false
 	if item.Attempts >= MaxAttemptsToOrder {
 		common.Logger().Info(fmt.Sprintf("The secret entry '%s' has %d attempts to order. Stop trying", secretPath, item.Attempts))
-		setOrderFailed(secretEntry, certMetadata, secretPath, req.Storage)
+		setOrderFailed(secretEntry, certMetadata, secretPath, req.Storage, ob.secretBackend.GetMetadataClient())
 	} else if isResumingNeeded(certMetadata, secretPath, req.Storage, item) {
 		common.Logger().Info(fmt.Sprintf("Trying to resume the secret entry '%s' order ", secretPath))
 		err = ob.prepareAndStartOrder(ctx, req, secretEntry, certMetadata)
@@ -64,12 +64,12 @@ func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, 
 	}
 }
 
-func setOrderFailed(secretEntry *secretentry.SecretEntry, certMetadata *certificate.CertificateMetadata, secretPath string, storage logical.Storage) {
+func setOrderFailed(secretEntry *secretentry.SecretEntry, certMetadata *certificate.CertificateMetadata, secretPath string, storage logical.Storage, metadataClient common.MetadataClient) {
 	common.Logger().Error(fmt.Sprintf("Couldn't resume '%s' order in 2 attempts. Stop trying", secretPath))
 	err := commonErrors.GenerateCodedError(logdna.Error07046, http.StatusInternalServerError, orderCouldNotBeProcessed)
 	updateIssuanceInfoWithError(certMetadata, err)
 	secretEntry.ExtraData = certMetadata
-	errToStore := common.StoreSecretWithoutLocking(secretEntry, storage, context.Background())
+	errToStore := common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), metadataClient, false)
 	if errToStore != nil {
 		common.Logger().Error(fmt.Sprintf("Couldn't save failed resumed '%s' order data to storage. Error:%s ", secretPath, errToStore.Error()))
 	}
@@ -90,7 +90,7 @@ func (ob *OrdersBackend) prepareAndStartOrder(ctx context.Context, req *logical.
 		common.Logger().Error(fmt.Sprintf("Couldn't resume the order '%s'. Error: %s", secretPath, err.Error()))
 		updateIssuanceInfoWithError(certMetadata, err)
 		secretEntry.ExtraData = certMetadata
-		errToStore := common.StoreSecretWithoutLocking(secretEntry, req.Storage, context.Background())
+		errToStore := common.StoreSecretWithoutLocking(secretEntry, req.Storage, context.Background(), ob.secretBackend.GetMetadataClient(), false)
 		if errToStore != nil {
 			common.Logger().Error(fmt.Sprintf("Couldn't save failed resumed '%s' order data to storage. Error:%s ", secretPath, errToStore.Error()))
 		}

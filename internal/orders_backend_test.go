@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
+	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
@@ -17,6 +18,14 @@ import (
 
 var b *secret_backend.SecretBackendImpl
 var storage logical.Storage
+
+func init() {
+	// reach old path without metadata manager
+	instanceCRN = "test-crn"
+	os.Setenv("CRN", instanceCRN)
+	metadataManagerWhitelist = "crn:v1:staging:public:secrets-manager:us-south:a/791f5fb10986423e97aa8512f18b7e65:baf0054c-235f-45ab-b6e8-45edbf044116::"
+	os.Setenv("METADATA_MANAGER_WHITELIST", metadataManagerWhitelist)
+}
 
 func TestOrdersBackend_GetConcretePath(t *testing.T) {
 	os.Setenv("featureToggels", "{\"GetSecretVersion\":true}")
@@ -131,4 +140,10 @@ func (sb *MockSecretBackend) GetValidator() secret_backend.Validator {
 }
 func (sb *MockSecretBackend) PathCallback(operation framework.OperationFunc, atVaultParams *activity_tracker.ActivityTrackerVault) framework.OperationFunc {
 	return nil
+}
+func (sb *MockSecretBackend) GetMetadataClient() common.MetadataClient {
+	return nil
+}
+func (sb *MockSecretBackend) GetPluginSecretType() string {
+	return "public_cert"
 }

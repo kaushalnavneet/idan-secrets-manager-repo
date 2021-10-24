@@ -11,7 +11,7 @@ import (
 	smErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	mock "github.ibm.com/security-services/secrets-manager-vault-plugins-common/testing"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_cliient_impl"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_client_impl"
 	"gotest.tools/v3/assert"
 	"net/http"
 	"net/url"
@@ -74,7 +74,7 @@ func Test_CIS_CreateConfig(t *testing.T) {
 			Domains:       make(map[string]*CISDomainData),
 			restClient:    rc,
 			smInstanceCrn: smCrn,
-			authUtils:     &common.AuthUtilsImpl{Client: &vault_cliient_impl.VaultClientFactory{Logger: common.Logger()}},
+			authUtils:     &common.AuthUtilsImpl{Client: &vault_client_impl.VaultClientFactory{Logger: common.Logger()}},
 		}
 		assert.Equal(t, true, reflect.DeepEqual(expectedConfig, cisProvider))
 	})
@@ -92,7 +92,7 @@ func Test_CIS_CreateConfig(t *testing.T) {
 			Domains:       make(map[string]*CISDomainData),
 			restClient:    rc,
 			smInstanceCrn: "",
-			authUtils:     &common.AuthUtilsImpl{Client: &vault_cliient_impl.VaultClientFactory{Logger: common.Logger()}},
+			authUtils:     &common.AuthUtilsImpl{Client: &vault_client_impl.VaultClientFactory{Logger: common.Logger()}},
 		}
 		assert.Equal(t, true, reflect.DeepEqual(expectedConfig, cisProvider))
 	})
