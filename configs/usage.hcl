@@ -9,3 +9,5 @@ path "/ibmcloud/public_cert/resume" { capabilities = ["update"] }
 path "/ibmcloud_internal/usage/*" { capabilities = ["create", "read", "update", "delete", "list"] }
 // auth plugin internal api - read for getting internal service token, update for obtain cached tokens and validating requests
 path "/auth/ibmcloud/internal/*" { capabilities = ["read", "update"] }
+// sync metadata path
+path "/ibmcloud/public_cert/metadata/sync" { capabilities = ["update"] }

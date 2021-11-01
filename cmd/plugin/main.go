@@ -7,6 +7,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client_impl"
 	"github.ibm.com/security-services/secrets-manager-vault-plugin-public-cert-secret/cmd/version"
 	"github.ibm.com/security-services/secrets-manager-vault-plugin-public-cert-secret/internal"
+	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
@@ -26,14 +27,15 @@ func main() {
 	ordersBackend := publiccerts.OrdersBackend{RestClient: rc}
 
 	fac := secret_backend.SecretBackendFactoryImpl{
-		ConcreteSecretBackend: &ordersBackend,
-		PluginName:            "Public Certificates",
-		PluginMountPath:       publiccerts.PluginMountPath,
-		PluginSecretType:      secretentry.SecretTypePublicCert,
-		PluginBuildId:         version.BuildId,
-		PluginCommitId:        version.GitCommit,
-		BackendHelp:           "",
-		PathInvalidHelp:       "",
+		ConcreteSecretBackend:         &ordersBackend,
+		PluginName:                    "Public Certificates",
+		PluginMountPath:               publiccerts.PluginMountPath,
+		PluginSecretType:              secretentry.SecretTypePublicCert,
+		MetadataMigrationSyncSchedule: common.RandomizeCronScheduleMinutes("0 11 * * *"),
+		PluginBuildId:                 version.BuildId,
+		PluginCommitId:                version.GitCommit,
+		BackendHelp:                   "",
+		PathInvalidHelp:               "",
 		ResponseCodeForAction: map[string]int{
 			secret_backend.ActionCreation:     http.StatusAccepted,
 			secret_backend.ActionRotation:     http.StatusAccepted,
