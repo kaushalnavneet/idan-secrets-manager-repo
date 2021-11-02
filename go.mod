@@ -14,11 +14,11 @@ require (
 	github.com/go-resty/resty/v2 v2.6.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-hclog v0.16.2
-	github.com/hashicorp/vault/sdk v0.2.1
+	github.com/hashicorp/vault/sdk v0.3.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.ibm.com/security-services/secrets-manager-common-utils v0.0.8614
+	github.ibm.com/security-services/secrets-manager-common-utils v0.0.8751
 	github.ibm.com/security-services/secrets-manager-iam v0.0.8072
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.8769
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.8792
 	golang.org/x/net v0.0.0-20210916014120-12bc252f5db8
 	gotest.tools/v3 v3.0.3
 )
