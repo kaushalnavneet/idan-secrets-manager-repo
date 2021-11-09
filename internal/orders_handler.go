@@ -525,8 +525,7 @@ func (oh *OrdersHandler) getMetadataClient() common.MetadataClient {
 	if oh.metadataClient == nil {
 		logger := common.Logger()
 		auth := &common.AuthUtilsImpl{Client: &vault_client_impl.VaultClientFactory{Logger: logger}}
-		mc := &common.MetadataClientImpl{}
-		mc.Config(common.MetadataMsUrl, auth, common.Logger())
+		mc := &common.MetadataClientImpl{Client: &vault_client_impl.VaultClientFactory{Logger: logger}, Logger: logger, AuthUtils: auth}
 		oh.metadataClient = mc
 	}
 	return oh.metadataClient
