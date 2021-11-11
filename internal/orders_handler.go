@@ -11,6 +11,7 @@ import (
 	"github.com/robfig/cron/v3"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate/certificate_struct"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
@@ -85,7 +86,7 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 	issuanceInfo[FieldCAConfig] = data.Get(FieldCAConfig).(string)
 	issuanceInfo[FieldDNSConfig] = data.Get(FieldDNSConfig).(string)
 	issuanceInfo[FieldBundleCert] = data.Get(FieldBundleCert).(bool)
-	certMetadata := &certificate.CertificateMetadata{
+	certMetadata := &certificate_struct.CertificateMetadata{
 		KeyAlgorithm: data.Get(secretentry.FieldKeyAlgorithm).(string),
 		CommonName:   data.Get(secretentry.FieldCommonName).(string),
 		AltName:      data.Get(secretentry.FieldAltNames).([]string),
@@ -254,7 +255,7 @@ func (oh *OrdersHandler) AllowedPolicyTypes() []interface{} {
 }
 
 func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, includeSecretData bool, includeVersion bool) map[string]interface{} {
-	var metadata *certificate.CertificateMetadata
+	var metadata *certificate_struct.CertificateMetadata
 	e := entry.ToMapWithVersionsMapper(oh.MapSecretVersion, logical.ReadOperation)
 	metadata, _ = certificate.DecodeMetadata(entry.ExtraData)
 	e[secretentry.FieldCommonName] = metadata.CommonName
@@ -291,7 +292,7 @@ func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, include
 }
 
 //builds work item (with validation) and save it in memory
-func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.Request, data *certificate.CertificateMetadata, privateKey []byte) error {
+func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.Request, data *certificate_struct.CertificateMetadata, privateKey []byte) error {
 	err := oh.configureIamIfNeeded(ctx, req)
 	if err != nil {
 		return err
@@ -461,7 +462,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	removeWorkItemFromOrdersInProgress(res.workItem)
 }
 
-func updateSecretEntryWithFailure(secretEntry *secretentry.SecretEntry, metadata *certificate.CertificateMetadata) {
+func updateSecretEntryWithFailure(secretEntry *secretentry.SecretEntry, metadata *certificate_struct.CertificateMetadata) {
 	var secretData interface{}
 	extraData := map[string]interface{}{
 		FieldIssuanceInfo: metadata.IssuanceInfo,
@@ -715,7 +716,7 @@ func getRotationPolicy(rawPolicy interface{}) (*policies.RotationPolicy, error) 
 	return &rotationPolicy, nil
 }
 
-func updateIssuanceInfoWithError(metadata *certificate.CertificateMetadata, err error) {
+func updateIssuanceInfoWithError(metadata *certificate_struct.CertificateMetadata, err error) {
 	if codedError, ok := err.(commonErrors.SMCodedError); ok {
 		metadata.IssuanceInfo[FieldErrorCode] = codedError.ErrCode()
 		metadata.IssuanceInfo[FieldErrorMessage] = codedError.Error()

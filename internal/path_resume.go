@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate/certificate_struct"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
@@ -64,7 +65,7 @@ func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, 
 	}
 }
 
-func setOrderFailed(secretEntry *secretentry.SecretEntry, certMetadata *certificate.CertificateMetadata, secretPath string, storage logical.Storage, metadataClient common.MetadataClient) {
+func setOrderFailed(secretEntry *secretentry.SecretEntry, certMetadata *certificate_struct.CertificateMetadata, secretPath string, storage logical.Storage, metadataClient common.MetadataClient) {
 	common.Logger().Error(fmt.Sprintf("Couldn't resume '%s' order in 2 attempts. Stop trying", secretPath))
 	err := commonErrors.GenerateCodedError(logdna.Error07046, http.StatusInternalServerError, orderCouldNotBeProcessed)
 	updateIssuanceInfoWithError(certMetadata, err)
@@ -75,7 +76,7 @@ func setOrderFailed(secretEntry *secretentry.SecretEntry, certMetadata *certific
 	}
 }
 
-func (ob *OrdersBackend) prepareAndStartOrder(ctx context.Context, req *logical.Request, secretEntry *secretentry.SecretEntry, certMetadata *certificate.CertificateMetadata) error {
+func (ob *OrdersBackend) prepareAndStartOrder(ctx context.Context, req *logical.Request, secretEntry *secretentry.SecretEntry, certMetadata *certificate_struct.CertificateMetadata) error {
 	secretPath := secretEntry.GroupID + "/" + secretEntry.ID
 	var privateKey []byte
 	//if order in progress is rotation, get private key if rotate_keys ==false
@@ -100,7 +101,7 @@ func (ob *OrdersBackend) prepareAndStartOrder(ctx context.Context, req *logical.
 	return nil
 }
 
-func isResumingNeeded(certMetadata *certificate.CertificateMetadata, secretPath string, storage logical.Storage, item OrderDetails) bool {
+func isResumingNeeded(certMetadata *certificate_struct.CertificateMetadata, secretPath string, storage logical.Storage, item OrderDetails) bool {
 	needToResume := false
 
 	orderState := int(certMetadata.IssuanceInfo[secretentry.FieldState].(float64))

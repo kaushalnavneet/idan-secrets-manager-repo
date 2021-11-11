@@ -6,7 +6,7 @@ import (
 	legoCert "github.com/go-acme/lego/v4/certificate"
 	"github.com/google/uuid"
 	"github.com/hashicorp/vault/sdk/logical"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate/certificate_struct"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
@@ -298,7 +298,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 }
 
 func createOrderResult(withError bool, bundleCert bool, rotation bool) Result {
-	certMetadata := certificate.CertificateMetadata{
+	certMetadata := certificate_struct.CertificateMetadata{
 		KeyAlgorithm: keyType,
 		CommonName:   certCommonName,
 		IssuanceInfo: map[string]interface{}{secretentry.FieldState: secretentry.StatePreActivation,

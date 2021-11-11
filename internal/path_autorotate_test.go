@@ -5,7 +5,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/vault/sdk/logical"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate/certificate_struct"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
@@ -55,7 +55,7 @@ var (
 	expirationIn30Days = today.Add(RotateIfExpirationIsInDays * 24 * time.Hour)
 	expirationIn20Days = today.Add(20 * 24 * time.Hour)
 
-	certMetadata = certificate.CertificateMetadata{
+	certMetadata = certificate_struct.CertificateMetadata{
 		KeyAlgorithm: keyType,
 		CommonName:   certCommonName,
 		IssuanceInfo: map[string]interface{}{
@@ -65,7 +65,7 @@ var (
 			FieldOrderedOn: time.Now().UTC().Add(1 * time.Hour).Format(time.RFC3339),
 		}}
 
-	certMetadataWithWrongConfig = certificate.CertificateMetadata{
+	certMetadataWithWrongConfig = certificate_struct.CertificateMetadata{
 		KeyAlgorithm: keyType,
 		CommonName:   certCommonName,
 		IssuanceInfo: map[string]interface{}{
