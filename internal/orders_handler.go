@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/robfig/cron/v3"
+	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate/certificate_struct"
@@ -544,7 +545,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
 	var privateKey []byte
 	if !rotateKey {
-		if strings.Contains(metadataManagerWhitelist, instanceCRN) {
+		if feature_util.IsFeatureEnabled("metadataIntegration") || strings.Contains(metadataManagerWhitelist, instanceCRN) {
 			common.Logger().Debug("In new metadata manager flow of rotate certificate if needed")
 			// we need to add the secret version to the secret entry because we dont have versions in metadata manager
 			secretPath := entry.GroupID + "/" + entry.ID
