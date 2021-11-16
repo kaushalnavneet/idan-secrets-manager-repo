@@ -31,7 +31,7 @@ func main() {
 		PluginName:                    "Public Certificates",
 		PluginMountPath:               publiccerts.PluginMountPath,
 		PluginSecretType:              secretentry.SecretTypePublicCert,
-		MetadataMigrationSyncSchedule: common.RandomizeCronScheduleMinutes("0 * * * *"),
+		MetadataMigrationSyncSchedule: common.RandomizeCronScheduleMinutes("0 11,23 * * *"),
 		PluginBuildId:                 version.BuildId,
 		PluginCommitId:                version.GitCommit,
 		BackendHelp:                   "",
