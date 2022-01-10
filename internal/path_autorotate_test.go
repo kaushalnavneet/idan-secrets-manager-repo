@@ -52,7 +52,7 @@ var (
 		},
 	}}
 	today              = time.Now()
-	expirationIn30Days = today.Add(RotateIfExpirationIsInDays * 24 * time.Hour)
+	expirationIn30Days = today.Add((RotateIfExpirationIsInDays*24 + 10) * time.Hour) //between 31 and 32 days
 	expirationIn20Days = today.Add(20 * 24 * time.Hour)
 
 	certMetadata = certificate_struct.CertificateMetadata{
