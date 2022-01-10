@@ -647,9 +647,8 @@ func removeOrderFromOrdersInProgress(storage logical.Storage, itemToRemove Order
 func isRotationNeeded(entry *secretentry.SecretEntry) bool {
 	if entry.State == secretentry.StateActive && entry.Policies.Rotation != nil && entry.Policies.Rotation.AutoRotate() {
 		now := time.Now().UTC()
-		midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-		startExpirationPeriod := midnight.AddDate(0, 0, RotateIfExpirationIsInDays)
-		endExpirationPeriod := midnight.AddDate(0, 0, RotateIfExpirationIsInDays+1)
+		startExpirationPeriod := now.AddDate(0, 0, RotateIfExpirationIsInDays)
+		endExpirationPeriod := now.AddDate(0, 0, RotateIfExpirationIsInDays+1)
 		certExpiration := *entry.ExpirationDate
 		return certExpiration.After(startExpirationPeriod) && certExpiration.Before(endExpirationPeriod)
 	} else {
