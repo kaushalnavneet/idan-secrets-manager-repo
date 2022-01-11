@@ -6,11 +6,12 @@ import (
 	legoCert "github.com/go-acme/lego/v4/certificate"
 	"github.com/google/uuid"
 	"github.com/hashicorp/vault/sdk/logical"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate/certificate_struct"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/certificate"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
 	"gotest.tools/v3/assert"
 	"reflect"
 	"strconv"
@@ -88,7 +89,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldName], certName1)
 		assert.Equal(t, resp.Data[secretentry.FieldDescription], certDesc)
 		assert.Equal(t, true, reflect.DeepEqual(resp.Data[secretentry.FieldLabels].([]string), labels))
-		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateActive))
+		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StateActive))
 		assert.Equal(t, resp.Data[secretentry.FieldCreatedBy], createdBy)
 		//specific fields
 		assert.Equal(t, resp.Data[secretentry.FieldKeyAlgorithm], keyType)
@@ -100,7 +101,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldBundleCert], false)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldCAConfig], caConfig)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldDNSConfig], dnsConfig)
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateActive))
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StateActive))
 		//it's the first version of this secret
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
 		assert.Equal(t, resp.Data[secretentry.FieldVersions].([]map[string]interface{})[0][secretentry.FieldCreatedBy], createdBy)
@@ -134,7 +135,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldName], certName1)
 		assert.Equal(t, resp.Data[secretentry.FieldDescription], certDesc)
 		assert.Equal(t, true, reflect.DeepEqual(resp.Data[secretentry.FieldLabels].([]string), labels))
-		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
+		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated))
 		assert.Equal(t, resp.Data[secretentry.FieldCreatedBy], createdBy)
 		//specific fields
 		assert.Equal(t, resp.Data[secretentry.FieldKeyAlgorithm], keyType)
@@ -147,7 +148,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldDNSConfig], dnsConfig)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorCode], errorCode)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorMessage], errorMessage)
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated))
 		//versions
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
 		checkOrdersInProgress(t, []OrderDetails{})
@@ -182,7 +183,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldName], certName1)
 		assert.Equal(t, resp.Data[secretentry.FieldDescription], certDesc)
 		assert.Equal(t, true, reflect.DeepEqual(resp.Data[secretentry.FieldLabels].([]string), labels))
-		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateActive))
+		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StateActive))
 		assert.Equal(t, resp.Data[secretentry.FieldCreatedBy], createdBy)
 		//specific fields
 		assert.Equal(t, resp.Data[secretentry.FieldKeyAlgorithm], keyType)
@@ -194,7 +195,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldBundleCert], bundleCerts)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldCAConfig], caConfig)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldDNSConfig], dnsConfig)
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateActive))
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StateActive))
 		//versions
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 2)
 		//the second version is the current order
@@ -235,7 +236,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldName], certName1)
 		assert.Equal(t, resp.Data[secretentry.FieldDescription], certDesc)
 		assert.Equal(t, true, reflect.DeepEqual(resp.Data[secretentry.FieldLabels].([]string), labels))
-		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateActive))
+		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StateActive))
 		assert.Equal(t, resp.Data[secretentry.FieldCreatedBy], createdBy)
 		//specific fields
 		assert.Equal(t, resp.Data[secretentry.FieldKeyAlgorithm], keyType)
@@ -248,7 +249,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldDNSConfig], dnsConfig)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorCode], errorCode)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorMessage], errorMessage)
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated))
 		//versions
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
 		checkOrdersInProgress(t, []OrderDetails{})
@@ -282,7 +283,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldName], certName1)
 		assert.Equal(t, resp.Data[secretentry.FieldDescription], certDesc)
 		assert.Equal(t, true, reflect.DeepEqual(resp.Data[secretentry.FieldLabels].([]string), labels))
-		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
+		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated))
 		assert.Equal(t, resp.Data[secretentry.FieldCreatedBy], createdBy)
 		//issuance info
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldAutoRotated], false)
@@ -291,14 +292,14 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldDNSConfig], dnsConfig)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorCode], logdna.Error07063)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorMessage], failedToParseCertificate)
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated))
 		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: "1", Attempts: 1}}) //only the second of 2
 	})
 
 }
 
 func createOrderResult(withError bool, bundleCert bool, rotation bool) Result {
-	certMetadata := certificate_struct.CertificateMetadata{
+	certMetadata := certificate.CertificateMetadata{
 		KeyAlgorithm: keyType,
 		CommonName:   certCommonName,
 		IssuanceInfo: map[string]interface{}{secretentry.FieldState: secretentry.StatePreActivation,
@@ -322,29 +323,31 @@ func createOrderResult(withError bool, bundleCert bool, rotation bool) Result {
 			domains:    []string{certCommonName},
 			isBundle:   bundleCert,
 			secretEntry: &secretentry.SecretEntry{
-				ID:             secretId,
-				Name:           certName1,
-				Description:    certDesc,
-				Labels:         labels,
-				ExtraData:      certMetadata,
-				Versions:       versions,
-				CreatedAt:      time.Now(),
-				CreatedBy:      createdBy,
-				ExpirationDate: nil,
-				TTL:            0,
-				Policies: policies.Policies{
-					Rotation: &policies.RotationPolicy{
-						Rotation: &policies.RotationData{
-							RotateKeys: false,
-							AutoRotate: true,
-						},
-						Type: ""}},
-				Type:             secretentry.SecretTypePublicCert,
-				CRN:              secretCrn,
-				GroupID:          "",
-				State:            entryState,
-				VersionsTotal:    len(versions),
-				PayloadUpdatedAt: versions[len(versions)-1].CreationDate,
+				SecretMetadataEntry: secret_metadata_entry.SecretMetadataEntry{
+					ID:             secretId,
+					Name:           certName1,
+					Description:    certDesc,
+					Labels:         labels,
+					ExtraData:      certMetadata,
+					CreatedAt:      time.Now(),
+					CreatedBy:      createdBy,
+					ExpirationDate: nil,
+					TTL:            0,
+					Policies: policies.Policies{
+						Rotation: &policies.RotationPolicy{
+							Rotation: &policies.RotationData{
+								RotateKeys: false,
+								AutoRotate: true,
+							},
+							Type: ""}},
+					Type:             secretentry.SecretTypePublicCert,
+					CRN:              secretCrn,
+					GroupID:          "",
+					State:            entryState,
+					VersionsTotal:    len(versions),
+					PayloadUpdatedAt: versions[len(versions)-1].CreationDate,
+				},
+				Versions: versions,
 			},
 			storage: storage,
 		},

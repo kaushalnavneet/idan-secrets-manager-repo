@@ -2,7 +2,7 @@ package publiccerts
 
 import (
 	"github.com/google/uuid"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate_parser"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"gotest.tools/v3/assert"
@@ -21,7 +21,7 @@ func TestWorkerPoolFull(t *testing.T) {
 	oh := &OrdersHandler{
 		runningOrders: make(map[string]WorkItem),
 		beforeOrders:  make(map[string]WorkItem),
-		parser:        &certificate.CertificateParserImpl{},
+		parser:        &certificate_parser.CertificateParserImpl{},
 	}
 	pool := NewWorkerPool(oh, 1, 2, 10*time.Second, WaitFunction)
 	workItem := WorkItem{

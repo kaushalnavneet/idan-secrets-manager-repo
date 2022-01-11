@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
@@ -60,7 +61,7 @@ func Test_Resume(t *testing.T) {
 	t.Run("Order started more than 3 hours ago", func(t *testing.T) {
 		issuanceInfoToTest := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StatePreActivation,
-			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StatePreActivation),
+			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
 			FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldDNSConfig: dnsConfig, FieldAutoRotated: true,
 			FieldOrderedOn: time.Now().UTC().Add(-14 * time.Hour),
 		}
@@ -93,7 +94,7 @@ func Test_Resume(t *testing.T) {
 		oh.runningOrders = make(map[string]WorkItem)
 		issuanceInfoToTest := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StatePreActivation,
-			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StatePreActivation),
+			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
 			FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true,
 			FieldOrderedOn: time.Now().UTC().Add(-1 * time.Hour),
 		}
@@ -122,7 +123,7 @@ func Test_Resume(t *testing.T) {
 		//should become Deactivated
 		expectedIssuanceInfoForFailedRotation := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StateDeactivated,
-			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StateDeactivated),
+			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated),
 			FieldErrorCode:                    "secrets-manager.Error07012",
 			FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
 			FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
@@ -134,7 +135,7 @@ func Test_Resume(t *testing.T) {
 		oh.runningOrders = make(map[string]WorkItem)
 		issuanceInfoToTest := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StatePreActivation,
-			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StatePreActivation),
+			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
 			FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldDNSConfig: dnsConfig, FieldAutoRotated: true,
 			FieldOrderedOn: time.Now().UTC().Add(-1 * time.Hour),
 		}
@@ -167,7 +168,7 @@ func Test_Resume(t *testing.T) {
 		oh.runningOrders = make(map[string]WorkItem)
 		issuanceInfoToTest := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StatePreActivation,
-			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StatePreActivation),
+			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
 			FieldBundleCert:                   false, FieldCAConfig: caConfig, FieldDNSConfig: dnsConfig, FieldAutoRotated: false,
 			FieldOrderedOn: time.Now().UTC().Add(-1 * time.Hour),
 		}
@@ -214,7 +215,7 @@ func Test_Resume(t *testing.T) {
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldBundleCert], false)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldCAConfig], caConfig)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldDNSConfig], dnsConfig)
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StateDeactivated))
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated))
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorCode], logdna.Error07046)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorMessage], orderCouldNotBeProcessed)
 	})

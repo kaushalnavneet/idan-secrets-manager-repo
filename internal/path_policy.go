@@ -3,10 +3,10 @@ package publiccerts
 import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	at "github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
 	"net/http"
 )
 

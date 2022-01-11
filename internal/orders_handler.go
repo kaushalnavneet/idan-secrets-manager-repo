@@ -9,15 +9,17 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/robfig/cron/v3"
+	"github.ibm.com/security-services/secrets-manager-common-utils/errors"
 	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/certificate"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate/certificate_struct"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate_parser"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_client_impl"
 	"net/http"
 	"strings"
@@ -28,7 +30,7 @@ type OrdersHandler struct {
 	workerPool     *WorkerPool
 	beforeOrders   map[string]WorkItem
 	runningOrders  map[string]WorkItem
-	parser         certificate.CertificateParser
+	parser         certificate_parser.CertificateParser
 	pluginConfig   *common.ICAuthConfig
 	cron           *cron.Cron
 	metadataClient common.MetadataClient
@@ -64,7 +66,7 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 	metadata.IssuanceInfo[FieldOrderedOn] = time.Now().UTC().Format(time.RFC3339)
 	metadata.IssuanceInfo[FieldAutoRotated] = false
 	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
-	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
+	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation)
 	delete(metadata.IssuanceInfo, FieldErrorCode)
 	delete(metadata.IssuanceInfo, FieldErrorMessage)
 	entry.ExtraData = metadata
@@ -83,11 +85,11 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 	issuanceInfo[FieldOrderedOn] = time.Now().UTC().Format(time.RFC3339)
 	issuanceInfo[FieldAutoRotated] = false
 	issuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
-	issuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
+	issuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation)
 	issuanceInfo[FieldCAConfig] = data.Get(FieldCAConfig).(string)
 	issuanceInfo[FieldDNSConfig] = data.Get(FieldDNSConfig).(string)
 	issuanceInfo[FieldBundleCert] = data.Get(FieldBundleCert).(bool)
-	certMetadata := &certificate_struct.CertificateMetadata{
+	certMetadata := &certificate.CertificateMetadata{
 		KeyAlgorithm: data.Get(secretentry.FieldKeyAlgorithm).(string),
 		CommonName:   data.Get(secretentry.FieldCommonName).(string),
 		AltName:      data.Get(secretentry.FieldAltNames).([]string),
@@ -203,7 +205,7 @@ func (oh *OrdersHandler) BuildPoliciesResponse(entry *secretentry.SecretEntry, p
 		entry.Policies.Rotation.AutoRotate() {
 		certExpiration := *entry.ExpirationDate
 		if entry.Policies.Rotation.Metadata.UpdatedAt.Add(RotateIfExpirationIsInDays * 24 * time.Hour).After(certExpiration) {
-			rotation["warning"] = commonErrors.Warning{
+			rotation["warning"] = errors.Warning{
 				Code:    logdna.Warn07001,
 				Message: policyWasUpdatedTooLate,
 			}
@@ -256,7 +258,7 @@ func (oh *OrdersHandler) AllowedPolicyTypes() []interface{} {
 }
 
 func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, includeSecretData bool, includeVersion bool) map[string]interface{} {
-	var metadata *certificate_struct.CertificateMetadata
+	var metadata *certificate.CertificateMetadata
 	e := entry.ToMapWithVersionsMapper(oh.MapSecretVersion, logical.ReadOperation)
 	metadata, _ = certificate.DecodeMetadata(entry.ExtraData)
 	e[secretentry.FieldCommonName] = metadata.CommonName
@@ -293,7 +295,7 @@ func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, include
 }
 
 //builds work item (with validation) and save it in memory
-func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.Request, data *certificate_struct.CertificateMetadata, privateKey []byte) error {
+func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.Request, data *certificate.CertificateMetadata, privateKey []byte) error {
 	err := oh.configureIamIfNeeded(ctx, req)
 	if err != nil {
 		return err
@@ -413,7 +415,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		common.Logger().Error("Order failed with error: " + res.Error.Error())
 		errorObj := getOrderError(res)
 		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
-		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
+		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated)
 		metadata.IssuanceInfo[FieldErrorCode] = errorObj.Code
 		metadata.IssuanceInfo[FieldErrorMessage] = errorObj.Message
 		updateSecretEntryWithFailure(secretEntry, metadata)
@@ -436,7 +438,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 			updateSecretEntryWithFailure(secretEntry, metadata)
 		} else {
 			metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateActive
-			metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateActive)
+			metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateActive)
 			delete(metadata.IssuanceInfo, FieldErrorCode)
 			delete(metadata.IssuanceInfo, FieldErrorMessage)
 
@@ -463,7 +465,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	removeWorkItemFromOrdersInProgress(res.workItem)
 }
 
-func updateSecretEntryWithFailure(secretEntry *secretentry.SecretEntry, metadata *certificate_struct.CertificateMetadata) {
+func updateSecretEntryWithFailure(secretEntry *secretentry.SecretEntry, metadata *certificate.CertificateMetadata) {
 	var secretData interface{}
 	extraData := map[string]interface{}{
 		FieldIssuanceInfo: metadata.IssuanceInfo,
@@ -565,7 +567,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	metadata.IssuanceInfo[FieldOrderedOn] = time.Now().UTC().Format(time.RFC3339)
 	metadata.IssuanceInfo[FieldAutoRotated] = true
 	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StatePreActivation
-	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StatePreActivation)
+	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation)
 	delete(metadata.IssuanceInfo, FieldErrorCode)
 	delete(metadata.IssuanceInfo, FieldErrorMessage)
 	entry.ExtraData = metadata
@@ -716,8 +718,8 @@ func getRotationPolicy(rawPolicy interface{}) (*policies.RotationPolicy, error) 
 	return &rotationPolicy, nil
 }
 
-func updateIssuanceInfoWithError(metadata *certificate_struct.CertificateMetadata, err error) {
-	if codedError, ok := err.(commonErrors.SMCodedError); ok {
+func updateIssuanceInfoWithError(metadata *certificate.CertificateMetadata, err error) {
+	if codedError, ok := err.(errors.SMCodedError); ok {
 		metadata.IssuanceInfo[FieldErrorCode] = codedError.ErrCode()
 		metadata.IssuanceInfo[FieldErrorMessage] = codedError.Error()
 	} else {
@@ -726,5 +728,5 @@ func updateIssuanceInfoWithError(metadata *certificate_struct.CertificateMetadat
 
 	}
 	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
-	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secretentry.GetNistStateDescription(secretentry.StateDeactivated)
+	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated)
 }

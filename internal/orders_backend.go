@@ -9,7 +9,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate_parser"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"strings"
 	"time"
@@ -32,7 +32,7 @@ func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendH
 		oh := &OrdersHandler{
 			runningOrders:  make(map[string]WorkItem),
 			beforeOrders:   make(map[string]WorkItem),
-			parser:         &certificate.CertificateParserImpl{},
+			parser:         &certificate_parser.CertificateParserImpl{},
 			cron:           ob.secretBackend.(*secret_backend.SecretBackendImpl).Cron,
 			metadataClient: ob.secretBackend.GetMetadataClient(),
 		}

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/certificate"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate/certificate_struct"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
@@ -65,7 +65,7 @@ func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, 
 	}
 }
 
-func setOrderFailed(secretEntry *secretentry.SecretEntry, certMetadata *certificate_struct.CertificateMetadata, secretPath string, storage logical.Storage, metadataClient common.MetadataClient) {
+func setOrderFailed(secretEntry *secretentry.SecretEntry, certMetadata *certificate.CertificateMetadata, secretPath string, storage logical.Storage, metadataClient common.MetadataClient) {
 	common.Logger().Error(fmt.Sprintf("Couldn't resume '%s' order in 2 attempts. Stop trying", secretPath))
 	err := commonErrors.GenerateCodedError(logdna.Error07046, http.StatusInternalServerError, orderCouldNotBeProcessed)
 	updateIssuanceInfoWithError(certMetadata, err)
@@ -76,7 +76,7 @@ func setOrderFailed(secretEntry *secretentry.SecretEntry, certMetadata *certific
 	}
 }
 
-func (ob *OrdersBackend) prepareAndStartOrder(ctx context.Context, req *logical.Request, secretEntry *secretentry.SecretEntry, certMetadata *certificate_struct.CertificateMetadata) error {
+func (ob *OrdersBackend) prepareAndStartOrder(ctx context.Context, req *logical.Request, secretEntry *secretentry.SecretEntry, certMetadata *certificate.CertificateMetadata) error {
 	secretPath := secretEntry.GroupID + "/" + secretEntry.ID
 	var privateKey []byte
 	//if order in progress is rotation, get private key if rotate_keys ==false
@@ -101,7 +101,7 @@ func (ob *OrdersBackend) prepareAndStartOrder(ctx context.Context, req *logical.
 	return nil
 }
 
-func isResumingNeeded(certMetadata *certificate_struct.CertificateMetadata, secretPath string, storage logical.Storage, item OrderDetails) bool {
+func isResumingNeeded(certMetadata *certificate.CertificateMetadata, secretPath string, storage logical.Storage, item OrderDetails) bool {
 	needToResume := false
 
 	orderState := int(certMetadata.IssuanceInfo[secretentry.FieldState].(float64))
@@ -111,7 +111,7 @@ func isResumingNeeded(certMetadata *certificate_struct.CertificateMetadata, secr
 		common.Logger().Info(fmt.Sprintf("The secret entry '%s' has invalid order time %s.", secretPath, orderTimeString))
 		//check that order indeed in the progress
 	} else if orderState != secretentry.StatePreActivation {
-		common.Logger().Info(fmt.Sprintf("The secret entry '%s' is in state %s. No need to resume", secretPath, secretentry.GetNistStateDescription(orderState)))
+		common.Logger().Info(fmt.Sprintf("The secret entry '%s' is in state %s. No need to resume", secretPath, secret_metadata_entry.GetNistStateDescription(orderState)))
 		//check that order is in progress not more than 12 hours
 	} else if orderState == secretentry.StatePreActivation && orderStartTime.Add(12*time.Hour).Before(time.Now().UTC()) {
 		common.Logger().Info(fmt.Sprintf("The secret entry '%s' order was started more than 12 hours ago (at %s).", secretPath, orderTimeString))

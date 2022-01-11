@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate_parser"
 	smErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
 	"gotest.tools/v3/assert"
 	"net/http"
 	"reflect"
@@ -42,7 +43,7 @@ func initOrdersHandler() *OrdersHandler {
 	oh = &OrdersHandler{
 		runningOrders: make(map[string]WorkItem),
 		beforeOrders:  make(map[string]WorkItem),
-		parser:        &certificate.CertificateParserImpl{},
+		parser:        &certificate_parser.CertificateParserImpl{},
 	}
 	oh.workerPool = NewWorkerPool(oh, 1, 1, 1*time.Second)
 	return oh
@@ -79,13 +80,13 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldKeyAlgorithm], keyType)
 		assert.Equal(t, resp.Data[secretentry.FieldCommonName], commonName)
 		assert.Equal(t, len(resp.Data[secretentry.FieldAltNames].([]string)), 0)
-		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StatePreActivation))
+		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation))
 		assert.Equal(t, resp.Data[secretentry.FieldCreatedBy], "iam-ServiceId-MOCK")
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldAutoRotated], false)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldBundleCert], true)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldCAConfig], caConfig)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldDNSConfig], dnsConfig)
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StatePreActivation))
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation))
 
 		assert.Equal(t, len(resp.Data[secretentry.FieldVersions].([]map[string]interface{})), 0)
 		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
@@ -103,7 +104,6 @@ func Test_Issue_cert(t *testing.T) {
 			secretentry.FieldName:         certName2,
 			secretentry.FieldDescription:  certDesc,
 			secretentry.FieldLabels:       labels,
-			secretentry.FieldGroupId:      groupId,
 			secretentry.FieldCommonName:   commonName,
 			secretentry.FieldAltNames:     altNames,
 			secretentry.FieldKeyAlgorithm: keyType,
@@ -115,7 +115,7 @@ func Test_Issue_cert(t *testing.T) {
 
 		req := &logical.Request{
 			Operation: logical.CreateOperation,
-			Path:      PathSecrets,
+			Path:      PathSecrets + "groups/" + groupId,
 			Storage:   storage,
 			Data:      data,
 			Connection: &logical.Connection{
@@ -137,13 +137,13 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[secretentry.FieldKeyAlgorithm], keyType)
 		assert.Equal(t, resp.Data[secretentry.FieldCommonName], commonName)
 		assert.Equal(t, true, reflect.DeepEqual(resp.Data[secretentry.FieldAltNames].([]string), altNames))
-		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StatePreActivation))
+		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation))
 		assert.Equal(t, resp.Data[secretentry.FieldCreatedBy], "iam-ServiceId-MOCK")
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldAutoRotated], false)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldBundleCert], false)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldCAConfig], caConfig)
 		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldDNSConfig], dnsConfig)
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(secretentry.StatePreActivation))
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation))
 
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldAutoRotate], true)
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], true)

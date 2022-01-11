@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-common-utils/errors"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
+	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
 	"gotest.tools/v3/assert"
 	"net/http"
 	"reflect"
@@ -104,8 +105,8 @@ func Test_ReadPolicy_Happy(t *testing.T) {
 
 		resp, err := b.HandleRequest(context.Background(), req)
 		expectedMessage := fmt.Sprintf(policiesNotValidField, policies.FieldAutoRotate)
-		assert.Equal(t, len(resp.Headers[errors.ErrorCodeHeader]), 1)
-		assert.Equal(t, resp.Headers[errors.ErrorCodeHeader][0], logdna.Error07098)
+		assert.Equal(t, len(resp.Headers[commonErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[commonErrors.ErrorCodeHeader][0], logdna.Error07098)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
 	})
@@ -131,8 +132,8 @@ func Test_ReadPolicy_Happy(t *testing.T) {
 
 		resp, err := b.HandleRequest(context.Background(), req)
 		expectedMessage := fmt.Sprintf(policiesNotValidField, policies.FieldRotateKeys)
-		assert.Equal(t, len(resp.Headers[errors.ErrorCodeHeader]), 1)
-		assert.Equal(t, resp.Headers[errors.ErrorCodeHeader][0], logdna.Error07099)
+		assert.Equal(t, len(resp.Headers[commonErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[commonErrors.ErrorCodeHeader][0], logdna.Error07099)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
 	})

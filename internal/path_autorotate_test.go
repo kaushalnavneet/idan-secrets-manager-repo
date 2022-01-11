@@ -4,11 +4,12 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/certificate"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate/certificate_struct"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
-	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry/policies"
 	"gotest.tools/v3/assert"
 	"reflect"
 	"strings"
@@ -55,23 +56,23 @@ var (
 	expirationIn30Days = today.Add((RotateIfExpirationIsInDays*24 + 10) * time.Hour) //between 31 and 32 days
 	expirationIn20Days = today.Add(20 * 24 * time.Hour)
 
-	certMetadata = certificate_struct.CertificateMetadata{
+	certMetadata = certificate.CertificateMetadata{
 		KeyAlgorithm: keyType,
 		CommonName:   certCommonName,
 		IssuanceInfo: map[string]interface{}{
 			secretentry.FieldState:            secretentry.StateActive,
-			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StateActive),
+			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateActive),
 			FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldDNSConfig: dnsConfig, FieldAutoRotated: true,
 			FieldOrderedOn: time.Now().UTC().Add(1 * time.Hour).Format(time.RFC3339),
 		}}
 
-	certMetadataWithWrongConfig = certificate_struct.CertificateMetadata{
+	certMetadataWithWrongConfig = certificate.CertificateMetadata{
 		KeyAlgorithm: keyType,
 		CommonName:   certCommonName,
 		IssuanceInfo: map[string]interface{}{
 			FieldCAConfig: "wrong",
 			//secretentry.FieldState: secretentry.StateActive,
-			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StateActive),
+			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateActive),
 			FieldBundleCert:                   true,
 			FieldDNSConfig:                    dnsConfig,
 			FieldAutoRotated:                  false}}
@@ -80,121 +81,131 @@ var (
 //certificates in storage before rotation
 var (
 	expiresIn30Days_autoRotateTrue = &secretentry.SecretEntry{
-		ID:             expiresIn30Days_autoRotateTrue_id,
-		Name:           "expiresIn30Days_autoRotateTrue",
-		Description:    certDesc,
-		Labels:         []string{},
-		ExtraData:      certMetadata,
-		Versions:       versionsWithData,
-		CreatedAt:      today.Add(-60 * 24 * time.Hour),
-		CreatedBy:      createdBy,
-		ExpirationDate: &expirationIn30Days,
-		TTL:            0,
-		Policies: policies.Policies{
-			Rotation: &policies.RotationPolicy{
-				Rotation: &policies.RotationData{
-					RotateKeys: false,
-					AutoRotate: true,
-				},
-				Type: policies.MIMETypeForPolicyResource}},
-		Type:    secretentry.SecretTypePublicCert,
-		CRN:     expiresIn30Days_autoRotateTrue_crn,
-		GroupID: defaultGroup,
-		State:   secretentry.StateActive,
+		SecretMetadataEntry: secret_metadata_entry.SecretMetadataEntry{
+			ID:             expiresIn30Days_autoRotateTrue_id,
+			Name:           "expiresIn30Days_autoRotateTrue",
+			Description:    certDesc,
+			Labels:         []string{},
+			ExtraData:      certMetadata,
+			CreatedAt:      today.Add(-60 * 24 * time.Hour),
+			CreatedBy:      createdBy,
+			ExpirationDate: &expirationIn30Days,
+			TTL:            0,
+			Policies: policies.Policies{
+				Rotation: &policies.RotationPolicy{
+					Rotation: &policies.RotationData{
+						RotateKeys: false,
+						AutoRotate: true,
+					},
+					Type: policies.MIMETypeForPolicyResource}},
+			Type:    secretentry.SecretTypePublicCert,
+			CRN:     expiresIn30Days_autoRotateTrue_crn,
+			GroupID: defaultGroup,
+			State:   secretentry.StateActive,
+		},
+		Versions: versionsWithData,
 	}
 	expiresIn20Days_autoRotateTrue = &secretentry.SecretEntry{
-		ID:             expiresIn20Days_autoRotateTrue_id,
-		Name:           "expiresIn20Days_autoRotateTrue",
-		Description:    certDesc,
-		Labels:         []string{},
-		ExtraData:      certMetadata,
-		Versions:       versions,
-		CreatedAt:      today.Add(-10 * 24 * time.Hour),
-		CreatedBy:      createdBy,
-		ExpirationDate: &expirationIn20Days,
-		TTL:            0,
-		Policies: policies.Policies{
-			Rotation: &policies.RotationPolicy{
-				Rotation: &policies.RotationData{
-					RotateKeys: false,
-					AutoRotate: true,
-				},
-				Type: policies.MIMETypeForPolicyResource}},
-		Type:    secretentry.SecretTypePublicCert,
-		CRN:     expiresIn20Days_autoRotateTrue_crn,
-		GroupID: defaultGroup,
-		State:   secretentry.StateActive,
+		SecretMetadataEntry: secret_metadata_entry.SecretMetadataEntry{
+			ID:             expiresIn20Days_autoRotateTrue_id,
+			Name:           "expiresIn20Days_autoRotateTrue",
+			Description:    certDesc,
+			Labels:         []string{},
+			ExtraData:      certMetadata,
+			CreatedAt:      today.Add(-10 * 24 * time.Hour),
+			CreatedBy:      createdBy,
+			ExpirationDate: &expirationIn20Days,
+			TTL:            0,
+			Policies: policies.Policies{
+				Rotation: &policies.RotationPolicy{
+					Rotation: &policies.RotationData{
+						RotateKeys: false,
+						AutoRotate: true,
+					},
+					Type: policies.MIMETypeForPolicyResource}},
+			Type:    secretentry.SecretTypePublicCert,
+			CRN:     expiresIn20Days_autoRotateTrue_crn,
+			GroupID: defaultGroup,
+			State:   secretentry.StateActive,
+		},
+		Versions: versions,
 	}
 	expiresIn30Days_autoRotateFalse = &secretentry.SecretEntry{
-		ID:             expiresIn30Days_autoRotateFalse_id,
-		Name:           "expiresIn30Days_autoRotateFalse",
-		Description:    certDesc,
-		Labels:         []string{},
-		ExtraData:      certMetadata,
-		Versions:       versions,
-		CreatedAt:      today.Add(-60 * 24 * time.Hour),
-		CreatedBy:      createdBy,
-		ExpirationDate: &expirationIn30Days,
-		TTL:            0,
-		Policies: policies.Policies{
-			Rotation: &policies.RotationPolicy{
-				Rotation: &policies.RotationData{
-					RotateKeys: false,
-					AutoRotate: false,
-				},
-				Type: policies.MIMETypeForPolicyResource}},
-		Type:    secretentry.SecretTypePublicCert,
-		CRN:     expiresIn30Days_autoRotateFalse_crn,
-		GroupID: "",
-		State:   secretentry.StateActive,
+		SecretMetadataEntry: secret_metadata_entry.SecretMetadataEntry{
+			ID:             expiresIn30Days_autoRotateFalse_id,
+			Name:           "expiresIn30Days_autoRotateFalse",
+			Description:    certDesc,
+			Labels:         []string{},
+			ExtraData:      certMetadata,
+			CreatedAt:      today.Add(-60 * 24 * time.Hour),
+			CreatedBy:      createdBy,
+			ExpirationDate: &expirationIn30Days,
+			TTL:            0,
+			Policies: policies.Policies{
+				Rotation: &policies.RotationPolicy{
+					Rotation: &policies.RotationData{
+						RotateKeys: false,
+						AutoRotate: false,
+					},
+					Type: policies.MIMETypeForPolicyResource}},
+			Type:    secretentry.SecretTypePublicCert,
+			CRN:     expiresIn30Days_autoRotateFalse_crn,
+			GroupID: "",
+			State:   secretentry.StateActive,
+		},
+		Versions: versions,
 	}
 	failedOrder = &secretentry.SecretEntry{
-		ID:             failedOrder_id,
-		Name:           "failedOrder",
-		Description:    certDesc,
-		Labels:         []string{},
-		ExtraData:      nil,
-		Versions:       versions,
-		CreatedAt:      today.Add(-60 * 24 * time.Hour),
-		CreatedBy:      createdBy,
-		ExpirationDate: nil,
-		TTL:            0,
-		Policies: policies.Policies{
-			Rotation: &policies.RotationPolicy{
-				Rotation: &policies.RotationData{
-					RotateKeys: false,
-					AutoRotate: false,
-				},
-				Type: policies.MIMETypeForPolicyResource}},
-		Type:    secretentry.SecretTypePublicCert,
-		CRN:     failedOrder_crn,
-		GroupID: "",
-		State:   secretentry.StateDeactivated,
+		SecretMetadataEntry: secret_metadata_entry.SecretMetadataEntry{
+			ID:             failedOrder_id,
+			Name:           "failedOrder",
+			Description:    certDesc,
+			Labels:         []string{},
+			ExtraData:      nil,
+			CreatedAt:      today.Add(-60 * 24 * time.Hour),
+			CreatedBy:      createdBy,
+			ExpirationDate: nil,
+			TTL:            0,
+			Policies: policies.Policies{
+				Rotation: &policies.RotationPolicy{
+					Rotation: &policies.RotationData{
+						RotateKeys: false,
+						AutoRotate: false,
+					},
+					Type: policies.MIMETypeForPolicyResource}},
+			Type:    secretentry.SecretTypePublicCert,
+			CRN:     failedOrder_crn,
+			GroupID: "",
+			State:   secretentry.StateDeactivated,
+		},
+		Versions: versions,
 	}
 	expiresIn30Days_autoRotateTrue_notExistConfig = &secretentry.SecretEntry{
-		ID:          expiresIn30Days_autoRotateTrue_notExistConfig_id,
-		Name:        "expiresIn30Days_autoRotateTrue_notExistConfig_id",
-		Description: certDesc,
-		Labels:      []string{},
-		//Wrong config
-		ExtraData: certMetadataWithWrongConfig,
-		Versions:  versionsWithData,
-		CreatedAt: today.Add(-60 * 24 * time.Hour),
-		CreatedBy: createdBy,
-		//expiration in 30 days
-		ExpirationDate: &expirationIn30Days,
-		TTL:            0,
-		Policies: policies.Policies{
-			Rotation: &policies.RotationPolicy{
-				Rotation: &policies.RotationData{
-					RotateKeys: false,
-					AutoRotate: true,
-				},
-				Type: policies.MIMETypeForPolicyResource}},
-		Type:    secretentry.SecretTypePublicCert,
-		CRN:     expiresIn30Days_autoRotateTrue_notExistConfig_crn,
-		GroupID: "",
-		State:   secretentry.StateActive,
+		SecretMetadataEntry: secret_metadata_entry.SecretMetadataEntry{
+			ID:          expiresIn30Days_autoRotateTrue_notExistConfig_id,
+			Name:        "expiresIn30Days_autoRotateTrue_notExistConfig_id",
+			Description: certDesc,
+			Labels:      []string{},
+			//Wrong config
+			ExtraData: certMetadataWithWrongConfig,
+			CreatedAt: today.Add(-60 * 24 * time.Hour),
+			CreatedBy: createdBy,
+			//expiration in 30 days
+			ExpirationDate: &expirationIn30Days,
+			TTL:            0,
+			Policies: policies.Policies{
+				Rotation: &policies.RotationPolicy{
+					Rotation: &policies.RotationData{
+						RotateKeys: false,
+						AutoRotate: true,
+					},
+					Type: policies.MIMETypeForPolicyResource}},
+			Type:    secretentry.SecretTypePublicCert,
+			CRN:     expiresIn30Days_autoRotateTrue_notExistConfig_crn,
+			GroupID: "",
+			State:   secretentry.StateActive,
+		},
+		Versions: versionsWithData,
 	}
 )
 
@@ -230,7 +241,7 @@ func Test_AutoRotate(t *testing.T) {
 		//should become Preactivation
 		expectedIssuanceInfoForRotatedCert := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StatePreActivation,
-			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StatePreActivation),
+			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
 			FieldBundleCert:                   true,
 			FieldCAConfig:                     caConfig,
 			FieldDNSConfig:                    dnsConfig,
@@ -239,7 +250,7 @@ func Test_AutoRotate(t *testing.T) {
 		//should become Deactivated
 		expectedIssuanceInfoForFailedRotation := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StateDeactivated,
-			secretentry.FieldStateDescription: secretentry.GetNistStateDescription(secretentry.StateDeactivated),
+			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated),
 			FieldErrorCode:                    "secrets-manager.Error07012",
 			FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
 			FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
@@ -284,7 +295,7 @@ func getSecretAndCheckItsContent(t *testing.T, secretId string, expectedentry *s
 	assert.Equal(t, resp.Data[secretentry.FieldName], expectedentry.Name)
 	assert.Equal(t, resp.Data[secretentry.FieldDescription], expectedentry.Description)
 	assert.Equal(t, true, reflect.DeepEqual(resp.Data[secretentry.FieldLabels].([]string), expectedentry.Labels))
-	assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secretentry.GetNistStateDescription(expectedentry.State))
+	assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(expectedentry.State))
 	assert.Equal(t, resp.Data[secretentry.FieldCreatedBy], expectedentry.CreatedBy)
 	//issuance info
 
