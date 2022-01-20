@@ -9,7 +9,7 @@ replace github.com/labstack/echo/v4 => github.com/labstack/echo/v4 v4.6.3
 //replace github.com/dgrijalva/jwt-go => github.com/dgrijalva/jwt-go v4.0.0-preview1
 
 require (
-	github.com/go-acme/lego/v4 v4.5.3
+	github.com/go-acme/lego/v4 v4.6.0
 	github.com/go-playground/validator/v10 v10.10.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/google/uuid v1.3.0
