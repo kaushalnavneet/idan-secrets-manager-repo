@@ -19,6 +19,6 @@ require (
 	github.ibm.com/security-services/secrets-manager-common-utils v0.0.10190
 	github.ibm.com/security-services/secrets-manager-iam v0.0.10191
 	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.10221
-	golang.org/x/net v0.0.0-20220114011407-0dd24b26b47d
+	golang.org/x/net v0.0.0-20220121210141-e204ce36a2ba
 	gotest.tools/v3 v3.1.0
 )
