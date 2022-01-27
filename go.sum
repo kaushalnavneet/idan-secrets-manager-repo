@@ -681,8 +681,8 @@ github.ibm.com/security-services/secrets-manager-common-utils v0.0.10190/go.mod 
 github.ibm.com/security-services/secrets-manager-iam v0.0.8072/go.mod h1:tYiyFcKQKJvTaK+LOF1bUXGram4DaJfzcg5pLvqjMuY=
 github.ibm.com/security-services/secrets-manager-iam v0.0.10191 h1:GG1C22WVU+S+qu1wZx8FJdBGiIyIxBro+KcuKsw3Ga4=
 github.ibm.com/security-services/secrets-manager-iam v0.0.10191/go.mod h1:oZTSkVuOzukBkXpZ6rPg4zabd7UT/km9ucQKczIZ8FY=
-github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.10221 h1:VHn+sNIBL5EXAM/aCy+Qam3rVj+ZuUx0jOn5nja1k68=
-github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.10221/go.mod h1:UqLPHK8hSeUsSLbKBeFl/FQ7WLa9X3yjAvn+YpRlBqw=
+github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.10381 h1:XRjUeInkhQldlcdjkJCQHj1ZmxU9DfjsCO3Nz7NNaK4=
+github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.10381/go.mod h1:UqLPHK8hSeUsSLbKBeFl/FQ7WLa9X3yjAvn+YpRlBqw=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
@@ -796,8 +796,8 @@ golang.org/x/net v0.0.0-20210428140749-89ef3d95e781/go.mod h1:OJAsFXCWl8Ukc7SiCT
 golang.org/x/net v0.0.0-20210510120150-4163338589ed/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/net v0.0.0-20210913180222-943fd674d43e/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/net v0.0.0-20211029224645-99673261e6eb/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
-golang.org/x/net v0.0.0-20220121210141-e204ce36a2ba h1:6u6sik+bn/y7vILcYkK3iwTBWN7WtBvB0+SZswQnbf8=
-golang.org/x/net v0.0.0-20220121210141-e204ce36a2ba/go.mod h1:CfG3xpIq0wQ8r1q4Su4UZFWDARRcnwPjda9FqA0JpMk=
+golang.org/x/net v0.0.0-20220127074510-2fabfed7e28f h1:o66Bv9+w/vuk7Krcig9jZqD01FP7BL8OliFqqw0xzPI=
+golang.org/x/net v0.0.0-20220127074510-2fabfed7e28f/go.mod h1:CfG3xpIq0wQ8r1q4Su4UZFWDARRcnwPjda9FqA0JpMk=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
 golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=

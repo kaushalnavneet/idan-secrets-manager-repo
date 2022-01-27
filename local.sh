@@ -30,7 +30,7 @@ vault secrets enable \
     -plugin-name="$PLUGIN_NAME" plugin
 
 VAULT_ENDPOINT=http://127.0.0.1:8200
-METADATA_MANAGER_URL=<local-metadata-managet-url>
+METADATA_MANAGER_URL=http://localhost:5556
 INSTANCE_CRN=crn:v1:staging:public:secrets-manager:us-south:a/791f5fb10986423e97aa8512f18b7e65:64be543a-3901-4f54-9d60-854382b21f29::
 
 cd $VAULT_ROOT
@@ -46,4 +46,6 @@ vault write ibmcloud/$PLUGIN_NAME/config/engine \
   instance_crn="$INSTANCE_CRN" \
   vault_endpoint="$VAULT_ENDPOINT" \
   usage_token="$USAGE_TOKEN" \
-  metadata_manager_url="$METADATA_MANAGER_URL"
+  metadata_manager_url="$METADATA_MANAGER_URL" \
+  public_enabled="true" \
+  private_enabled="true"
