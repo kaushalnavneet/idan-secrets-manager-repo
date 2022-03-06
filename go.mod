@@ -2,6 +2,11 @@ module github.ibm.com/security-services/secrets-manager-vault-plugin-public-cert
 
 go 1.14
 
+//fix CVE Snyk Vulnerability Database
+replace github.com/pkg/sftp => github.com/pkg/sftp v1.13.4
+
+replace github.com/labstack/echo/v4 => github.com/labstack/echo/v4 v4.6.3
+
 require (
 	github.com/go-acme/lego/v4 v4.6.0
 	github.com/go-playground/validator/v10 v10.10.0
