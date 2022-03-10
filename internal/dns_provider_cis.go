@@ -383,6 +383,7 @@ func validateCISConfigStructure(config map[string]string, smInstanceCrn string) 
 // Timeout returns the timeout and interval to use when checking for DNS propagation.
 // Adjusting here to cope with spikes in propagation times.
 func (c *CISDNSConfig) Timeout() (timeout, interval time.Duration) {
-	common.Logger().Info(fmt.Sprintf("The timeout and interval to use when checking for DNS propagation for CIS is set to %s and %s accordingly ", PropagationTimeoutCIS, PollingIntervalCIS))
+	logStart := dnsProviderCIS + timeoutFunc
+	common.Logger().Info(logStart + fmt.Sprintf(timeoutsLog, PropagationTimeoutCIS, PollingIntervalCIS))
 	return PropagationTimeoutCIS, PollingIntervalCIS
 }

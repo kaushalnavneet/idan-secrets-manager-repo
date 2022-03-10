@@ -108,7 +108,7 @@ const (
 	PollingIntervalCIS    = 2 * time.Second
 
 	PropagationTimeoutSL = 30 * time.Minute
-	PollingIntervalSL    = 1 * time.Minute
+	PollingIntervalSL    = 3 * time.Minute
 )
 
 //internal errors
@@ -147,6 +147,8 @@ const (
 	startCleanup           = " Trying to remove the challenge from domain"
 	endCleanup             = " The domain was successfully cleaned up"
 	cleanupFunc            = " Cleanup: "
+	timeoutFunc            = " Timeout: "
+	timeoutsLog            = " The timeout and interval to use when checking for DNS propagation is set to %s and %s accordingly"
 	errorBuildHeaderFailed = " Couldn't build headers for CIS request: "
 	errorRemoveTxtRec      = " Couldn't remove txt record for domain "
 	errorGetTxtRec         = " Couldn't get txt record for domain "
