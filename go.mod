@@ -1,6 +1,6 @@
 module github.ibm.com/security-services/secrets-manager-vault-plugin-public-cert-secret
 
-go 1.14
+go 1.16
 
 //fix CVE Snyk Vulnerability Database
 replace github.com/pkg/sftp => github.com/pkg/sftp v1.13.4
