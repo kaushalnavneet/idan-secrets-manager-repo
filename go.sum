@@ -674,7 +674,7 @@ github.ibm.com/IAM/go-jwks v1.0.2 h1:N+gll8Rbe39Bdav6GabmNV7DwluQwx+T0xIwt0aq+js
 github.ibm.com/IAM/go-jwks v1.0.2/go.mod h1:fAUycbN6ea13H92/Wq6psTiGyhXivWm8u1IcEinlC+Q=
 github.ibm.com/IAM/pep/v3 v3.1.4 h1:sklGLsymv7wbUVl71tQ8ON//YlLIB1DDdiH5mkdh0Nc=
 github.ibm.com/IAM/pep/v3 v3.1.4/go.mod h1:TDi+j/asQ7/Ncby8RwcHQ/9oUIy/qk7sTUrvCol3rFU=
-github.ibm.com/IAM/token/v5 v5.1.1 h1:D5Jb4YCx9G/SAGKz5Dt75+fga9xQc9D9wiM2e0taMPY=
+github.ibm.com/IAM/token/v5 v5.1.1 h1:IOP7g2RFljCZ4/Kp7AhzuxHLes2TrMBWSlV/yzKZSMg=
 github.ibm.com/IAM/token/v5 v5.1.1/go.mod h1:rt7f2sUCvzYU6+HigmlyFlC+kPQt2eCaN+2Dj248NqU=
 github.ibm.com/kms/key-protect-client v0.3.1/go.mod h1:qAJr0n3goE+Hva8JmQIQSvWE1GXl29FFWWW+275W7vI=
 github.ibm.com/project-fortress/gov-monitor-common-utils/redis v0.0.0-20220203221908-a80fe86d1075/go.mod h1:FgQrpYELbx9nO/OUknKPcz0rSlR9YqTVu2+anGoykKs=
