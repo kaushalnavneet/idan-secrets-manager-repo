@@ -571,7 +571,12 @@ func buildCISListResponse(foundId string) []byte {
 		Errors:  nil,
 	}
 	if foundId != "" {
-		cisListResp.Result = append(cisListResp.Result, CISResult{ID: foundId})
+		cisListResp.Result = append(cisListResp.Result, CISResult{
+			ID:      foundId,
+			Type:    "TXT",
+			Name:    "_acme-challenge.domainName.",
+			Content: "pW9ZKG0xz_PCriK-nCMOjADy9eJcgGWIzkkj2fN4uZM",
+		})
 	}
 	respListStr, _ := json.Marshal(cisListResp)
 	return respListStr
