@@ -41,8 +41,8 @@ var (
 	urlCisToSetChallenge    = fmt.Sprintf(`%s/%s/zones/%s/dns_records`, urlCISProd, url.QueryEscape(cisCrn), domainId)
 	urlCisToRemoveTxtRecord = fmt.Sprintf(`%s/%s/zones/%s/dns_records/%s`, urlCISProd, url.QueryEscape(cisCrn), domainId, txtRecordId)
 	urlCisToGetTxtRecord    = fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&content=%s`, urlCISProd, url.QueryEscape(cisCrn), domainId, txtRecName, txtRecValue)
-
-	expectedCisDomainData = CISDomainData{
+	urlCisToGetTxtNoPoint   = fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&content=%s`, urlCISProd, url.QueryEscape(cisCrn), domainId, txtRecName[:len(txtRecName)-1], txtRecValue)
+	expectedCisDomainData   = CISDomainData{
 		name:           domainName,
 		zoneId:         domainId,
 		txtRecordName:  txtRecName,
@@ -458,6 +458,8 @@ func Test_CIS_Present(t *testing.T) {
 				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
 				//get existing txt record
 				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(""))},
+				//get existing txt record
+				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtNoPoint}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(""))},
 			},
 		}
 		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)

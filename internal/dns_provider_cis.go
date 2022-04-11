@@ -287,6 +287,12 @@ func (c *CISDNSConfig) getChallengeRecordId(domain *CISDomainData) (string, erro
 			}
 		}
 		common.Logger().Error(logdna.Error07088 + " TXT record " + domain.txtRecordName + " is not found in " + dnsProviderCISInstance)
+		lastChar := domain.txtRecordName[len(domain.txtRecordName)-1:]
+		if lastChar == "." {
+			// remove "."
+			domain.txtRecordName = domain.txtRecordName[:len(domain.txtRecordName)-1]
+			return c.getChallengeRecordId(domain)
+		}
 		return "", buildOrderError(logdna.Error07088, internalServerError)
 	}
 	if resp.StatusCode() == http.StatusForbidden || resp.StatusCode() == http.StatusUnauthorized {
