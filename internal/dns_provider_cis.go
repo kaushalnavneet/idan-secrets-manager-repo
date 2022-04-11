@@ -129,7 +129,7 @@ func (c *CISDNSConfig) CleanUp(domain, token, keyAuth string) error {
 		if err != nil {
 			return err
 		}
-		recordId, err := c.getChallengeRecordId(currentDomain)
+		recordId, err := c.getChallengeRecordId(*currentDomain)
 		if err != nil {
 			return err
 		}
@@ -223,7 +223,7 @@ func (c *CISDNSConfig) setChallenge(domain *CISDomainData) (string, error) {
 		return response.Result.ID, nil
 	} else if resp.StatusCode() == http.StatusBadRequest {
 		//maybe the record already exists, check it
-		id, err := c.getChallengeRecordId(domain)
+		id, err := c.getChallengeRecordId(*domain)
 		if err != nil {
 			return "", err
 		}
@@ -262,7 +262,7 @@ func (c *CISDNSConfig) removeChallenge(domain *CISDomainData) error {
 	return buildOrderError(logdna.Error07081, fmt.Sprintf(errorResponseFromDNS, dnsProviderCIS))
 }
 
-func (c *CISDNSConfig) getChallengeRecordId(domain *CISDomainData) (string, error) {
+func (c *CISDNSConfig) getChallengeRecordId(domain CISDomainData) (string, error) {
 	errorLog := errorGetTxtRec + domain.name + ": "
 	reqUrl := fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&content=%s`, c.CISEndpoint, url.QueryEscape(c.CRN),
 		url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordName), url.QueryEscape(domain.txtRecordValue))
