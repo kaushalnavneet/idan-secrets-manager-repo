@@ -1,6 +1,6 @@
 module github.ibm.com/security-services/secrets-manager-vault-plugin-public-cert-secret
 
-go 1.14
+go 1.16
 
 //fix CVE Snyk Vulnerability Database
 replace github.com/pkg/sftp => github.com/pkg/sftp v1.13.4
@@ -15,9 +15,9 @@ require (
 	github.com/hashicorp/go-hclog v1.2.0
 	github.com/hashicorp/vault/sdk v0.3.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.ibm.com/security-services/secrets-manager-common-utils v0.0.11631
-	github.ibm.com/security-services/secrets-manager-iam v0.0.11621
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.11636
+	github.ibm.com/security-services/secrets-manager-common-utils v0.0.11749
+	github.ibm.com/security-services/secrets-manager-iam v0.0.11747
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.11750
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	gotest.tools/v3 v3.1.0
 )
