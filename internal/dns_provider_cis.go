@@ -40,7 +40,10 @@ type CISDomainData struct {
 }
 
 type CISResult struct {
-	ID string `json:"id"`
+	ID      string `json:"id"`
+	Type    string `json:"type"`
+	Name    string `json:"name"`
+	Content string `json:"content"`
 }
 
 type CISResponseList struct {
@@ -274,9 +277,14 @@ func (c *CISDNSConfig) getChallengeRecordId(domain *CISDomainData) (string, erro
 		common.Logger().Error(logdna.Error07087 + errorLog + err.Error())
 		return "", buildOrderError(logdna.Error07087, fmt.Sprintf(unavailableDNSError, dnsProviderCIS))
 	}
+	common.Logger().Info(fmt.Sprintf("Request to get challenge TXT record was responded with %d records", len(response.Result)), string(resp.Body()))
 	if resp.StatusCode() == http.StatusOK && response.Success && response.Result != nil {
 		if len(response.Result) > 0 {
-			return response.Result[0].ID, nil
+			for _, cisResult := range response.Result {
+				if strings.ToLower(cisResult.Type) == "txt" && cisResult.Name == domain.txtRecordName && cisResult.Content == domain.txtRecordValue {
+					return cisResult.ID, nil
+				}
+			}
 		}
 		common.Logger().Error(logdna.Error07088 + " TXT record " + domain.txtRecordName + " is not found in " + dnsProviderCISInstance)
 		return "", buildOrderError(logdna.Error07088, internalServerError)
