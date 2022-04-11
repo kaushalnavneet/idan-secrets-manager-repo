@@ -277,6 +277,7 @@ func (c *CISDNSConfig) getChallengeRecordId(domain *CISDomainData) (string, erro
 		common.Logger().Error(logdna.Error07087 + errorLog + err.Error())
 		return "", buildOrderError(logdna.Error07087, fmt.Sprintf(unavailableDNSError, dnsProviderCIS))
 	}
+	common.Logger().Info(fmt.Sprintf("Request to get challenge TXT record was responded with %d records", len(response.Result)), string(resp.Body()))
 	if resp.StatusCode() == http.StatusOK && response.Success && response.Result != nil {
 		if len(response.Result) > 0 {
 			for _, cisResult := range response.Result {
