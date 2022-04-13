@@ -264,7 +264,7 @@ func (c *CISDNSConfig) removeChallenge(domain *CISDomainData) error {
 
 func (c *CISDNSConfig) getChallengeRecordId(domain CISDomainData) (string, error) {
 	errorLog := errorGetTxtRec + domain.name + ": "
-	reqUrl := fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&content=%s`, c.CISEndpoint, url.QueryEscape(c.CRN),
+	reqUrl := fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&content=%s&match=all`, c.CISEndpoint, url.QueryEscape(c.CRN),
 		url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordName), url.QueryEscape(domain.txtRecordValue))
 	headers, err := c.buildRequestHeader()
 	if err != nil {
