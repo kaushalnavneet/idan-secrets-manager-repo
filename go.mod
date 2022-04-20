@@ -15,9 +15,9 @@ require (
 	github.com/hashicorp/go-hclog v1.2.0
 	github.com/hashicorp/vault/sdk v0.3.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.ibm.com/security-services/secrets-manager-common-utils v0.0.11869
-	github.ibm.com/security-services/secrets-manager-iam v0.0.11868
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.11870
+	github.ibm.com/security-services/secrets-manager-common-utils v0.0.11953
+	github.ibm.com/security-services/secrets-manager-iam v0.0.11950
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.11955
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	gotest.tools/v3 v3.1.0
 )
