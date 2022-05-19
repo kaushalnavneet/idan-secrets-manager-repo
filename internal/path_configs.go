@@ -177,6 +177,11 @@ func (ob *OrdersBackend) pathConfigRoot() []*framework.Path {
 
 //************* Endpoints ***************//
 func (ob *OrdersBackend) pathConfigCreate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	if common.ReadOnlyEnabled(ob.secretBackend.GetMetadataClient()) {
+		common.Logger().Error("vault is in read only mode")
+		return commonErrors.GenerateReadOnlyCodedErrorResponse()
+	}
+
 	//get config name
 	name, err := ob.validateConfigName(d)
 	if err != nil {
@@ -249,6 +254,11 @@ func (ob *OrdersBackend) pathConfigCreate(ctx context.Context, req *logical.Requ
 }
 
 func (ob *OrdersBackend) pathConfigUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	if common.ReadOnlyEnabled(ob.secretBackend.GetMetadataClient()) {
+		common.Logger().Error("vault is in read only mode")
+		return commonErrors.GenerateReadOnlyCodedErrorResponse()
+	}
+
 	//get config name
 	name, err := ob.validateConfigName(d)
 	if err != nil {
@@ -323,6 +333,11 @@ func (ob *OrdersBackend) pathConfigUpdate(ctx context.Context, req *logical.Requ
 }
 
 func (ob *OrdersBackend) pathConfigDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	if common.ReadOnlyEnabled(ob.secretBackend.GetMetadataClient()) {
+		common.Logger().Error("vault is in read only mode")
+		return commonErrors.GenerateReadOnlyCodedErrorResponse()
+	}
+
 	//get config name
 	name, err := ob.validateConfigName(d)
 	if err != nil {
