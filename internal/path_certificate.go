@@ -27,12 +27,12 @@ func (ob *OrdersBackend) pathCertificate() []*framework.Path {
 
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Get, atGetCertificate),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Get, atGetCertificate, true),
 			Summary:     getSecretOperationSummary,
 			Description: getSecretOperationDescription,
 		},
 		logical.DeleteOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Delete, atDeleteCertificate),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Delete, atDeleteCertificate, false),
 			Summary:     deleteSecretOperationSummary,
 			Description: deleteSecretOperationDescription,
 		},
@@ -68,7 +68,7 @@ func (ob *OrdersBackend) pathGetVersion() []*framework.Path {
 
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetVersion, atGetVersion),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetVersion, atGetVersion, true),
 			Summary:     getVersionOperationSummary,
 			Description: getVersionOperationDescription,
 		},
@@ -110,12 +110,12 @@ func (ob *OrdersBackend) pathCertificateMetadata() []*framework.Path {
 
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetMetadata, atGetCertificate),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetMetadata, atGetCertificate, true),
 			Summary:     getMetadataOperationSummary,
 			Description: getMetadataOperationDescription,
 		},
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.UpdateMetadata, atUpdateCertificate),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.UpdateMetadata, atUpdateCertificate, false),
 			Summary:     updateMetadataOperationSummary,
 			Description: updateMetadataOperationDescription,
 		},
@@ -150,7 +150,7 @@ func (ob *OrdersBackend) pathListVersions() []*framework.Path {
 
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.ListVersions, atListVersions),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.ListVersions, atListVersions, true),
 			Summary:     "Lists the versions of a secret",
 			Description: listVersionsOperationDescription,
 		},
@@ -186,7 +186,7 @@ func (ob *OrdersBackend) pathGetVersionMetadata() []*framework.Path {
 
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetVersionMetadata, atGetVersion),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetVersionMetadata, atGetVersion, true),
 			Summary:     getVersionMetaOperationSummary,
 			Description: getVersionMetaOperationDescription,
 		},

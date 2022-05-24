@@ -70,12 +70,12 @@ func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.CreateOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Create, atSecretCreate),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Create, atSecretCreate, false),
 			Summary:     issueCertOperationSummary,
 			Description: issueCertOperationDescription,
 		},
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.List, atSecretList),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.List, atSecretList, true),
 			Summary:     listCertsOperationSummary,
 			Description: lListCertsOperationDescription,
 		},
@@ -119,7 +119,7 @@ func (ob *OrdersBackend) pathRotateCertificate() []*framework.Path {
 
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Rotate, atRotateCertificate),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.Rotate, atRotateCertificate, false),
 			Summary:     rotateOperationSummary,
 			Description: rotateOperationDescription,
 		},

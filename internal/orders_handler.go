@@ -398,6 +398,11 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 
 //gets result of order and save it to secret entry
 func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
+	if common.ReadOnlyEnabled(oh.metadataClient) {
+		common.Logger().Error("vault is in read only mode")
+		return
+	}
+
 	//delete the order from cache of orders in process
 	orderKey := getOrderID(res.workItem.domains)
 	delete(oh.runningOrders, orderKey)

@@ -38,12 +38,12 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 
 	operationsWithoutPathParam := map[logical.Operation]framework.OperationHandler{
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.pathConfigCreate, atSecretConfigUpdate),
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigCreate, atSecretConfigUpdate, false),
 			Summary:     createCAConfigOperationSummary,
 			Description: createCAConfigOperationDescription,
 		},
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.pathConfigList, atSecretConfigRead),
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigList, atSecretConfigRead, true),
 			Summary:     listCAConfigOperationSummary,
 			Description: listCAConfigOperationDescription,
 		},
@@ -51,17 +51,17 @@ func (ob *OrdersBackend) pathConfigCA() []*framework.Path {
 
 	operationsWithPathParam := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.pathConfigRead, atSecretConfigRead),
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigRead, atSecretConfigRead, true),
 			Summary:     getCAConfigOperationSummary,
 			Description: getCAConfigOperationDescription,
 		},
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.pathConfigUpdate, atSecretConfigUpdate),
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigUpdate, atSecretConfigUpdate, false),
 			Summary:     updateCAConfigOperationSummary,
 			Description: updateCAConfigOperationDescription,
 		},
 		logical.DeleteOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.pathConfigDelete, atSecretConfigDelete),
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigDelete, atSecretConfigDelete, false),
 			Summary:     deleteCAConfigOperationSummary,
 			Description: deleteCAConfigOperationDescription,
 		},
@@ -105,12 +105,12 @@ func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
 
 	operationsWithoutPathParam := map[logical.Operation]framework.OperationHandler{
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.pathConfigCreate, atSecretConfigUpdate),
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigCreate, atSecretConfigUpdate, false),
 			Summary:     createDNSConfigOperationSummary,
 			Description: createDNSConfigOperationDescription,
 		},
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.pathConfigList, atSecretConfigRead),
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigList, atSecretConfigRead, true),
 			Summary:     listDNSConfigOperationSummary,
 			Description: listDNSConfigOperationDescription,
 		},
@@ -118,17 +118,17 @@ func (ob *OrdersBackend) pathConfigDNS() []*framework.Path {
 
 	operationsWithPathParam := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.pathConfigRead, atSecretConfigRead),
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigRead, atSecretConfigRead, true),
 			Summary:     getDNSConfigOperationSummary,
 			Description: getDNSConfigOperationDescription,
 		},
 		logical.UpdateOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.pathConfigUpdate, atSecretConfigUpdate),
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigUpdate, atSecretConfigUpdate, false),
 			Summary:     updateDNSConfigOperationSummary,
 			Description: updateDNSConfigOperationDescription,
 		},
 		logical.DeleteOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.pathConfigDelete, atSecretConfigDelete),
+			Callback:    ob.secretBackend.PathCallback(ob.pathConfigDelete, atSecretConfigDelete, false),
 			Summary:     deleteDNSConfigOperationSummary,
 			Description: deleteDNSConfigOperationDescription,
 		},
@@ -159,7 +159,7 @@ func (ob *OrdersBackend) pathConfigRoot() []*framework.Path {
 	fields := map[string]*framework.FieldSchema{}
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.pathRootConfigRead, atSecretConfigRead),
+			Callback:    ob.secretBackend.PathCallback(ob.pathRootConfigRead, atSecretConfigRead, true),
 			Summary:     getRootConfigOperationSummary,
 			Description: getRootConfigOperationDescription,
 		},
@@ -177,11 +177,6 @@ func (ob *OrdersBackend) pathConfigRoot() []*framework.Path {
 
 //************* Endpoints ***************//
 func (ob *OrdersBackend) pathConfigCreate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	if common.ReadOnlyEnabled(ob.secretBackend.GetMetadataClient()) {
-		common.Logger().Error("vault is in read only mode")
-		return commonErrors.GenerateReadOnlyCodedErrorResponse()
-	}
-
 	//get config name
 	name, err := ob.validateConfigName(d)
 	if err != nil {
@@ -254,11 +249,6 @@ func (ob *OrdersBackend) pathConfigCreate(ctx context.Context, req *logical.Requ
 }
 
 func (ob *OrdersBackend) pathConfigUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	if common.ReadOnlyEnabled(ob.secretBackend.GetMetadataClient()) {
-		common.Logger().Error("vault is in read only mode")
-		return commonErrors.GenerateReadOnlyCodedErrorResponse()
-	}
-
 	//get config name
 	name, err := ob.validateConfigName(d)
 	if err != nil {
@@ -333,11 +323,6 @@ func (ob *OrdersBackend) pathConfigUpdate(ctx context.Context, req *logical.Requ
 }
 
 func (ob *OrdersBackend) pathConfigDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	if common.ReadOnlyEnabled(ob.secretBackend.GetMetadataClient()) {
-		common.Logger().Error("vault is in read only mode")
-		return commonErrors.GenerateReadOnlyCodedErrorResponse()
-	}
-
 	//get config name
 	name, err := ob.validateConfigName(d)
 	if err != nil {

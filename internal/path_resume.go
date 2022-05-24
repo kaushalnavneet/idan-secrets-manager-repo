@@ -27,6 +27,11 @@ func (ob *OrdersBackend) pathResume() []*framework.Path {
 }
 
 func (ob *OrdersBackend) resumeOrdersInProgress(ctx context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
+	if common.ReadOnlyEnabled(ob.secretBackend.GetMetadataClient()) {
+		common.Logger().Error("vault is in read only mode")
+		return commonErrors.GenerateReadOnlyCodedErrorResponse()
+	}
+
 	common.Logger().Info("Start resuming orders in progress")
 	ordersInProgress := getOrdersInProgress(req.Storage)
 	ordersToResume := len(ordersInProgress.Orders)
