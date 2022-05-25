@@ -79,6 +79,20 @@ type MockSecretBackend struct {
 	name string
 }
 
+func (sb *MockSecretBackend) GetMetadataMapper() common.MetadataMapper {
+	return secret_backend.GetDefaultMetadataMapper("public_cert")
+}
+
+func (sb *MockSecretBackend) GetLocks(ctx context.Context, request *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	return nil, nil
+}
+func (sb *MockSecretBackend) DeleteLocks(ctx context.Context, request *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	return nil, nil
+}
+func (sb *MockSecretBackend) AddLocks(ctx context.Context, request *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	return nil, nil
+}
+
 func (sb *MockSecretBackend) MarkSecretAsDestroyedIfExpired(secret *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
 	return nil
 }

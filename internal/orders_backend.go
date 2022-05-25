@@ -11,6 +11,7 @@ import (
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate_parser"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"strings"
 	"time"
 )
@@ -35,7 +36,9 @@ func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendH
 			parser:         &certificate_parser.CertificateParserImpl{},
 			cron:           ob.secretBackend.(*secret_backend.SecretBackendImpl).Cron,
 			metadataClient: ob.secretBackend.GetMetadataClient(),
+			metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
 		}
+
 		oh.workerPool = NewWorkerPool(oh,
 			GetEnv("MAX_WORKERS", MaxWorkers).(int),
 			GetEnv("MAX_CERT_REQUEST", MaxCertRequest).(int),

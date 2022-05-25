@@ -41,9 +41,10 @@ var (
 
 func initOrdersHandler() *OrdersHandler {
 	oh = &OrdersHandler{
-		runningOrders: make(map[string]WorkItem),
-		beforeOrders:  make(map[string]WorkItem),
-		parser:        &certificate_parser.CertificateParserImpl{},
+		runningOrders:  make(map[string]WorkItem),
+		beforeOrders:   make(map[string]WorkItem),
+		parser:         &certificate_parser.CertificateParserImpl{},
+		metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
 	}
 	oh.workerPool = NewWorkerPool(oh, 1, 1, 1*time.Second)
 	return oh
