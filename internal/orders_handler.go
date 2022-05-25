@@ -8,7 +8,6 @@ import (
 	"github.com/go-acme/lego/v4/registration"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
-	"github.com/robfig/cron/v3"
 	"github.ibm.com/security-services/secrets-manager-common-utils/errors"
 	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
@@ -113,7 +112,7 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 		Labels:      csp.Labels,
 		Type:        secretentry.SecretTypePublicCert,
 		ExtraData:   certMetadata,
-		VersionData: "",
+		VersionData: nil,
 		VersionExtraData: map[string]interface{}{
 			secretentry.FieldCommonName: certMetadata.CommonName,
 			secretentry.FieldAltNames:   certMetadata.AltName,
@@ -461,7 +460,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	}
 
 	opp := common.StoreOptions{
-		Operation:     types_common.StoreOptionUpdateMetadata,
+		Operation:     types_common.StoreOptionRotate,
 		VersionMapper: oh.metadataMapper.MapVersionMetadata,
 	}
 
