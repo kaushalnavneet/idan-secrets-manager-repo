@@ -256,9 +256,10 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 
 	t.Run("First order - order succeeded, but parsing failed", func(t *testing.T) {
 		badParserHandler := &OrdersHandler{
-			runningOrders: make(map[string]WorkItem),
-			beforeOrders:  make(map[string]WorkItem),
-			parser:        &parserMock{},
+			runningOrders:  make(map[string]WorkItem),
+			beforeOrders:   make(map[string]WorkItem),
+			parser:         &parserMock{},
+			metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
 		}
 		setOrdersInProgress(secretId, 2)
 		bundleCerts := false

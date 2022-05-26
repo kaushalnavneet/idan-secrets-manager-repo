@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/certificate"
+	"github.ibm.com/security-services/secrets-manager-common-utils/types_common"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
@@ -59,7 +60,7 @@ func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, 
 	resumeInProgress := false
 	if item.Attempts >= MaxAttemptsToOrder {
 		common.Logger().Info(fmt.Sprintf("The secret entry '%s' has %d attempts to order. Stop trying", secretPath, item.Attempts))
-		setOrderFailed(secretEntry, certMetadata, secretPath, req.Storage, ob.secretBackend.GetMetadataClient())
+		ob.setOrderFailed(secretEntry, certMetadata, secretPath, req.Storage, ob.secretBackend.GetMetadataClient())
 	} else if isResumingNeeded(certMetadata, secretPath, req.Storage, item) {
 		common.Logger().Info(fmt.Sprintf("Trying to resume the secret entry '%s' order ", secretPath))
 		err = ob.prepareAndStartOrder(ctx, req, secretEntry, certMetadata)
@@ -70,12 +71,17 @@ func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, 
 	}
 }
 
-func setOrderFailed(secretEntry *secretentry.SecretEntry, certMetadata *certificate.CertificateMetadata, secretPath string, storage logical.Storage, metadataClient common.MetadataClient) {
+func (ob *OrdersBackend) setOrderFailed(secretEntry *secretentry.SecretEntry, certMetadata *certificate.CertificateMetadata, secretPath string, storage logical.Storage, metadataClient common.MetadataClient) {
 	common.Logger().Error(fmt.Sprintf("Couldn't resume '%s' order in 2 attempts. Stop trying", secretPath))
 	err := commonErrors.GenerateCodedError(logdna.Error07046, http.StatusInternalServerError, orderCouldNotBeProcessed)
 	updateIssuanceInfoWithError(certMetadata, err)
 	secretEntry.ExtraData = certMetadata
-	errToStore := common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), metadataClient, false)
+
+	opp := common.StoreOptions{
+		Operation:     types_common.StoreOptionUpdateMetadata,
+		VersionMapper: ob.secretBackend.GetMetadataMapper().MapVersionMetadata,
+	}
+	errToStore := common.StoreSecretAndVersionWithoutLocking(secretEntry, storage, context.Background(), metadataClient, &opp)
 	if errToStore != nil {
 		common.Logger().Error(fmt.Sprintf("Couldn't save failed resumed '%s' order data to storage. Error:%s ", secretPath, errToStore.Error()))
 	}
@@ -92,11 +98,16 @@ func (ob *OrdersBackend) prepareAndStartOrder(ctx context.Context, req *logical.
 	}
 	oh := ob.GetSecretBackendHandler().(*OrdersHandler)
 	err := oh.prepareOrderWorkItem(ctx, req, certMetadata, privateKey)
+
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf("Couldn't resume the order '%s'. Error: %s", secretPath, err.Error()))
 		updateIssuanceInfoWithError(certMetadata, err)
 		secretEntry.ExtraData = certMetadata
-		errToStore := common.StoreSecretWithoutLocking(secretEntry, req.Storage, context.Background(), ob.secretBackend.GetMetadataClient(), false)
+		opp := common.StoreOptions{
+			VersionMapper: ob.secretBackend.GetMetadataMapper().MapVersionMetadata,
+			Operation:     types_common.StoreOptionUpdateMetadata,
+		}
+		errToStore := common.StoreSecretAndVersionWithoutLocking(secretEntry, req.Storage, context.Background(), ob.secretBackend.GetMetadataClient(), &opp)
 		if errToStore != nil {
 			common.Logger().Error(fmt.Sprintf("Couldn't save failed resumed '%s' order data to storage. Error:%s ", secretPath, errToStore.Error()))
 		}
