@@ -80,19 +80,17 @@ type MockSecretBackend struct {
 }
 
 func (sb *MockSecretBackend) GetMetadataMapper() common.MetadataMapper {
-	panic("implement me")
+	return secret_backend.GetDefaultMetadataMapper("public_cert")
 }
 
 func (sb *MockSecretBackend) GetLocks(ctx context.Context, request *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	panic("implement me")
+	return nil, nil
 }
-
 func (sb *MockSecretBackend) DeleteLocks(ctx context.Context, request *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	panic("implement me")
+	return nil, nil
 }
-
 func (sb *MockSecretBackend) AddLocks(ctx context.Context, request *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-	panic("implement me")
+	return nil, nil
 }
 
 func (sb *MockSecretBackend) MarkSecretAsDestroyedIfExpired(secret *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {

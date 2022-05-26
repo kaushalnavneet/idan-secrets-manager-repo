@@ -18,7 +18,7 @@ require (
 	github.ibm.com/project-fortress/vault-client-golang v0.0.7
 	github.ibm.com/security-services/secrets-manager-common-utils v0.0.12466
 	github.ibm.com/security-services/secrets-manager-iam v0.0.12163
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.12535
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.12550
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	gotest.tools/v3 v3.1.0
 )

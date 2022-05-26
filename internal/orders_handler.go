@@ -14,6 +14,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/certificate"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
+	"github.ibm.com/security-services/secrets-manager-common-utils/types_common"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate_parser"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
@@ -34,6 +35,7 @@ type OrdersHandler struct {
 	pluginConfig   *common.ICAuthConfig
 	cron           *cron.Cron
 	metadataClient common.MetadataClient
+	metadataMapper common.MetadataMapper
 }
 
 func (oh *OrdersHandler) GetPolicyHandler() secret_backend.PolicyHandler {
@@ -457,7 +459,14 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 			secretEntry.State = secretentry.StateActive
 		}
 	}
-	err := common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.getMetadataClient(), false)
+
+	opp := common.StoreOptions{
+		Operation:     types_common.StoreOptionRotate,
+		VersionMapper: oh.metadataMapper.MapVersionMetadata,
+	}
+
+	err := common.StoreSecretAndVersionWithoutLocking(secretEntry, storage, context.Background(), oh.getMetadataClient(), &opp)
+
 	if err != nil {
 		common.Logger().Error("Couldn't save order result to storage: " + err.Error())
 		return
@@ -579,7 +588,13 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 		updateIssuanceInfoWithError(metadata, err)
 	}
 	//save updated entry
-	err = common.StoreSecretWithoutLocking(entry, req.Storage, context.Background(), oh.getMetadataClient(), false)
+
+	opp := common.StoreOptions{
+		Operation:     types_common.StoreOptionRotate,
+		VersionMapper: oh.metadataMapper.MapVersionMetadata,
+	}
+
+	err = common.StoreSecretAndVersionWithoutLocking(entry, req.Storage, context.Background(), oh.getMetadataClient(), &opp)
 	if err != nil {
 		startOrder = false
 		common.Logger().Error("Couldn't save auto rotation order data to storage: " + err.Error())

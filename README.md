@@ -1,4 +1,4 @@
 # secrets-manager-vault-plugin-public-certificate-secret
 
  
-_public commit 2_
+_public commit 3_
