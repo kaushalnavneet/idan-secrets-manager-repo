@@ -152,7 +152,7 @@ func (sb *MockSecretBackend) DeleteSecretIfExpired(secret *secretentry.SecretEnt
 func (sb *MockSecretBackend) GetValidator() secret_backend.Validator {
 	return nil
 }
-func (sb *MockSecretBackend) PathCallback(operation framework.OperationFunc, atVaultParams *activity_tracker.ActivityTrackerVault) framework.OperationFunc {
+func (sb *MockSecretBackend) PathCallback(operation framework.OperationFunc, atVaultParams *activity_tracker.ActivityTrackerVault, isAllowedInReadOnly bool) framework.OperationFunc {
 	return nil
 }
 func (sb *MockSecretBackend) GetMetadataClient() common.MetadataClient {
