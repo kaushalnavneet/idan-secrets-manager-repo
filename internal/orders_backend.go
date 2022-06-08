@@ -76,7 +76,7 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 }
 
 func (ob *OrdersBackend) PeriodicFunc(ctx context.Context, req *logical.Request) error {
-	return common.PerformOperationOnAllSecrets(ctx, req, ob.secretBackend.GetMetadataClient(), ob.secretBackend.GetPluginSecretType(), ob.secretBackend.MarkSecretAsDestroyedIfExpired)
+	return common.PerformOperationOnExpiredSecrets(ctx, req, ob.secretBackend.GetMetadataClient(), ob.secretBackend.GetPluginSecretType(), ob.secretBackend.MarkSecretAsDestroyedIfExpired)
 }
 
 func existenceCheck(ctx context.Context, request *logical.Request, data *framework.FieldData) (bool, error) {
