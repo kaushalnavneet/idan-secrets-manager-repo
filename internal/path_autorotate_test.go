@@ -214,10 +214,12 @@ var oh *OrdersHandler
 func Test_AutoRotate(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
+	mcm := b.GetMetadataClient().(*common.MetadataManagerMock)
 	initBackend()
 
 	t.Run("Rotate certificates", func(t *testing.T) {
 		createCertificates()
+		mcm.FakeListResponse = []*secretentry.SecretEntry{expiresIn30Days_autoRotateTrue, expiresIn20Days_autoRotateTrue, expiresIn30Days_autoRotateFalse, failedOrder, expiresIn30Days_autoRotateTrue_notExistConfig}
 		//get secret
 		req := &logical.Request{
 			Operation: logical.UpdateOperation,
