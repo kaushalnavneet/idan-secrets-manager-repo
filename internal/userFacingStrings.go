@@ -32,6 +32,10 @@ const (
 	policiesNotValidField     = "Field %s in rotation policy is not valid"       //Error07098, Error07099
 
 	policyWasUpdatedTooLate = "Automatic rotation is enabled for this certificate, but the changes won't be applied until the next rotation cycle. Before automatic rotation can take place for the certificate, you must manually rotate it." //Warn07001
+
+	rotationIsLocked        = "The requested action can't be completed because the secret version is locked. Secret ID:%s, version alias:%s" //Error07201
+	autoRotationIsLocked    = "Auto-rotation can't be completed because the secret version is locked. Secret ID:%s, version alias:%s"        //Error07202
+	versionLockedResolution = "Unlock the locked version"
 )
 
 //Order validation errors
