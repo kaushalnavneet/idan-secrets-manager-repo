@@ -37,6 +37,7 @@ func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendH
 			cron:           ob.secretBackend.(*secret_backend.SecretBackendImpl).Cron,
 			metadataClient: ob.secretBackend.GetMetadataClient(),
 			metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
+			secretBackend:  ob.secretBackend,
 		}
 
 		oh.workerPool = NewWorkerPool(oh,

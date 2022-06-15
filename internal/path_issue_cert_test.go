@@ -40,11 +40,13 @@ var (
 )
 
 func initOrdersHandler() *OrdersHandler {
+	mb := MockSecretBackend{name: "public_cert mock"}
 	oh = &OrdersHandler{
 		runningOrders:  make(map[string]WorkItem),
 		beforeOrders:   make(map[string]WorkItem),
 		parser:         &certificate_parser.CertificateParserImpl{},
 		metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
+		secretBackend:  &mb,
 	}
 	oh.workerPool = NewWorkerPool(oh, 1, 1, 1*time.Second)
 	return oh

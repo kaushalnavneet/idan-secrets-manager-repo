@@ -15,9 +15,10 @@ require (
 	github.com/hashicorp/go-hclog v1.2.0
 	github.com/hashicorp/vault/sdk v0.3.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.ibm.com/security-services/secrets-manager-common-utils v0.0.12706
-	github.ibm.com/security-services/secrets-manager-iam v0.0.12163
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.12868
+	github.ibm.com/project-fortress/vault-client-golang v0.0.7
+	github.ibm.com/security-services/secrets-manager-common-utils v0.0.12813
+	github.ibm.com/security-services/secrets-manager-iam v0.0.12684
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.12943
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	gotest.tools/v3 v3.1.0
 )
@@ -59,10 +60,11 @@ require (
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/gin-gonic/gin v1.7.7 // indirect
+	github.com/gin-gonic/gin v1.8.1 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
+	github.com/goccy/go-json v0.9.7 // indirect
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -94,7 +96,7 @@ require (
 	github.com/infobloxopen/infoblox-go-client v1.1.1 // indirect
 	github.com/jarcoal/httpmock v1.0.6 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/json-iterator/go v1.1.9 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213 // indirect
 	github.com/kolo/xmlrpc v0.0.0-20200310150728-e0350524596b // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
@@ -114,7 +116,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/namedotcom/go v0.0.0-20180403034216-08470befbe04 // indirect
 	github.com/nrdcg/auroradns v1.0.1 // indirect
 	github.com/nrdcg/desec v0.6.0 // indirect
@@ -127,6 +129,7 @@ require (
 	github.com/oracle/oci-go-sdk v24.3.0+incompatible // indirect
 	github.com/ovh/go-ovh v1.1.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
+	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -140,12 +143,12 @@ require (
 	github.com/softlayer/xmlrpc v0.0.0-20200409220501-5f089df7cb7e // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/stretchr/objx v0.3.0 // indirect
-	github.com/stretchr/testify v1.7.1 // indirect
+	github.com/stretchr/testify v1.7.2 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.287 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/dnspod v1.0.287 // indirect
 	github.com/thoas/go-funk v0.9.2 // indirect
 	github.com/transip/gotransip/v6 v6.6.1 // indirect
-	github.com/ugorji/go/codec v1.1.7 // indirect
+	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/vinyldns/go-vinyldns v0.9.16 // indirect
 	github.com/vultr/govultr/v2 v2.7.1 // indirect
 	github.ibm.com/IAM/basiclog v0.0.0-20210427025313-aecb0b5934eb // indirect
@@ -166,10 +169,10 @@ require (
 	google.golang.org/appengine v1.6.5 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	google.golang.org/grpc v1.41.0 // indirect
-	google.golang.org/protobuf v1.26.0 // indirect
+	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/ns1/ns1-go.v2 v2.6.2 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
