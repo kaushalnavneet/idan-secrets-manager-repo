@@ -79,6 +79,10 @@ type MockSecretBackend struct {
 	name string
 }
 
+func (sb *MockSecretBackend) GetVersionsLockedMap(secretId string) (map[string]bool, error) {
+	return map[string]bool{secret_backend.Current: false, secret_backend.Previous: false}, nil
+}
+
 func (sb *MockSecretBackend) GetMetadataMapper() common.MetadataMapper {
 	return secret_backend.GetDefaultMetadataMapper("public_cert")
 }

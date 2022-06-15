@@ -217,7 +217,7 @@ func Test_AutoRotate(t *testing.T) {
 	mcm := b.GetMetadataClient().(*common.MetadataManagerMock)
 	initBackend()
 
-	t.Run("Rotate certificates", func(t *testing.T) {
+	t.Run("Auto Rotate certificates", func(t *testing.T) {
 		createCertificates()
 		mcm.FakeListResponse = []*secretentry.SecretEntry{expiresIn30Days_autoRotateTrue, expiresIn20Days_autoRotateTrue, expiresIn30Days_autoRotateFalse, failedOrder, expiresIn30Days_autoRotateTrue_notExistConfig}
 		//get secret
