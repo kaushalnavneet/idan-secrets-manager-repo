@@ -272,6 +272,11 @@ func (oh *OrdersHandler) AllowedPolicyTypes() []interface{} {
 	return []interface{}{policies.PolicyTypeRotation}
 }
 
+func (oh *OrdersHandler) ClearVersionData(v *secretentry.SecretVersion) error {
+	v.VersionData = nil
+	return nil
+}
+
 func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, includeSecretData bool, includeVersion bool) map[string]interface{} {
 	var metadata *certificate.CertificateMetadata
 	e := entry.ToMapWithVersionsMapper(oh.MapSecretVersion, logical.ReadOperation)
