@@ -272,7 +272,7 @@ func (oh *OrdersHandler) AllowedPolicyTypes() []interface{} {
 	return []interface{}{policies.PolicyTypeRotation}
 }
 
-func (oh *OrdersHandler) ClearVersionData(v *secretentry.SecretVersion) error {
+func (oh *OrdersHandler) ClearVersionData(entry secretentry.SecretEntry, v *secretentry.SecretVersion) error {
 	v.VersionData = nil
 	return nil
 }
