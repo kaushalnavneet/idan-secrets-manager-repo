@@ -105,7 +105,7 @@ const (
 	urlSLApi               = "https://api.softlayer.com/rest/v3"
 
 	PropagationTimeoutCIS = 15 * time.Minute
-	PollingIntervalCIS    = 2 * time.Second
+	PollingIntervalCIS    = 40 * time.Second
 
 	PropagationTimeoutSL = 30 * time.Minute
 	PollingIntervalSL    = 3 * time.Minute
