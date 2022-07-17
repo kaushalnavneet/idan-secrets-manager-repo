@@ -156,6 +156,26 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07043)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
+	t.Run("Invalid name start with -", func(t *testing.T) {
+		data := map[string]interface{}{
+			FieldName: "-invalid-name",
+		}
+
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      ConfigDNSPath,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := configNameMustStartWithLetter
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07226)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
+	})
 
 	t.Run("Unknown field in data", func(t *testing.T) {
 		data := map[string]interface{}{
