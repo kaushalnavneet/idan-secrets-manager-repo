@@ -20,6 +20,8 @@ const (
 	invalidConfigType    = "Configuration type should be one of [%s]"                                                              //Error07020
 	configNameWithSpace  = "Configuration name can't contain spaces"                                                               //Error07043
 
+	configNameMustStartWithLetter = "Configuration name must start with a letter" //Error07226
+
 	//specific CA
 	invalidKey     = "Certificate authority private key is not valid: %s"                   //Error07039, Error07041, Error07021, Error07024,  Error07064
 	wrongCAAccount = "Failed to retrieve the certificate authority account information: %s" //Error07023

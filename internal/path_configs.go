@@ -12,6 +12,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -476,6 +477,12 @@ func (ob *OrdersBackend) validateConfigName(d *framework.FieldData) (string, err
 	if strings.Contains(name, " ") {
 		common.ErrorLogForCustomer(configNameWithSpace, logdna.Error07043, logdna.BadRequestErrorMessage, true)
 		return "", commonErrors.GenerateCodedError(logdna.Error07043, http.StatusBadRequest, configNameWithSpace)
+	}
+
+	re := regexp.MustCompile(`^[a-zA-Z]`)
+	if !re.MatchString(name) {
+		common.ErrorLogForCustomer(configNameMustStartWithLetter, logdna.Error07226, logdna.BadRequestErrorMessage, true)
+		return "", commonErrors.GenerateCodedError(logdna.Error07226, http.StatusBadRequest, configNameMustStartWithLetter)
 	}
 	return name, nil
 }
