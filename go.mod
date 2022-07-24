@@ -15,9 +15,9 @@ require (
 	github.com/hashicorp/go-hclog v1.2.1
 	github.com/hashicorp/vault/sdk v0.5.2
 	github.com/robfig/cron/v3 v3.0.1
-	github.ibm.com/security-services/secrets-manager-common-utils v0.0.13566
+	github.ibm.com/security-services/secrets-manager-common-utils v0.0.13811
 	github.ibm.com/security-services/secrets-manager-iam v0.0.12684
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.13686
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.13812
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	gotest.tools/v3 v3.1.0
 )
@@ -65,6 +65,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/goccy/go-json v0.9.7 // indirect
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
+	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
