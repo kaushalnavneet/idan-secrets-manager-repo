@@ -205,6 +205,7 @@ func (w *WorkerPool) ScheduleCertificateRequest(workItem WorkItem) (string, erro
 	case w.workChan <- workItem:
 		return workItem.requestID.String(), nil
 	default:
+		common.Logger().Error(fmt.Sprintf("Order (secret Id %s) couldn't be started. The worker pool is full!", workItem.secretEntry.ID))
 		return "", errors.New(workerPoolIsFull)
 	}
 }

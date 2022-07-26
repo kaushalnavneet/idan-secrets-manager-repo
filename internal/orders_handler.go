@@ -414,7 +414,15 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 	delete(oh.beforeOrders, orderKey)
 	addWorkItemToOrdersInProgress(workItem)
 	//start an order
-	_, _ = oh.workerPool.ScheduleCertificateRequest(workItem)
+	_, err := oh.workerPool.ScheduleCertificateRequest(workItem)
+	if err != nil {
+		result := Result{
+			workItem:    workItem,
+			Error:       errors.NewSMError(logdna.Error07210, 500, "Order could not be started"),
+			certificate: nil,
+		}
+		oh.saveOrderResultToStorage(result)
+	}
 }
 
 //gets result of order and save it to secret entry
