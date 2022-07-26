@@ -11,6 +11,7 @@ import (
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -132,7 +133,7 @@ func (w *WorkerPool) startCertificateRequest(cancelChan chan struct{}, workItem 
 func (w *WorkerPool) getCertificate(workItem WorkItem) chan Result {
 	// [Navaneeth] Note: channel size needs to be 1 to avoid goroutine leak when work is cancelled
 	resultChan := make(chan Result, 1)
-	common.Logger().Info("Certificate request received")
+	common.Logger().Info(fmt.Sprintf("Start order certificate (secret Id %s) for domains: %s", workItem.secretEntry.ID, strings.Join(workItem.domains[:], ",")))
 
 	go func() {
 		result, err := w.issueCertificate(workItem)
@@ -194,6 +195,7 @@ func (w *WorkerPool) issueCertificate(workItem WorkItem) (*Result, error) {
 		}
 		result.certificate = certificateResource
 	}
+	common.Logger().Info(fmt.Sprintf("Finished order certificate (secret Id %s) for domains: %s", workItem.secretEntry.ID, strings.Join(workItem.domains[:], ",")))
 	return &result, nil
 }
 

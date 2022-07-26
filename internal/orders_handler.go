@@ -584,9 +584,10 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 		return commonErrors.GenerateCodedError(logdna.Error07202, http.StatusPreconditionFailed, msg)
 	}
 	startOrder := true
-	common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s SHOULD be rotated", entry.Name, entry.ID))
 	rotateKey := entry.Policies.Rotation.RotateKeys()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
+	domains := metadata.CommonName + "," + strings.Join(metadata.AltName, ",")
+	common.Logger().Info(fmt.Sprintf("Secret '%s' with id %s SHOULD be auto-rotated. Certificate domains: %s", entry.Name, entry.ID, domains))
 	var privateKey []byte
 	if !rotateKey {
 		if feature_util.IsFeatureEnabled("metadataIntegration") || strings.Contains(metadataManagerWhitelist, instanceCRN) {
@@ -596,7 +597,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 			secretEntry, err := common.GetSecretWithoutLocking(secretPath, req.Storage, ctx, oh.getMetadataClient())
 			if err != nil {
 				// todo: improve autorotation
-				common.Logger().Error("Couldn't get the secret entry from COS. Error: " + err.Error())
+				common.Logger().Error(fmt.Sprintf("Couldn't get the secret entry %s from COS. Error: %s", entry.ID, err.Error()))
 				return nil
 			}
 			entry.Versions = secretEntry.Versions
@@ -617,7 +618,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	err = oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
 	if err != nil {
 		startOrder = false
-		common.Logger().Error("Couldn't start auto rotation. Error: " + err.Error())
+		common.Logger().Error(fmt.Sprintf("Couldn't start auto rotation for secret '%s' with id %s for domains %s. Error: %s", entry.Name, entry.ID, domains, err.Error()))
 		updateIssuanceInfoWithError(metadata, err)
 	}
 	//save updated entry
@@ -630,9 +631,10 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	err = common.StoreSecretAndVersionWithoutLocking(entry, req.Storage, context.Background(), oh.getMetadataClient(), &opp)
 	if err != nil {
 		startOrder = false
-		common.Logger().Error("Couldn't save auto rotation order data to storage: " + err.Error())
+		common.Logger().Error(fmt.Sprintf("Couldn't save auto rotation order data to storage. SecretId:%s, Error:%s ", entry.ID, err.Error()))
 	}
 	if startOrder {
+		common.Logger().Info(fmt.Sprintf("Start auto-rotation for secret '%s' with id %s for domains %s", entry.Name, entry.ID, domains))
 		oh.startOrder(entry)
 	}
 	return nil
@@ -643,7 +645,7 @@ func (oh *OrdersHandler) cleanupAfterRotationCertIfNeeded(entry *secretentry.Sec
 		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be rotated", entry.Name, entry.ID))
 		return nil
 	}
-	common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s  SHOULD have been rotated but WAS NOT ", entry.Name, entry.ID))
+	common.Logger().Info(fmt.Sprintf("Secret '%s' with id %s  SHOULD have been rotated but WAS NOT ", entry.Name, entry.ID))
 	return nil
 }
 
