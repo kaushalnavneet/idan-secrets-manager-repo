@@ -408,6 +408,7 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 	//update it with secret id
 	workItem.secretEntry = secretEntry
 	oh.runningOrders[orderKey] = workItem
+	common.Logger().Info(fmt.Sprintf("Order (secret id %s) is begining, added to running orders for domains %s", workItem.secretEntry.ID, workItem.domains))
 	//empty beforeOrders, current workItem is moved to runningOrders
 	//some previous order requests could fail on validations so their beforeOrders should be removed too
 	delete(oh.beforeOrders, orderKey)
@@ -426,6 +427,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	//delete the order from cache of orders in process
 	orderKey := getOrderID(res.workItem.domains)
 	delete(oh.runningOrders, orderKey)
+	common.Logger().Info(fmt.Sprintf("Order (secret id %s) finished, removed from running orders for domains %s", res.workItem.secretEntry.ID, res.workItem.domains))
 	//update secret entry
 	secretEntry := res.workItem.secretEntry
 	storage := res.workItem.storage
@@ -437,7 +439,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	var data interface{}
 	var extraData map[string]interface{}
 	if res.Error != nil {
-		common.Logger().Error("Order failed with error: " + res.Error.Error())
+		common.Logger().Error(fmt.Sprintf("Order (secret id %s) failed with error: %s", secretEntry.ID, res.Error.Error()))
 		errorObj := getOrderError(res)
 		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
 		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated)
@@ -487,11 +489,11 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		Operation:     types_common.StoreOptionRotate,
 		VersionMapper: oh.metadataMapper.MapVersionMetadata,
 	}
-
+	common.Logger().Info(fmt.Sprintf("Saving order result (secret id %s) to storage", secretEntry.ID))
 	err := common.StoreSecretAndVersionWithoutLocking(secretEntry, storage, context.Background(), oh.getMetadataClient(), &opp)
 
 	if err != nil {
-		common.Logger().Error("Couldn't save order result to storage: " + err.Error())
+		common.Logger().Error(fmt.Sprintf("Couldn't save order (secret id %s) result to storage:%s ", secretEntry.ID, err.Error()))
 		return
 	}
 	removeWorkItemFromOrdersInProgress(res.workItem)
@@ -586,7 +588,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	startOrder := true
 	rotateKey := entry.Policies.Rotation.RotateKeys()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
-	domains := metadata.CommonName + "," + strings.Join(metadata.AltName, ",")
+	domains := strings.Join(metadata.AltName, ",") //alt_names should contain common name as well
 	common.Logger().Info(fmt.Sprintf("Secret '%s' with id %s SHOULD be auto-rotated. Certificate domains: %s", entry.Name, entry.ID, domains))
 	var privateKey []byte
 	if !rotateKey {
