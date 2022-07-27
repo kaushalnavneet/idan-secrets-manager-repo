@@ -11,6 +11,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"gotest.tools/v3/assert"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -76,6 +77,21 @@ var (
 			FieldBundleCert:                   true,
 			FieldDNSConfig:                    dnsConfig,
 			FieldAutoRotated:                  false}}
+
+	expectedIssuanceInfoForRotatedCert = map[string]interface{}{
+		secretentry.FieldState:            secretentry.StatePreActivation,
+		secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
+		FieldBundleCert:                   true,
+		FieldCAConfig:                     caConfig,
+		FieldDNSConfig:                    dnsConfig,
+		FieldAutoRotated:                  true}
+
+	expectedIssuanceInfoForFailedRotation = map[string]interface{}{
+		secretentry.FieldState:            secretentry.StateDeactivated,
+		secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated),
+		FieldErrorCode:                    "secrets-manager.Error07012",
+		FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
+		FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
 )
 
 //certificates in storage before rotation
@@ -241,21 +257,8 @@ func Test_AutoRotate(t *testing.T) {
 		//should not be changed
 		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateFalse_id, expiresIn30Days_autoRotateFalse, certMetadata.IssuanceInfo)
 		//should become Preactivation
-		expectedIssuanceInfoForRotatedCert := map[string]interface{}{
-			secretentry.FieldState:            secretentry.StatePreActivation,
-			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
-			FieldBundleCert:                   true,
-			FieldCAConfig:                     caConfig,
-			FieldDNSConfig:                    dnsConfig,
-			FieldAutoRotated:                  true}
 		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateTrue_id, expiresIn30Days_autoRotateTrue, expectedIssuanceInfoForRotatedCert)
 		//should become Deactivated
-		expectedIssuanceInfoForFailedRotation := map[string]interface{}{
-			secretentry.FieldState:            secretentry.StateDeactivated,
-			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated),
-			FieldErrorCode:                    "secrets-manager.Error07012",
-			FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
-			FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
 		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateTrue_notExistConfig_id, expiresIn30Days_autoRotateTrue_notExistConfig, expectedIssuanceInfoForFailedRotation)
 		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn30Days_autoRotateTrue_id, Attempts: 1}})
 	})
@@ -274,8 +277,42 @@ func Test_AutoRotate(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
-
 	})
+}
+
+func Test_AutoRotate_AllowList(t *testing.T) {
+	crn := os.Getenv("CRN")
+	defer os.Setenv("CRN", crn)
+	defer os.Setenv("publicCertAccountAllowList", "")
+	os.Setenv("CRN", "crn:v1:bluemix:public:secrets-manager:eu-de:a/13d3afcc2a08488295d5f8a26b4ca645:4ba5d071-95fa-492f-a9af-651c3d82b787::")
+	os.Setenv("publicCertAccountAllowList", "13d3afcc2a08488295d5f8a26b4ca645")
+	oh := initOrdersHandler()
+	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
+	mcm := b.GetMetadataClient().(*common.MetadataManagerMock)
+	initBackend()
+
+	t.Run("Auto Rotate certificates in allow list", func(t *testing.T) {
+
+		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
+		mcm.FakeListResponse = []*secretentry.SecretEntry{expiresIn20Days_autoRotateTrue}
+		//get secret
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      AutoRotatePath,
+			Storage:   storage,
+			Data:      make(map[string]interface{}),
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		assert.NilError(t, err)
+		assert.Equal(t, false, resp.IsError())
+		//should be changed since it's in allow list
+		//should become Preactivation
+		getSecretAndCheckItsContent(t, expiresIn20Days_autoRotateTrue_id, expiresIn20Days_autoRotateTrue, expectedIssuanceInfoForRotatedCert)
+	})
+
 }
 
 func getSecretAndCheckItsContent(t *testing.T, secretId string, expectedentry *secretentry.SecretEntry, expectedIssuanceInfo map[string]interface{}) {

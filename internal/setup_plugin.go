@@ -54,6 +54,9 @@ var cleanupEntryId cron.EntryID = 0
 func ConfigAutoRotationJob(config *common.ICAuthConfig, c *cron.Cron) error {
 	common.Logger().Debug("ConfigAutoRotationJob: Trying to configure certificates auto-rotation and cleanup jobs")
 	rotationSchedule := "5 */3 * * *"
+	if isInAllowList() {
+		rotationSchedule = "15 * * * *"
+	}
 	cleanupSchedule := "00 23 * * *"
 
 	arc := &AutoRotateConfig{
