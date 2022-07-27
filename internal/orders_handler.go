@@ -28,15 +28,16 @@ import (
 )
 
 type OrdersHandler struct {
-	workerPool     *WorkerPool
-	beforeOrders   map[string]WorkItem
-	runningOrders  map[string]WorkItem
-	parser         certificate_parser.CertificateParser
-	pluginConfig   *common.ICAuthConfig
-	cron           *cron.Cron
-	metadataClient common.MetadataClient
-	metadataMapper common.MetadataMapper
-	secretBackend  secret_backend.SecretBackend
+	workerPool          *WorkerPool
+	autoRenewWorkerPool *WorkerPool
+	beforeOrders        map[string]WorkItem
+	runningOrders       map[string]WorkItem
+	parser              certificate_parser.CertificateParser
+	pluginConfig        *common.ICAuthConfig
+	cron                *cron.Cron
+	metadataClient      common.MetadataClient
+	metadataMapper      common.MetadataMapper
+	secretBackend       secret_backend.SecretBackend
 }
 
 func (oh *OrdersHandler) GetPolicyHandler() secret_backend.PolicyHandler {
