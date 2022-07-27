@@ -28,16 +28,16 @@ import (
 )
 
 type OrdersHandler struct {
-	workerPool          *WorkerPool
-	autoRenewWorkerPool *WorkerPool
-	beforeOrders        map[string]WorkItem
-	runningOrders       map[string]WorkItem
-	parser              certificate_parser.CertificateParser
-	pluginConfig        *common.ICAuthConfig
-	cron                *cron.Cron
-	metadataClient      common.MetadataClient
-	metadataMapper      common.MetadataMapper
-	secretBackend       secret_backend.SecretBackend
+	workerPool     *WorkerPool
+	beforeOrders   map[string]WorkItem
+	runningOrders  map[string]WorkItem
+	parser         certificate_parser.CertificateParser
+	pluginConfig   *common.ICAuthConfig
+	cron           *cron.Cron
+	metadataClient common.MetadataClient
+	metadataMapper common.MetadataMapper
+	secretBackend  secret_backend.SecretBackend
+	inAllowList    bool
 }
 
 func (oh *OrdersHandler) GetPolicyHandler() secret_backend.PolicyHandler {
@@ -409,12 +409,21 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 	//update it with secret id
 	workItem.secretEntry = secretEntry
 	oh.runningOrders[orderKey] = workItem
+	common.Logger().Info(fmt.Sprintf("Order (secret id %s) is begining, added to running orders for domains %s", workItem.secretEntry.ID, workItem.domains))
 	//empty beforeOrders, current workItem is moved to runningOrders
 	//some previous order requests could fail on validations so their beforeOrders should be removed too
 	delete(oh.beforeOrders, orderKey)
 	addWorkItemToOrdersInProgress(workItem)
 	//start an order
-	_, _ = oh.workerPool.ScheduleCertificateRequest(workItem)
+	_, err := oh.workerPool.ScheduleCertificateRequest(workItem)
+	if err != nil {
+		result := Result{
+			workItem:    workItem,
+			Error:       errors.NewSMError(logdna.Error07210, 500, "Order could not be started"),
+			certificate: nil,
+		}
+		oh.saveOrderResultToStorage(result)
+	}
 }
 
 //gets result of order and save it to secret entry
@@ -427,6 +436,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	//delete the order from cache of orders in process
 	orderKey := getOrderID(res.workItem.domains)
 	delete(oh.runningOrders, orderKey)
+	common.Logger().Info(fmt.Sprintf("Order (secret id %s) finished, removed from running orders for domains %s", res.workItem.secretEntry.ID, res.workItem.domains))
 	//update secret entry
 	secretEntry := res.workItem.secretEntry
 	storage := res.workItem.storage
@@ -438,7 +448,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	var data interface{}
 	var extraData map[string]interface{}
 	if res.Error != nil {
-		common.Logger().Error("Order failed with error: " + res.Error.Error())
+		common.Logger().Error(fmt.Sprintf("Order (secret id %s) failed with error: %s", secretEntry.ID, res.Error.Error()))
 		errorObj := getOrderError(res)
 		metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
 		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated)
@@ -488,11 +498,11 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		Operation:     types_common.StoreOptionRotate,
 		VersionMapper: oh.metadataMapper.MapVersionMetadata,
 	}
-
+	common.Logger().Info(fmt.Sprintf("Saving order result (secret id %s) to storage", secretEntry.ID))
 	err := common.StoreSecretAndVersionWithoutLocking(secretEntry, storage, context.Background(), oh.getMetadataClient(), &opp)
 
 	if err != nil {
-		common.Logger().Error("Couldn't save order result to storage: " + err.Error())
+		common.Logger().Error(fmt.Sprintf("Couldn't save order (secret id %s) result to storage:%s ", secretEntry.ID, err.Error()))
 		return
 	}
 	removeWorkItemFromOrdersInProgress(res.workItem)
@@ -570,7 +580,7 @@ func (oh *OrdersHandler) getMetadataClient() common.MetadataClient {
 
 //is called from path_rotate for every certificate in the storage
 func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
-	if !isRotationNeeded(entry) {
+	if !isRotationNeeded(entry, oh.inAllowList) {
 		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be rotated", entry.Name, entry.ID))
 		return nil
 	}
@@ -585,9 +595,10 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 		return commonErrors.GenerateCodedError(logdna.Error07202, http.StatusPreconditionFailed, msg)
 	}
 	startOrder := true
-	common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s SHOULD be rotated", entry.Name, entry.ID))
 	rotateKey := entry.Policies.Rotation.RotateKeys()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
+	domains := strings.Join(metadata.AltName, ",") //alt_names should contain common name as well
+	common.Logger().Info(fmt.Sprintf("Secret '%s' with id %s SHOULD be auto-rotated. Certificate domains: %s", entry.Name, entry.ID, domains))
 	var privateKey []byte
 	if !rotateKey {
 		if feature_util.IsFeatureEnabled("metadataIntegration") || strings.Contains(metadataManagerWhitelist, instanceCRN) {
@@ -597,7 +608,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 			secretEntry, err := common.GetSecretWithoutLocking(secretPath, req.Storage, ctx, oh.getMetadataClient())
 			if err != nil {
 				// todo: improve autorotation
-				common.Logger().Error("Couldn't get the secret entry from COS. Error: " + err.Error())
+				common.Logger().Error(fmt.Sprintf("Couldn't get the secret entry %s from COS. Error: %s", entry.ID, err.Error()))
 				return nil
 			}
 			entry.Versions = secretEntry.Versions
@@ -618,7 +629,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	err = oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
 	if err != nil {
 		startOrder = false
-		common.Logger().Error("Couldn't start auto rotation. Error: " + err.Error())
+		common.Logger().Error(fmt.Sprintf("Couldn't start auto rotation for secret '%s' with id %s for domains %s. Error: %s", entry.Name, entry.ID, domains, err.Error()))
 		updateIssuanceInfoWithError(metadata, err)
 	}
 	//save updated entry
@@ -631,20 +642,21 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	err = common.StoreSecretAndVersionWithoutLocking(entry, req.Storage, context.Background(), oh.getMetadataClient(), &opp)
 	if err != nil {
 		startOrder = false
-		common.Logger().Error("Couldn't save auto rotation order data to storage: " + err.Error())
+		common.Logger().Error(fmt.Sprintf("Couldn't save auto rotation order data to storage. SecretId:%s, Error:%s ", entry.ID, err.Error()))
 	}
 	if startOrder {
+		common.Logger().Info(fmt.Sprintf("Start auto-rotation for secret '%s' with id %s for domains %s", entry.Name, entry.ID, domains))
 		oh.startOrder(entry)
 	}
 	return nil
 }
 
 func (oh *OrdersHandler) cleanupAfterRotationCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
-	if !isRotationNeeded(entry) {
+	if !isRotationNeeded(entry, oh.inAllowList) {
 		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be rotated", entry.Name, entry.ID))
 		return nil
 	}
-	common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s  SHOULD have been rotated but WAS NOT ", entry.Name, entry.ID))
+	common.Logger().Info(fmt.Sprintf("Secret '%s' with id %s  SHOULD have been rotated but WAS NOT ", entry.Name, entry.ID))
 	return nil
 }
 
@@ -695,13 +707,13 @@ func removeOrderFromOrdersInProgress(storage logical.Storage, itemToRemove Order
 	}
 }
 
-func isRotationNeeded(entry *secretentry.SecretEntry) bool {
+func isRotationNeeded(entry *secretentry.SecretEntry, inAllowList bool) bool {
 	if entry.State == secretentry.StateActive && entry.Policies.Rotation != nil && entry.Policies.Rotation.AutoRotate() {
 		now := time.Now().UTC()
 		startExpirationPeriod := now.AddDate(0, 0, RotateIfExpirationIsInDays)
 		endExpirationPeriod := now.AddDate(0, 0, RotateIfExpirationIsInDays+1)
 		certExpiration := *entry.ExpirationDate
-		return certExpiration.After(startExpirationPeriod) && certExpiration.Before(endExpirationPeriod)
+		return (certExpiration.After(startExpirationPeriod) || inAllowList) && certExpiration.Before(endExpirationPeriod)
 	} else {
 		return false
 	}

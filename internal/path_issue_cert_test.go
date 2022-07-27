@@ -47,8 +47,9 @@ func initOrdersHandler() *OrdersHandler {
 		parser:         &certificate_parser.CertificateParserImpl{},
 		metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
 		secretBackend:  &mb,
+		inAllowList:    isInAllowList(),
 	}
-	oh.workerPool = NewWorkerPool(oh, 1, 1, 1*time.Second)
+	oh.workerPool = NewWorkerPool(oh, 1, 2, 1*time.Second)
 	return oh
 }
 

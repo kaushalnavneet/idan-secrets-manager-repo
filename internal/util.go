@@ -267,3 +267,18 @@ func getOrderError(res Result) *OrderError {
 	}
 	return errorObj
 }
+
+func isInAllowList() bool {
+	instCrn := os.Getenv("CRN")
+	allowList := os.Getenv("publicCertAccountAllowList")
+	crnParts := strings.Split(instCrn, ":")
+	//in case of invalid crn or empty allow list return false
+	if len(crnParts) < 8 || strings.Trim(allowList, " ") == "" {
+		common.Logger().Info(fmt.Sprintf("Allow list is %s \n Instance CRN is %s. \nThe instance is in allow list: %v", allowList, instCrn, false))
+		return false
+	}
+	account := strings.Replace(strings.Split(instCrn, ":")[6], "a/", "", 1)
+	inAllowList := strings.Contains(allowList, account)
+	common.Logger().Info(fmt.Sprintf("Allow list is %s \n Instance CRN is %s. The instance is in allow list: %v", allowList, instCrn, inAllowList))
+	return inAllowList
+}
