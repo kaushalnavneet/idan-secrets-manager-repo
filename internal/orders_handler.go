@@ -419,7 +419,7 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 	if err != nil {
 		result := Result{
 			workItem:    workItem,
-			Error:       errors.NewSMError(logdna.Error07210, 500, "Order could not be started"),
+			Error:       buildOrderError(logdna.Error07210, "Order could not be started"),
 			certificate: nil,
 		}
 		oh.saveOrderResultToStorage(result)
