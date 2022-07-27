@@ -37,6 +37,7 @@ type OrdersHandler struct {
 	metadataClient common.MetadataClient
 	metadataMapper common.MetadataMapper
 	secretBackend  secret_backend.SecretBackend
+	inAllowList    bool
 }
 
 func (oh *OrdersHandler) GetPolicyHandler() secret_backend.PolicyHandler {
@@ -579,7 +580,7 @@ func (oh *OrdersHandler) getMetadataClient() common.MetadataClient {
 
 //is called from path_rotate for every certificate in the storage
 func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
-	if !isRotationNeeded(entry) {
+	if !isRotationNeeded(entry, oh.inAllowList) {
 		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be rotated", entry.Name, entry.ID))
 		return nil
 	}
@@ -651,7 +652,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 }
 
 func (oh *OrdersHandler) cleanupAfterRotationCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
-	if !isRotationNeeded(entry) {
+	if !isRotationNeeded(entry, oh.inAllowList) {
 		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be rotated", entry.Name, entry.ID))
 		return nil
 	}
@@ -706,13 +707,13 @@ func removeOrderFromOrdersInProgress(storage logical.Storage, itemToRemove Order
 	}
 }
 
-func isRotationNeeded(entry *secretentry.SecretEntry) bool {
+func isRotationNeeded(entry *secretentry.SecretEntry, inAllowList bool) bool {
 	if entry.State == secretentry.StateActive && entry.Policies.Rotation != nil && entry.Policies.Rotation.AutoRotate() {
 		now := time.Now().UTC()
 		startExpirationPeriod := now.AddDate(0, 0, RotateIfExpirationIsInDays)
 		endExpirationPeriod := now.AddDate(0, 0, RotateIfExpirationIsInDays+1)
 		certExpiration := *entry.ExpirationDate
-		return certExpiration.After(startExpirationPeriod) && certExpiration.Before(endExpirationPeriod)
+		return (certExpiration.After(startExpirationPeriod) || inAllowList) && certExpiration.Before(endExpirationPeriod)
 	} else {
 		return false
 	}
