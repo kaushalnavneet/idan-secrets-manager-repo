@@ -76,6 +76,21 @@ var (
 			FieldBundleCert:                   true,
 			FieldDNSConfig:                    dnsConfig,
 			FieldAutoRotated:                  false}}
+
+	expectedIssuanceInfoForRotatedCert = map[string]interface{}{
+		secretentry.FieldState:            secretentry.StatePreActivation,
+		secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
+		FieldBundleCert:                   true,
+		FieldCAConfig:                     caConfig,
+		FieldDNSConfig:                    dnsConfig,
+		FieldAutoRotated:                  true}
+
+	expectedIssuanceInfoForFailedRotation = map[string]interface{}{
+		secretentry.FieldState:            secretentry.StateDeactivated,
+		secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated),
+		FieldErrorCode:                    "secrets-manager.Error07012",
+		FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
+		FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
 )
 
 //certificates in storage before rotation
@@ -207,19 +222,6 @@ var (
 		},
 		Versions: versionsWithData,
 	}
-	expectedIssuanceInfoForRotatedCert = map[string]interface{}{
-		secretentry.FieldState:            secretentry.StatePreActivation,
-		secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
-		FieldBundleCert:                   true,
-		FieldCAConfig:                     caConfig,
-		FieldDNSConfig:                    dnsConfig,
-		FieldAutoRotated:                  true}
-	expectedIssuanceInfoForFailedRotation = map[string]interface{}{
-		secretentry.FieldState:            secretentry.StateDeactivated,
-		secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated),
-		FieldErrorCode:                    "secrets-manager.Error07012",
-		FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
-		FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
 )
 
 var oh *OrdersHandler
