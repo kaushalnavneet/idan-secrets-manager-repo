@@ -18,10 +18,9 @@ import (
 )
 
 type AutoRotateConfig struct {
-	rotatePath  string
-	cleanupPath string
-	usageToken  string
-	client      *vault_client_impl.VaultClientFactory
+	rotatePath string
+	usageToken string
+	client     *vault_client_impl.VaultClientFactory
 }
 
 const startResumeOrdersInSec = 120 * time.Second
@@ -49,21 +48,15 @@ func SetupPublicCertPlugin(ctx context.Context, conf *logical.BackendConfig, bac
 }
 
 var rotateEntryId cron.EntryID = 0
-var cleanupEntryId cron.EntryID = 0
 
 func ConfigAutoRotationJob(config *common.ICAuthConfig, c *cron.Cron) error {
 	common.Logger().Debug("ConfigAutoRotationJob: Trying to configure certificates auto-rotation and cleanup jobs")
-	rotationSchedule := "5 */3 * * *"
-	if isInAllowList() {
-		rotationSchedule = "15 * * * *"
-	}
-	cleanupSchedule := "00 23 * * *"
+	rotationSchedule := "5 * * * *"
 
 	arc := &AutoRotateConfig{
-		rotatePath:  config.Vault.Endpoint + PluginMountPath + AutoRotatePath,
-		cleanupPath: config.Vault.Endpoint + PluginMountPath + AutoRotateCleanupPath,
-		usageToken:  config.Vault.UpToken,
-		client:      &vault_client_impl.VaultClientFactory{Logger: common.Logger()},
+		rotatePath: config.Vault.Endpoint + PluginMountPath + AutoRotatePath,
+		usageToken: config.Vault.UpToken,
+		client:     &vault_client_impl.VaultClientFactory{Logger: common.Logger()},
 	}
 	common.Logger().Info(fmt.Sprintf("Certificates auto-rotation cron job will call to path `%s` with schedule %s", arc.rotatePath, rotationSchedule))
 	var err error
@@ -80,16 +73,6 @@ func ConfigAutoRotationJob(config *common.ICAuthConfig, c *cron.Cron) error {
 		common.Logger().Info(fmt.Sprintf("Certificates auto-rotation cron job is configured. Entry id = %d", rotateEntryId))
 	} else {
 		common.Logger().Info("Certificates auto-rotation cron job was already configured before and has EntryId = " + strconv.Itoa(int(rotateEntryId)))
-	}
-	if cleanupEntryId == 0 {
-		cleanupEntryId, err = c.AddFunc(cleanupSchedule, arc.startCleanupProcess)
-		if err != nil {
-			common.Logger().Error(logdna.Error07067+" Failed to configure cron job for certificates auto-rotation cleanup: error while adding cron function ", err)
-			return errors.GenerateCodedError(logdna.Error07067, http.StatusInternalServerError, errors.InternalServerError)
-		}
-		common.Logger().Info(fmt.Sprintf("Certificates auto-rotation cleanup cron job is configured. Entry id = %d", cleanupEntryId))
-	} else {
-		common.Logger().Info("Certificates auto-rotation cleanup cron job was already configured before and has EntryId = " + strconv.Itoa(int(cleanupEntryId)))
 	}
 	return nil
 }
@@ -111,26 +94,6 @@ func (c *AutoRotateConfig) startAutoRotateProcess() {
 	_, _, err := c.client.SendRequest(options)
 	if err != nil {
 		common.Logger().Error("Failed to send request for certificates auto-rotation", err)
-	}
-}
-
-func (c *AutoRotateConfig) startCleanupProcess() {
-	common.Logger().Debug("Start running job for certificates auto-rotation finish (send final error).")
-	options := &vault_client_factory.RequestOptions{
-		URL:    c.cleanupPath,
-		Method: http.MethodPost,
-		Headers: map[string]string{
-			vaultTokenHeader:  c.usageToken,
-			acceptHeader:      applicationJson,
-			contentTypeHeader: applicationJson,
-		},
-		Body:               []byte("{}"),
-		ResponseScheme:     nil,
-		ExpectedStatusCode: http.StatusNoContent,
-	}
-	_, _, err := c.client.SendRequest(options)
-	if err != nil {
-		common.Logger().Error("Failed to send request for certificates auto-rotation cleanup", err)
 	}
 }
 

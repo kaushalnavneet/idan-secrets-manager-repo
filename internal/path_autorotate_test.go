@@ -11,7 +11,6 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"gotest.tools/v3/assert"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -235,7 +234,7 @@ func Test_AutoRotate(t *testing.T) {
 
 	t.Run("Auto Rotate certificates", func(t *testing.T) {
 		createCertificates()
-		mcm.FakeListResponse = []*secretentry.SecretEntry{expiresIn30Days_autoRotateTrue, expiresIn20Days_autoRotateTrue, expiresIn30Days_autoRotateFalse, failedOrder, expiresIn30Days_autoRotateTrue_notExistConfig}
+		mcm.FakeListResponse = []*secretentry.SecretEntry{expiresIn20Days_autoRotateTrue, expiresIn30Days_autoRotateFalse, failedOrder, expiresIn30Days_autoRotateTrue_notExistConfig}
 		//get secret
 		req := &logical.Request{
 			Operation: logical.UpdateOperation,
@@ -250,69 +249,16 @@ func Test_AutoRotate(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 
-		//should not be changed
-		getSecretAndCheckItsContent(t, expiresIn20Days_autoRotateTrue_id, expiresIn20Days_autoRotateTrue, certMetadata.IssuanceInfo)
-		//should not be changed
-		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateFalse_id, expiresIn30Days_autoRotateFalse, certMetadata.IssuanceInfo)
+		//should be changed
+		getSecretAndCheckItsContent(t, expiresIn20Days_autoRotateTrue_id, expiresIn20Days_autoRotateTrue, expectedIssuanceInfoForRotatedCert)
 		//should not be changed
 		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateFalse_id, expiresIn30Days_autoRotateFalse, certMetadata.IssuanceInfo)
-		//should become Preactivation
-		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateTrue_id, expiresIn30Days_autoRotateTrue, expectedIssuanceInfoForRotatedCert)
+		//should not be changed
+		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateFalse_id, expiresIn30Days_autoRotateFalse, certMetadata.IssuanceInfo)
 		//should become Deactivated
 		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateTrue_notExistConfig_id, expiresIn30Days_autoRotateTrue_notExistConfig, expectedIssuanceInfoForFailedRotation)
-		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn30Days_autoRotateTrue_id, Attempts: 1}})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 1}})
 	})
-
-	t.Run("Cleanup after rotation", func(t *testing.T) {
-		//get secret
-		req := &logical.Request{
-			Operation: logical.UpdateOperation,
-			Path:      AutoRotateCleanupPath,
-			Storage:   storage,
-			Data:      make(map[string]interface{}),
-			Connection: &logical.Connection{
-				RemoteAddr: "0.0.0.0",
-			},
-		}
-		resp, err := b.HandleRequest(context.Background(), req)
-		assert.NilError(t, err)
-		assert.Equal(t, false, resp.IsError())
-	})
-}
-
-func Test_AutoRotate_AllowList(t *testing.T) {
-	crn := os.Getenv("CRN")
-	defer os.Setenv("CRN", crn)
-	defer os.Setenv("publicCertAccountAllowList", "")
-	os.Setenv("CRN", "crn:v1:bluemix:public:secrets-manager:eu-de:a/13d3afcc2a08488295d5f8a26b4ca645:4ba5d071-95fa-492f-a9af-651c3d82b787::")
-	os.Setenv("publicCertAccountAllowList", "13d3afcc2a08488295d5f8a26b4ca645")
-	oh := initOrdersHandler()
-	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
-	mcm := b.GetMetadataClient().(*common.MetadataManagerMock)
-	initBackend()
-
-	t.Run("Auto Rotate certificates in allow list", func(t *testing.T) {
-
-		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
-		mcm.FakeListResponse = []*secretentry.SecretEntry{expiresIn20Days_autoRotateTrue}
-		//get secret
-		req := &logical.Request{
-			Operation: logical.UpdateOperation,
-			Path:      AutoRotatePath,
-			Storage:   storage,
-			Data:      make(map[string]interface{}),
-			Connection: &logical.Connection{
-				RemoteAddr: "0.0.0.0",
-			},
-		}
-		resp, err := b.HandleRequest(context.Background(), req)
-		assert.NilError(t, err)
-		assert.Equal(t, false, resp.IsError())
-		//should be changed since it's in allow list
-		//should become Preactivation
-		getSecretAndCheckItsContent(t, expiresIn20Days_autoRotateTrue_id, expiresIn20Days_autoRotateTrue, expectedIssuanceInfoForRotatedCert)
-	})
-
 }
 
 func getSecretAndCheckItsContent(t *testing.T, secretId string, expectedentry *secretentry.SecretEntry, expectedIssuanceInfo map[string]interface{}) {
@@ -348,8 +294,6 @@ func getSecretAndCheckItsContent(t *testing.T, secretId string, expectedentry *s
 }
 
 func createCertificates() {
-
-	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue, storage, context.Background(), nil, false)
 
 	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
 

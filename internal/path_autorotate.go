@@ -14,22 +14,11 @@ func (ob *OrdersBackend) pathAutoRotate() []*framework.Path {
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.UpdateOperation: &framework.PathOperation{Callback: ob.autoRotateCertificates}},
 		},
-		{
-			Pattern: AutoRotateCleanupPath,
-			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.UpdateOperation: &framework.PathOperation{Callback: ob.autoRotateCleanup}},
-		},
 	}
 }
 
 func (ob *OrdersBackend) autoRotateCertificates(ctx context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
 	common.Logger().Info("AUTO ROTATE CERTIFICATES started")
 	common.PerformOperationOnAllSecrets(context.Background(), req, ob.secretBackend.GetMetadataClient(), ob.secretBackend.GetPluginSecretType(), ob.GetSecretBackendHandler().(*OrdersHandler).rotateCertIfNeeded)
-	return nil, nil
-}
-
-func (ob *OrdersBackend) autoRotateCleanup(ctx context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
-	common.Logger().Info(" Final running of AUTO ROTATE CERTIFICATES for this day")
-	common.PerformOperationOnAllSecrets(context.Background(), req, ob.secretBackend.GetMetadataClient(), ob.secretBackend.GetPluginSecretType(), ob.GetSecretBackendHandler().(*OrdersHandler).cleanupAfterRotationCertIfNeeded)
 	return nil, nil
 }
