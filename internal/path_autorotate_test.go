@@ -207,6 +207,19 @@ var (
 		},
 		Versions: versionsWithData,
 	}
+	expectedIssuanceInfoForRotatedCert = map[string]interface{}{
+		secretentry.FieldState:            secretentry.StatePreActivation,
+		secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
+		FieldBundleCert:                   true,
+		FieldCAConfig:                     caConfig,
+		FieldDNSConfig:                    dnsConfig,
+		FieldAutoRotated:                  true}
+	expectedIssuanceInfoForFailedRotation = map[string]interface{}{
+		secretentry.FieldState:            secretentry.StateDeactivated,
+		secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated),
+		FieldErrorCode:                    "secrets-manager.Error07012",
+		FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
+		FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
 )
 
 var oh *OrdersHandler
@@ -219,7 +232,7 @@ func Test_AutoRotate(t *testing.T) {
 
 	t.Run("Auto Rotate certificates", func(t *testing.T) {
 		createCertificates()
-		mcm.FakeListResponse = []*secretentry.SecretEntry{expiresIn30Days_autoRotateTrue, expiresIn20Days_autoRotateTrue, expiresIn30Days_autoRotateFalse, failedOrder, expiresIn30Days_autoRotateTrue_notExistConfig}
+		mcm.FakeListResponse = []*secretentry.SecretEntry{expiresIn20Days_autoRotateTrue, expiresIn30Days_autoRotateFalse, failedOrder, expiresIn30Days_autoRotateTrue_notExistConfig}
 		//get secret
 		req := &logical.Request{
 			Operation: logical.UpdateOperation,
@@ -234,47 +247,15 @@ func Test_AutoRotate(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 
-		//should not be changed
-		getSecretAndCheckItsContent(t, expiresIn20Days_autoRotateTrue_id, expiresIn20Days_autoRotateTrue, certMetadata.IssuanceInfo)
-		//should not be changed
-		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateFalse_id, expiresIn30Days_autoRotateFalse, certMetadata.IssuanceInfo)
+		//should be changed
+		getSecretAndCheckItsContent(t, expiresIn20Days_autoRotateTrue_id, expiresIn20Days_autoRotateTrue, expectedIssuanceInfoForRotatedCert)
 		//should not be changed
 		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateFalse_id, expiresIn30Days_autoRotateFalse, certMetadata.IssuanceInfo)
-		//should become Preactivation
-		expectedIssuanceInfoForRotatedCert := map[string]interface{}{
-			secretentry.FieldState:            secretentry.StatePreActivation,
-			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
-			FieldBundleCert:                   true,
-			FieldCAConfig:                     caConfig,
-			FieldDNSConfig:                    dnsConfig,
-			FieldAutoRotated:                  true}
-		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateTrue_id, expiresIn30Days_autoRotateTrue, expectedIssuanceInfoForRotatedCert)
+		//should not be changed
+		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateFalse_id, expiresIn30Days_autoRotateFalse, certMetadata.IssuanceInfo)
 		//should become Deactivated
-		expectedIssuanceInfoForFailedRotation := map[string]interface{}{
-			secretentry.FieldState:            secretentry.StateDeactivated,
-			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated),
-			FieldErrorCode:                    "secrets-manager.Error07012",
-			FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
-			FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
 		getSecretAndCheckItsContent(t, expiresIn30Days_autoRotateTrue_notExistConfig_id, expiresIn30Days_autoRotateTrue_notExistConfig, expectedIssuanceInfoForFailedRotation)
-		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn30Days_autoRotateTrue_id, Attempts: 1}})
-	})
-
-	t.Run("Cleanup after rotation", func(t *testing.T) {
-		//get secret
-		req := &logical.Request{
-			Operation: logical.UpdateOperation,
-			Path:      AutoRotateCleanupPath,
-			Storage:   storage,
-			Data:      make(map[string]interface{}),
-			Connection: &logical.Connection{
-				RemoteAddr: "0.0.0.0",
-			},
-		}
-		resp, err := b.HandleRequest(context.Background(), req)
-		assert.NilError(t, err)
-		assert.Equal(t, false, resp.IsError())
-
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 1}})
 	})
 }
 
@@ -311,8 +292,6 @@ func getSecretAndCheckItsContent(t *testing.T, secretId string, expectedentry *s
 }
 
 func createCertificates() {
-
-	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue, storage, context.Background(), nil, false)
 
 	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
 
