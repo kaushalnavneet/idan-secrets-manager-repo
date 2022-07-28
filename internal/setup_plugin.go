@@ -48,7 +48,6 @@ func SetupPublicCertPlugin(ctx context.Context, conf *logical.BackendConfig, bac
 }
 
 var rotateEntryId cron.EntryID = 0
-var cleanupEntryId cron.EntryID = 0
 
 func ConfigAutoRotationJob(config *common.ICAuthConfig, c *cron.Cron) error {
 	common.Logger().Debug("ConfigAutoRotationJob: Trying to configure certificates auto-rotation and cleanup jobs")

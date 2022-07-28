@@ -20,11 +20,10 @@ const (
 	FieldAutoRotated  = "auto_rotated"
 	FieldIssuanceInfo = "issuance_info"
 
-	endCertificate        = "-----END CERTIFICATE-----"
-	errorPattern          = `{"error_code":"%s","error_message":"%s"}`
-	AutoRotatePath        = "autorotate"
-	AutoRotateCleanupPath = "autorotate/final"
-	ResumeOrderPath       = "resume"
+	endCertificate  = "-----END CERTIFICATE-----"
+	errorPattern    = `{"error_code":"%s","error_message":"%s"}`
+	AutoRotatePath  = "autorotate"
+	ResumeOrderPath = "resume"
 )
 
 const (
