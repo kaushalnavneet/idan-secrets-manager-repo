@@ -17,7 +17,7 @@ func WaitFunction(cancelChan chan struct{}, workItem WorkItem, timeout time.Dura
 
 func TestWorkerPoolFull(t *testing.T) {
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{})
-	initBackend()
+	initBackend(false)
 	oh := &OrdersHandler{
 		runningOrders: make(map[string]WorkItem),
 		beforeOrders:  make(map[string]WorkItem),

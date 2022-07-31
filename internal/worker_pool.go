@@ -161,22 +161,7 @@ func (w *WorkerPool) getCertificate(workItem WorkItem) chan Result {
 
 func (w *WorkerPool) issueCertificate(workItem WorkItem) (*Result, error) {
 	var result Result
-
-	// [Navaneeth] Note: - we want to avoid creating multiple connections, so create one only if a cached
-	// connection does not exist
-	httpClient, err := w.getOrCreateHttpClient(workItem.caConfig)
-	if err != nil {
-		common.Logger().Error("Http client create/get error: " + err.Error())
-		return nil, err
-	}
-
-	client, err := NewACMEClientWithCustomHttpClient(workItem.caConfig, workItem.keyType, httpClient)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = client.SetChallengeProviders(workItem.dnsConfig, workItem.domains)
+	client, err := w.createAcmeClient(workItem)
 	if err != nil {
 		return nil, err
 	}
@@ -197,6 +182,37 @@ func (w *WorkerPool) issueCertificate(workItem WorkItem) (*Result, error) {
 	}
 	common.Logger().Info(fmt.Sprintf("Finished order certificate (secret Id %s) for domains: %s", workItem.secretEntry.ID, strings.Join(workItem.domains[:], ",")))
 	return &result, nil
+}
+
+func (w *WorkerPool) PrepareChallenges(workItem WorkItem) ([]Challenge, error) {
+	client, err := w.createAcmeClient(workItem)
+	if err != nil {
+		return nil, err
+	}
+	challenges, err := client.PrepareChallenges(workItem)
+	if err != nil {
+		return nil, err
+	}
+	return challenges, nil
+}
+
+func (w *WorkerPool) createAcmeClient(workItem WorkItem) (*Client, error) {
+	httpClient, err := w.getOrCreateHttpClient(workItem.caConfig)
+	if err != nil {
+		common.Logger().Error("Http client create/get error: " + err.Error())
+		return nil, err
+	}
+
+	client, err := NewACMEClientWithCustomHttpClient(workItem.caConfig, workItem.keyType, httpClient)
+	if err != nil {
+		return nil, err
+	}
+
+	err = client.SetChallengeProviders(workItem.dnsConfig, workItem.domains)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func (w *WorkerPool) ScheduleCertificateRequest(workItem WorkItem) (string, error) {

@@ -69,6 +69,7 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 		//autorotate+cleanup
 		ob.pathAutoRotate(),
 		ob.pathResume(),
+		ob.pathContinueOrder(),
 	)
 	if feature_util.IsFeatureEnabled("GetSecretVersion") {
 		path = framework.PathAppend(path, ob.pathListVersions())

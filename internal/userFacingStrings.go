@@ -61,6 +61,7 @@ const (
 	dnsProviderSoftLayerAccount = "the classic infrastructure (SoftLayer) account"
 	dnsProviderCIS              = "Cloud Internet Services (CIS)"
 	dnsProviderSoftLayer        = "Classic infrastructure (SoftLayer)"
+	dnsProviderManual           = "Manual"
 
 	domainIsNotFound     = "Domain %s is not found in %s"          //Error07072, Error07052
 	authorizationError   = "Authorization error when trying %s %s" //Error07073, Error07077, Error07080, Error07089, Error07031, Error07044, Error07048, Error07051, Error07056, Error07037
