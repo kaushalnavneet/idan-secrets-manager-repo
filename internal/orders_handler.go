@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/robfig/cron/v3"
+	at "github.ibm.com/security-services/secrets-manager-common-utils/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-common-utils/errors"
 	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
@@ -23,6 +24,8 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_client_impl"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -427,6 +430,7 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 
 //gets result of order and save it to secret entry
 func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
+	var certificateError logical.HTTPCodedError
 	if common.ReadOnlyEnabled(oh.metadataClient) {
 		common.Logger().Error("vault is in read only mode")
 		return
@@ -471,6 +475,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 			codedErr := commonErrors.GenerateCodedError(logdna.Error07063, http.StatusInternalServerError, failedToParseCertificate)
 			updateIssuanceInfoWithError(metadata, codedErr)
 			updateSecretEntryWithFailure(secretEntry, metadata)
+			certificateError = codedErr
 		} else {
 			metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateActive
 			metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateActive)
@@ -505,6 +510,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		return
 	}
 	removeWorkItemFromOrdersInProgress(res.workItem)
+	logActivityTrackerEvent(res, certificateError)
 }
 
 func updateSecretEntryWithFailure(secretEntry *secretentry.SecretEntry, metadata *certificate.CertificateMetadata) {
@@ -788,4 +794,50 @@ func updateIssuanceInfoWithError(metadata *certificate.CertificateMetadata, err 
 	}
 	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
 	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated)
+}
+
+func logActivityTrackerEvent(res Result, certError logical.HTTPCodedError) {
+	instanceCrn := os.Getenv("CRN")
+	var outcome, severity, failureReason string
+	var reasonCode int
+	if certError != nil {
+		outcome = "failure"
+		severity = "warning"
+		reasonCode = certError.Code()
+		failureReason = certError.Error()
+	} else if res.Error != nil {
+		outcome = "failure"
+		severity = "warning"
+		orderErr := getOrderError(res)
+		var e error
+		reasonCode, e = strconv.Atoi(orderErr.Code)
+		if e != nil {
+			// result error doesn't have a numeric code - report internal server error
+			reasonCode = http.StatusInternalServerError
+		}
+		failureReason = orderErr.Message
+	} else {
+		outcome = "success"
+		severity = "normal"
+		reasonCode = http.StatusOK
+	}
+
+	atParams := &at.ActivityTrackerParams{
+		TargetCRN:         res.workItem.secretEntry.CRN,
+		TargetName:        res.workItem.secretEntry.Name,
+		TargetTypeURI:     "secrets-manager/secret",
+		Action:            common.CreateSecretAction,
+		CorrelationID:     res.workItem.requestID.String(),
+		Outcome:           outcome,
+		ReasonCode:        reasonCode,
+		ReasonType:        http.StatusText(reasonCode),
+		ReasonForFailure:  failureReason,
+		ResourceGroupId:   at.BuildResourceGroupIdFromInstanceCRN(instanceCrn),
+		Severity:          severity,
+		DataEvent:         true,
+		InstanceCRN:       instanceCrn,
+		IamTokenAuthnName: res.workItem.secretEntry.CreatedBy,
+	}
+
+	at.LogEvent(atParams)
 }
