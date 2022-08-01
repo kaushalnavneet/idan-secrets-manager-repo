@@ -159,7 +159,7 @@ func Test_Issue_cert(t *testing.T) {
 	})
 
 	t.Run("Happy flow with manual dns", func(t *testing.T) {
-		mockLEAcmeServer()
+		startMockLEAcmeServer()
 		resetOrdersInProgress()
 		initBackend(true)
 		data := map[string]interface{}{
@@ -179,6 +179,7 @@ func Test_Issue_cert(t *testing.T) {
 			},
 		}
 		resp, err := b.HandleRequest(context.Background(), req)
+		stopMockLEAcmeServer()
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 		assert.Equal(t, resp.Data[secretentry.FieldSecretType], secretentry.SecretTypePublicCert)
@@ -452,7 +453,9 @@ func initBackend(useMockAcmeServer bool) {
 	existingConfigs.save(context.Background(), storage)
 }
 
-func mockLEAcmeServer() {
+var mockAcmeServer *http.Server
+
+func startMockLEAcmeServer() {
 	router := gin.Default()
 	gin.SetMode(gin.TestMode)
 	router.GET("/", func(c *gin.Context) {
@@ -529,6 +532,13 @@ func mockLEAcmeServer() {
 		// service connections
 		if err := srv.ListenAndServe(); err != nil {
 			fmt.Printf("listen: %s\n", err)
+			mockAcmeServer = srv
 		}
 	}()
+}
+
+func stopMockLEAcmeServer() {
+	if mockAcmeServer != nil {
+		mockAcmeServer.Shutdown(context.Background())
+	}
 }
