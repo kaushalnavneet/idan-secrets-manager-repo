@@ -193,6 +193,8 @@ func (client *Client) PrepareChallenges(workItem WorkItem) ([]Challenge, error) 
 	return challenges, nil
 }
 
+//this code is copied from Lego since it's not exposed
+//https://github.com/go-acme/lego/blob/6d0e0e16b43db37b9e0b675125e2ad4258d00047/certificate/authorization.go#L18
 func (client *Client) getAuthorizations(order acme.ExtendedOrder) ([]acme.Authorization, error) {
 	resc, errc := make(chan acme.Authorization), make(chan domainError)
 	delay := time.Second / overallRequestLimit

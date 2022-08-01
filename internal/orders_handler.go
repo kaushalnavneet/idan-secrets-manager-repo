@@ -37,6 +37,7 @@ type OrdersHandler struct {
 	metadataClient common.MetadataClient
 	metadataMapper common.MetadataMapper
 	secretBackend  secret_backend.SecretBackend
+	inAllowList    bool
 }
 
 func (oh *OrdersHandler) GetPolicyHandler() secret_backend.PolicyHandler {
@@ -352,14 +353,15 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 		return err
 	}
 	var dnsConfig *ProviderConfig
-	if dnsConfigName != dnsConfigTypeManual {
+	//manual dns is available only for allow list
+	if dnsConfigName == dnsConfigTypeManual && oh.inAllowList {
+		dnsConfig = NewProviderConfig(dnsConfigName, dnsConfigTypeManual, map[string]string{})
+	} else {
 		//get dns config from the storage
 		dnsConfig, err = getConfigByName(dnsConfigName, providerTypeDNS, ctx, req, http.StatusBadRequest)
 		if err != nil {
 			return err
 		}
-	} else {
-		dnsConfig = NewProviderConfig(dnsConfigName, dnsConfigTypeManual, map[string]string{})
 	}
 	//validate domains
 	domains := getNames(data.CommonName, data.AltName)

@@ -21,7 +21,7 @@ var storage logical.Storage
 
 func init() {
 	// reach old path without metadata manager
-	instanceCRN = "test-crn"
+	instanceCRN = "crn:v1:staging:public:secrets-manager:us-south:a/791f5fb10986423e97aa8512f18b7e65:baf0054c-235f-45ab-b6e8-45edbf044444::"
 	os.Setenv("CRN", instanceCRN)
 	metadataManagerWhitelist = "crn:v1:staging:public:secrets-manager:us-south:a/791f5fb10986423e97aa8512f18b7e65:baf0054c-235f-45ab-b6e8-45edbf044116::"
 	os.Setenv("METADATA_MANAGER_WHITELIST", metadataManagerWhitelist)

@@ -16,6 +16,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"gotest.tools/v3/assert"
 	"net/http"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -50,6 +51,7 @@ func initOrdersHandler() *OrdersHandler {
 		parser:         &certificate_parser.CertificateParserImpl{},
 		metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
 		secretBackend:  &mb,
+		inAllowList:    isInAllowList(),
 	}
 	oh.workerPool = NewWorkerPool(oh, 1, 2, 1*time.Second)
 	return oh
@@ -156,52 +158,6 @@ func Test_Issue_cert(t *testing.T) {
 
 		checkOrdersInProgress(t, []OrderDetails{{GroupId: groupId, Id: resp.Data[secretentry.FieldId].(string), Attempts: 1}})
 		assert.Equal(t, len(oh.runningOrders), 1)
-	})
-
-	t.Run("Happy flow with manual dns", func(t *testing.T) {
-		startMockLEAcmeServer()
-		resetOrdersInProgress()
-		initBackend(true)
-		data := map[string]interface{}{
-			secretentry.FieldName:       certName4,
-			secretentry.FieldCommonName: commonName,
-			FieldCAConfig:               caConfig,
-			FieldDNSConfig:              dnsConfigTypeManual,
-		}
-
-		req := &logical.Request{
-			Operation: logical.CreateOperation,
-			Path:      PathSecrets,
-			Storage:   storage,
-			Data:      data,
-			Connection: &logical.Connection{
-				RemoteAddr: "0.0.0.0",
-			},
-		}
-		resp, err := b.HandleRequest(context.Background(), req)
-		stopMockLEAcmeServer()
-		assert.NilError(t, err)
-		assert.Equal(t, false, resp.IsError())
-		assert.Equal(t, resp.Data[secretentry.FieldSecretType], secretentry.SecretTypePublicCert)
-		assert.Equal(t, resp.Data[secretentry.FieldName], certName4)
-		assert.Equal(t, resp.Data[secretentry.FieldKeyAlgorithm], keyType)
-		assert.Equal(t, resp.Data[secretentry.FieldCommonName], commonName)
-		assert.Equal(t, len(resp.Data[secretentry.FieldAltNames].([]string)), 0)
-		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation))
-		assert.Equal(t, resp.Data[secretentry.FieldCreatedBy], "iam-ServiceId-MOCK")
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldAutoRotated], false)
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldBundleCert], true)
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldCAConfig], caConfig)
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldDNSConfig], dnsConfigTypeManual)
-		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation))
-
-		assert.Equal(t, len(resp.Data[secretentry.FieldVersions].([]map[string]interface{})), 0)
-		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
-
-		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldAutoRotate], false)
-		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], false)
-
-		assert.Equal(t, len(oh.runningOrders), 0)
 	})
 
 	t.Run("Happy flow + rotation when it's still pre-activate", func(t *testing.T) {
@@ -427,6 +383,58 @@ func Test_rotation(t *testing.T) {
 	})
 }
 
+func Test_Issue_cert_Manual(t *testing.T) {
+	os.Setenv("publicCertAccountAllowList", "791f5fb10986423e97aa8512f18b7e65")
+	oh := initOrdersHandler()
+	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
+	initBackend(true)
+	defer os.Setenv("publicCertAccountAllowList", "")
+
+	t.Run("Happy flow with manual dns", func(t *testing.T) {
+		startMockLEAcmeServer()
+		defer stopMockLEAcmeServer()
+		resetOrdersInProgress()
+		data := map[string]interface{}{
+			secretentry.FieldName:       certName4,
+			secretentry.FieldCommonName: commonName,
+			FieldCAConfig:               caConfig,
+			FieldDNSConfig:              dnsConfigTypeManual,
+		}
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      PathSecrets,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		assert.NilError(t, err)
+		assert.Equal(t, false, resp.IsError())
+		assert.Equal(t, resp.Data[secretentry.FieldSecretType], secretentry.SecretTypePublicCert)
+		assert.Equal(t, resp.Data[secretentry.FieldName], certName4)
+		assert.Equal(t, resp.Data[secretentry.FieldKeyAlgorithm], keyType)
+		assert.Equal(t, resp.Data[secretentry.FieldCommonName], commonName)
+		assert.Equal(t, len(resp.Data[secretentry.FieldAltNames].([]string)), 0)
+		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation))
+		assert.Equal(t, resp.Data[secretentry.FieldCreatedBy], "iam-ServiceId-MOCK")
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldAutoRotated], false)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldBundleCert], true)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldCAConfig], caConfig)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldDNSConfig], dnsConfigTypeManual)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation))
+
+		assert.Equal(t, len(resp.Data[secretentry.FieldVersions].([]map[string]interface{})), 0)
+		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
+
+		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldAutoRotate], false)
+		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], false)
+
+		assert.Equal(t, len(oh.runningOrders), 0)
+	})
+}
+
 func initBackend(useMockAcmeServer bool) {
 	existingConfigs := RootConfig{
 		CaConfigs: []*ProviderConfig{{
@@ -487,9 +495,12 @@ func startMockLEAcmeServer() {
 		c.Header("Replay-Nonce", "nonce")
 		c.Header("Location", "location")
 		c.JSON(200, acme.Order{
-			Status:         "Pending",
-			Expires:        time.Now().Add(7 * 24 * time.Hour).Format(time.RFC3339),
-			Identifiers:    inputOrder.Identifiers,
+			Status:  "Pending",
+			Expires: time.Now().Add(7 * 24 * time.Hour).Format(time.RFC3339),
+			Identifiers: []acme.Identifier{{
+				Type:  "dns",
+				Value: "domain.com",
+			}},
 			NotBefore:      "",
 			NotAfter:       "",
 			Error:          nil,

@@ -22,6 +22,7 @@ func TestWorkerPoolFull(t *testing.T) {
 		runningOrders: make(map[string]WorkItem),
 		beforeOrders:  make(map[string]WorkItem),
 		parser:        &certificate_parser.CertificateParserImpl{},
+		inAllowList:   false,
 	}
 	pool := NewWorkerPool(oh, 1, 2, 10*time.Second, WaitFunction)
 	workItem := WorkItem{
