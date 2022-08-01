@@ -87,7 +87,7 @@ func (client *Client) setDNSProvider(dnsProvider *ProviderConfig, domains []stri
 		err := client.LegoClient.Challenge.SetDNS01Provider(NewSoftlayerDNSProvider(providerConfiguration, client.RestClient), challengeOption)
 		return err
 	} else if providerType == dnsConfigTypeManual {
-		err := client.LegoClient.Challenge.SetDNS01Provider(NewDNSProviderManual(), challengeOption)
+		err := client.LegoClient.Challenge.SetDNS01Provider(NewManualDNSProvider(), challengeOption)
 		return err
 	} else {
 		//TODO: Consider a more secure alternative of writing to file instead of env

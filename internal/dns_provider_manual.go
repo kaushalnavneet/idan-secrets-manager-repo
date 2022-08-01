@@ -10,8 +10,8 @@ import (
 type DNSProviderManual struct {
 }
 
-// NewDNSProviderManual returns a DNSProviderManual instance.
-func NewDNSProviderManual() *DNSProviderManual {
+// NewManualDNSProvider returns a DNSProviderManual instance.
+func NewManualDNSProvider() *DNSProviderManual {
 	return &DNSProviderManual{}
 }
 
