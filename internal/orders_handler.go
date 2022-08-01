@@ -161,7 +161,9 @@ func (oh *OrdersHandler) MakeActionsBeforeStore(ctx context.Context, req *logica
 	if metadata.IssuanceInfo[FieldDNSConfig] == dnsConfigTypeManual {
 		challenges, err := oh.prepareChallenges(secretEntry)
 		if err != nil {
-			return nil, err
+			common.Logger().Error(fmt.Sprintf("Couldn't prepare challenges for the secret id %s. Error: %s", secretEntry.ID, err.Error()))
+			common.ErrorLogForCustomer(internalServerError, logdna.Error07203, logdna.InternalErrorMessage, true)
+			return nil, commonErrors.GenerateCodedError(logdna.Error07203, http.StatusInternalServerError, errors.InternalServerError)
 		}
 		metadata.IssuanceInfo[FieldChallenges] = challenges
 		secretEntry.ExtraData = metadata
