@@ -51,7 +51,7 @@ var rotateEntryId cron.EntryID = 0
 
 func ConfigAutoRotationJob(config *common.ICAuthConfig, c *cron.Cron) error {
 	common.Logger().Debug("ConfigAutoRotationJob: Trying to configure certificates auto-rotation and cleanup jobs")
-	rotationSchedule := "5 * * * *"
+	rotationSchedule := "15 */3 * * *"
 
 	arc := &AutoRotateConfig{
 		rotatePath: config.Vault.Endpoint + PluginMountPath + AutoRotatePath,
