@@ -37,6 +37,7 @@ type OrdersHandler struct {
 	metadataClient common.MetadataClient
 	metadataMapper common.MetadataMapper
 	secretBackend  secret_backend.SecretBackend
+	inAllowList    bool
 }
 
 func (oh *OrdersHandler) GetPolicyHandler() secret_backend.PolicyHandler {
@@ -77,6 +78,15 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 	if err != nil {
 		return nil, err
 	}
+
+	if metadata.IssuanceInfo[FieldDNSConfig] == dnsConfigTypeManual {
+		challenges, err := oh.prepareChallenges(entry)
+		if err != nil {
+			return nil, err
+		}
+		metadata.IssuanceInfo[FieldChallenges] = challenges
+	}
+
 	//update issuance info only if it passed all validation
 	metadata.IssuanceInfo[FieldOrderedOn] = time.Now().UTC().Format(time.RFC3339)
 	metadata.IssuanceInfo[FieldAutoRotated] = false
@@ -146,6 +156,18 @@ func (oh *OrdersHandler) MakeActionsBeforeStore(ctx context.Context, req *logica
 	if req.Operation == logical.CreateOperation {
 		secretEntry.State = secretentry.StatePreActivation
 	}
+	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
+
+	if metadata.IssuanceInfo[FieldDNSConfig] == dnsConfigTypeManual {
+		challenges, err := oh.prepareChallenges(secretEntry)
+		if err != nil {
+			common.Logger().Error(fmt.Sprintf("Couldn't prepare challenges for the secret id %s. Error: %s", secretEntry.ID, err.Error()))
+			common.ErrorLogForCustomer(internalServerError, logdna.Error07203, logdna.InternalErrorMessage, true)
+			return nil, commonErrors.GenerateCodedError(logdna.Error07203, http.StatusInternalServerError, errors.InternalServerError)
+		}
+		metadata.IssuanceInfo[FieldChallenges] = challenges
+		secretEntry.ExtraData = metadata
+	}
 	return nil, nil
 }
 
@@ -155,7 +177,10 @@ func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical
 	}
 	//order and rotation
 	if strings.Contains(req.Path, "rotate") && req.Operation == logical.UpdateOperation || req.Operation == logical.CreateOperation {
-		oh.startOrder(secretEntry)
+		metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
+		if metadata.IssuanceInfo[FieldDNSConfig] != dnsConfigTypeManual {
+			oh.startOrder(secretEntry)
+		}
 		//config iam endpoint
 	} else if strings.Contains(req.Path, secret_backend.SecretEngineConfigPath) && req.Operation == logical.UpdateOperation {
 		common.Logger().Debug("Get auth config and keep it in plugin configuration ")
@@ -329,10 +354,16 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	if err != nil {
 		return err
 	}
-	//get dns config from the storage
-	dnsConfig, err := getConfigByName(dnsConfigName, providerTypeDNS, ctx, req, http.StatusBadRequest)
-	if err != nil {
-		return err
+	var dnsConfig *ProviderConfig
+	//manual dns is available only for allow list
+	if dnsConfigName == dnsConfigTypeManual && oh.inAllowList {
+		dnsConfig = NewProviderConfig(dnsConfigName, dnsConfigTypeManual, map[string]string{})
+	} else {
+		//get dns config from the storage
+		dnsConfig, err = getConfigByName(dnsConfigName, providerTypeDNS, ctx, req, http.StatusBadRequest)
+		if err != nil {
+			return err
+		}
 	}
 	//validate domains
 	domains := getNames(data.CommonName, data.AltName)
@@ -444,6 +475,9 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		secretEntry.Versions = make([]secretentry.SecretVersion, 0)
 	}
 	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
+	if _, ok := metadata.IssuanceInfo[FieldChallenges]; ok {
+		delete(metadata.IssuanceInfo, FieldChallenges)
+	}
 	var data interface{}
 	var extraData map[string]interface{}
 	if res.Error != nil {
@@ -657,6 +691,17 @@ func (oh *OrdersHandler) cleanupAfterRotationCertIfNeeded(entry *secretentry.Sec
 	}
 	common.Logger().Info(fmt.Sprintf("Secret '%s' with id %s  SHOULD have been rotated but WAS NOT ", entry.Name, entry.ID))
 	return nil
+}
+
+func (oh *OrdersHandler) prepareChallenges(entry *secretentry.SecretEntry) ([]Challenge, error) {
+	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
+	domains := getNames(metadata.CommonName, metadata.AltName)
+	orderKey := getOrderID(domains)
+	//get work item from cache
+	workItem := oh.beforeOrders[orderKey]
+	//update it with secret id
+	workItem.secretEntry = entry
+	return oh.workerPool.PrepareChallenges(workItem)
 }
 
 func addWorkItemToOrdersInProgress(workItem WorkItem) {

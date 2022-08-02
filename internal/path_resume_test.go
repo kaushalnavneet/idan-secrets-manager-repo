@@ -17,7 +17,7 @@ import (
 func Test_Resume(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
-	initBackend()
+	initBackend(false)
 
 	t.Run("Order doesn't exist anymore", func(t *testing.T) {
 		setOrdersInProgress(secretId, 1)
