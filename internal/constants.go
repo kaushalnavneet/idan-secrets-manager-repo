@@ -113,7 +113,7 @@ const (
 	PollingIntervalSL    = 3 * time.Minute
 
 	PropagationTimeoutManual = 30 * time.Minute
-	PollingIntervalManual    = 30 * time.Second
+	PollingIntervalManual    = 40 * time.Second
 )
 
 //internal errors

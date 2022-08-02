@@ -161,6 +161,7 @@ func (client *Client) ObtainCertificateForCSR(csr *x509.CertificateRequest, isBu
 	return client.LegoClient.Certificate.ObtainForCSR(request)
 }
 
+// PrepareChallenges is used only for manual dns provider
 func (client *Client) PrepareChallenges(workItem WorkItem) ([]Challenge, error) {
 	order, err := client.LegoCore.Orders.New(workItem.domains)
 	if err != nil {
