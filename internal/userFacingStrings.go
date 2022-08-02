@@ -53,6 +53,9 @@ Remove the extra domain or the wildcard domain from the certificate order.`  //E
 	secretShouldBeInActiveState = "Secret should be in the Active state"                                                    //Error07062
 	orderCouldNotBeProcessed    = "The order could not be resumed after 2 attempts."                                        //Error07046
 	failedToParseCertificate    = "Failed to parse ordered certificate"                                                     //Error07063
+	challengeValidationError    = "A secret should be in Preactivation state in order to validate manually set challenge"   //Error07205
+
+	challengeValidationErrorNotManual = "Challenges validation can be done only for manual dns provider" //Error07206
 )
 
 //Errors in communication with DNS providers

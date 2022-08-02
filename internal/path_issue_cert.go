@@ -2,13 +2,15 @@ package publiccerts
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/certificate"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	at "github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
+	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
+	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
 )
@@ -189,13 +191,28 @@ func (ob *OrdersBackend) ContinueOrder(ctx context.Context, req *logical.Request
 	if err != nil {
 		return res, err
 	}
-	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
+	metadata, err := certificate.DecodeMetadata(secretEntry.ExtraData)
+	if err != nil {
+		common.Logger().Error(fmt.Sprintf("Couldn't decode certificate metadata for secret id %s. Error:%s", secretEntry.ID, err.Error()))
+		common.ErrorLogForCustomer(internalServerError, logdna.Error07204, logdna.InternalErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07204, http.StatusInternalServerError, internalServerError)
+	}
 	orderState := int(metadata.IssuanceInfo[secretentry.FieldState].(float64))
 	if orderState != secretentry.StatePreActivation {
-		return nil, errors.New("A secret should be in Preactivation state in order to validate manually set challenge")
+		msg := challengeValidationError
+		common.ErrorLogForCustomer(msg+" Secret id: "+secretEntry.ID, logdna.Error07205, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07205, http.StatusBadRequest, msg)
+	}
+	if metadata.IssuanceInfo[FieldDNSConfig] != dnsConfigTypeManual {
+		msg := challengeValidationErrorNotManual
+		common.ErrorLogForCustomer(msg+" Secret id: "+secretEntry.ID, logdna.Error07206, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07206, http.StatusBadRequest, msg)
 	}
 
-	ob.ordersHandler.prepareOrderWorkItem(ctx, req, metadata, nil)
+	err = ob.ordersHandler.prepareOrderWorkItem(ctx, req, metadata, nil)
+	if err != nil {
+		return nil, err
+	}
 	ob.ordersHandler.startOrder(secretEntry)
 	return nil, nil
 }
