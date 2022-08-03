@@ -279,6 +279,7 @@ func (oh *OrdersHandler) MapSecretVersion(version *secretentry.SecretVersion, se
 			secretentry.FieldNotAfter:  extraData[secretentry.FieldNotAfter],
 			secretentry.FieldNotBefore: extraData[secretentry.FieldNotBefore],
 		},
+		secretentry.FieldVersionCustomMetadata: version.VersionCustomMetadata,
 	}
 	// For list secret versions mapping response
 	if isListVersions {
@@ -314,6 +315,7 @@ func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, include
 	e[secretentry.FieldExpirationDate] = metadata.NotAfter
 	e[secretentry.FieldSerialNumber] = metadata.SerialNumber
 	e[FieldIssuanceInfo] = metadata.IssuanceInfo
+	e[secretentry.FieldCustomMetadata] = entry.CustomMetadata
 
 	//Add only if alt names exists.
 	if metadata.AltName != nil {
@@ -579,6 +581,7 @@ func (oh *OrdersHandler) buildOrderResponse(entry *secretentry.SecretEntry) map[
 		policies.FieldRotateKeys: entry.Policies.Rotation.RotateKeys()}
 	e[FieldRotation] = rotation
 	delete(e, secretentry.FieldSecretData)
+	e[secretentry.FieldCustomMetadata] = entry.CustomMetadata
 	return e
 }
 

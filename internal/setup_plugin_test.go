@@ -19,13 +19,20 @@ func Test_setup_plugin(t *testing.T) {
 		Logger:      hclog.NewNullLogger(),
 		System:      testSystem,
 	}
-	t.Run("First order - order succeeded", func(t *testing.T) {
+	t.Run("Setup plugin", func(t *testing.T) {
 		c := b.Cron
 		err := SetupPublicCertPlugin(context.Background(), config, b)
 		assert.NilError(t, err)
-		assert.Equal(t, len(c.Entries()), 1)
+		assert.Equal(t, len(c.Entries()) > 0, true)
 		assert.Equal(t, c.Entries()[0].Valid(), true)
 		//next rotation should be in less than 3 hours
-		assert.Equal(t, true, b.Cron.Entries()[0].Next.Before(time.Now().Add(1*time.Hour)))
+		found := false
+		for _, entry := range b.Cron.Entries() {
+			if entry.ID == rotateEntryId {
+				found = true
+				assert.Equal(t, true, b.Cron.Entries()[0].Next.Before(time.Now().Add(3*time.Hour)))
+			}
+		}
+		assert.Equal(t, found, true)
 	})
 }

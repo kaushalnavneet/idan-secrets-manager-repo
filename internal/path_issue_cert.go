@@ -66,6 +66,14 @@ func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
 			Required:    false,
 			Default:     map[string]interface{}{policies.FieldAutoRotate: false, policies.FieldRotateKeys: false},
 		},
+		secretentry.FieldCustomMetadata: {
+			Type:        framework.TypeMap,
+			Description: `Secret's custom metadata`,
+		},
+		secretentry.FieldVersionCustomMetadata: {
+			Type:        framework.TypeMap,
+			Description: `Secret's version custom metadata`,
+		},
 		secretentry.FieldOffset: common.Fields[secretentry.FieldOffset],
 		secretentry.FieldLimit:  common.Fields[secretentry.FieldLimit],
 		common.SearchText:       common.Fields[common.SearchText],
@@ -158,6 +166,8 @@ func (ob *OrdersBackend) pathRotateCertificate() []*framework.Path {
 			Required:    true,
 			Default:     false,
 		},
+		secretentry.FieldCustomMetadata:        common.Fields[secretentry.FieldCustomMetadata],
+		secretentry.FieldVersionCustomMetadata: common.Fields[secretentry.FieldVersionCustomMetadata],
 	}
 
 	operations := map[logical.Operation]framework.OperationHandler{
