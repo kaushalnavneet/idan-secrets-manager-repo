@@ -279,7 +279,10 @@ func (oh *OrdersHandler) MapSecretVersion(version *secretentry.SecretVersion, se
 			secretentry.FieldNotAfter:  extraData[secretentry.FieldNotAfter],
 			secretentry.FieldNotBefore: extraData[secretentry.FieldNotBefore],
 		},
-		secretentry.FieldVersionCustomMetadata: version.VersionCustomMetadata,
+	}
+	res[secretentry.FieldVersionCustomMetadata] = make(map[string]interface{}, 0)
+	if version.VersionCustomMetadata != nil {
+		res[secretentry.FieldVersionCustomMetadata] = version.VersionCustomMetadata
 	}
 	// For list secret versions mapping response
 	if isListVersions {
