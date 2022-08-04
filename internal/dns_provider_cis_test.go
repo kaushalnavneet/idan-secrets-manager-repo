@@ -564,6 +564,14 @@ func Test_CIS_Cleanup(t *testing.T) {
 		expectedMessage := fmt.Sprintf(errorPattern, logdna.Error07079, fmt.Sprintf(unavailableDNSError, dnsProviderCIS))
 		assert.Equal(t, expectedMessage, err.Error())
 	})
+
+	t.Run("Timeout", func(t *testing.T) {
+		rc := &RestClientFactoryMock{Results: map[RequestKey]RequestResult{}}
+		cisProvider := NewCISDNSProvider(providerConfig, rc, iamMock)
+		propagationTimeout, pollingInterval := cisProvider.Timeout()
+		assert.Equal(t, PropagationTimeoutCIS, propagationTimeout)
+		assert.Equal(t, PollingIntervalCIS, pollingInterval)
+	})
 }
 
 func buildCISListResponse(foundId string) []byte {

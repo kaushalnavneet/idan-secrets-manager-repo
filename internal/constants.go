@@ -19,6 +19,7 @@ const (
 	FieldErrorMessage = "error_message"
 	FieldAutoRotated  = "auto_rotated"
 	FieldIssuanceInfo = "issuance_info"
+	FieldChallenges   = "challenges"
 
 	endCertificate  = "-----END CERTIFICATE-----"
 	errorPattern    = `{"error_code":"%s","error_message":"%s"}`
@@ -103,11 +104,16 @@ const (
 	dnsConfigSLPassword    = "classic_infrastructure_password"
 	urlSLApi               = "https://api.softlayer.com/rest/v3"
 
+	dnsConfigTypeManual = "manual"
+
 	PropagationTimeoutCIS = 15 * time.Minute
 	PollingIntervalCIS    = 40 * time.Second
 
 	PropagationTimeoutSL = 30 * time.Minute
 	PollingIntervalSL    = 3 * time.Minute
+
+	PropagationTimeoutManual = 30 * time.Minute
+	PollingIntervalManual    = 40 * time.Second
 )
 
 //internal errors
@@ -165,4 +171,12 @@ type ResponseBody struct {
 	WrapInfo      interface{}            `json:"wrap_info"`
 	Warnings      interface{}            `json:"warnings"`
 	Auth          interface{}            `json:"auth"`
+}
+
+type Challenge struct {
+	Domain         string    `json:"domain"`
+	TXTRecordName  string    `json:"txt_record_name"`
+	TXTRecordValue string    `json:"txt_record_value"`
+	Status         string    `json:"status"`
+	Expiration     time.Time `json:"expiration"`
 }

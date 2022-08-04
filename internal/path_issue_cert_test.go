@@ -3,6 +3,8 @@ package publiccerts
 import (
 	"context"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/go-acme/lego/v4/acme"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
@@ -14,6 +16,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"gotest.tools/v3/assert"
 	"net/http"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -23,6 +26,7 @@ const (
 	certName1   = "certName1"
 	certName2   = "certName2"
 	certName3   = "certName3"
+	certName4   = "certName4"
 	dnsConfig   = "dnsConfig"
 	caConfig    = "caConfig"
 	commonName  = "domain.com"
@@ -47,6 +51,7 @@ func initOrdersHandler() *OrdersHandler {
 		parser:         &certificate_parser.CertificateParserImpl{},
 		metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
 		secretBackend:  &mb,
+		inAllowList:    isInAllowList(),
 	}
 	oh.workerPool = NewWorkerPool(oh, 1, 2, 1*time.Second)
 	return oh
@@ -55,7 +60,7 @@ func initOrdersHandler() *OrdersHandler {
 func Test_Issue_cert(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
-	initBackend()
+	initBackend(false)
 
 	t.Run("Happy flow with required fields, check defaults", func(t *testing.T) {
 		resetOrdersInProgress()
@@ -320,9 +325,9 @@ func Test_Issue_cert(t *testing.T) {
 func Test_rotation(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
-	initBackend()
 
 	t.Run("Happy flow", func(t *testing.T) {
+		initBackend(false)
 		oh.runningOrders = make(map[string]WorkItem)
 		//the order was already in progress, it's the second attempt
 		setOrdersInProgress(expiresIn20Days_autoRotateTrue_id, 1)
@@ -348,9 +353,89 @@ func Test_rotation(t *testing.T) {
 		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 2}})
 		assert.Equal(t, len(oh.runningOrders), 1)
 	})
+
+	t.Run("Happy flow for manual dns provider", func(t *testing.T) {
+		initBackend(true)
+		oh.runningOrders = make(map[string]WorkItem)
+		//the order was already in progress, it's the second attempt
+		setOrdersInProgress("", 0)
+		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
+		data := map[string]interface{}{
+			policies.FieldRotateKeys: true,
+		}
+		//get secret
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      PathSecrets + expiresIn20Days_autoRotateTrue_id + PathRotate,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		assert.NilError(t, err)
+		//common fields
+		assert.Equal(t, false, resp.IsError())
+		// it's the second attempt
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 1}})
+		assert.Equal(t, len(oh.runningOrders), 1)
+	})
 }
 
-func initBackend() {
+func Test_Issue_cert_Manual(t *testing.T) {
+	os.Setenv("publicCertAccountAllowList", "791f5fb10986423e97aa8512f18b7e65")
+	oh := initOrdersHandler()
+	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
+	initBackend(true)
+	defer os.Setenv("publicCertAccountAllowList", "")
+
+	t.Run("Happy flow with manual dns", func(t *testing.T) {
+		startMockLEAcmeServer()
+		defer stopMockLEAcmeServer()
+		resetOrdersInProgress()
+		data := map[string]interface{}{
+			secretentry.FieldName:       certName4,
+			secretentry.FieldCommonName: commonName,
+			FieldCAConfig:               caConfig,
+			FieldDNSConfig:              dnsConfigTypeManual,
+		}
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      PathSecrets,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		assert.NilError(t, err)
+		assert.Equal(t, false, resp.IsError())
+		assert.Equal(t, resp.Data[secretentry.FieldSecretType], secretentry.SecretTypePublicCert)
+		assert.Equal(t, resp.Data[secretentry.FieldName], certName4)
+		assert.Equal(t, resp.Data[secretentry.FieldKeyAlgorithm], keyType)
+		assert.Equal(t, resp.Data[secretentry.FieldCommonName], commonName)
+		assert.Equal(t, len(resp.Data[secretentry.FieldAltNames].([]string)), 0)
+		assert.Equal(t, resp.Data[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation))
+		assert.Equal(t, resp.Data[secretentry.FieldCreatedBy], "iam-ServiceId-MOCK")
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldAutoRotated], false)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldBundleCert], true)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldCAConfig], caConfig)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldDNSConfig], dnsConfigTypeManual)
+		assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation))
+
+		assert.Equal(t, len(resp.Data[secretentry.FieldVersions].([]map[string]interface{})), 0)
+		assert.Equal(t, resp.Data[secretentry.FieldVersionsTotal], 1)
+
+		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldAutoRotate], false)
+		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], false)
+
+		assert.Equal(t, len(oh.runningOrders), 0)
+	})
+}
+
+func initBackend(useMockAcmeServer bool) {
 	existingConfigs := RootConfig{
 		CaConfigs: []*ProviderConfig{{
 			Name: caConfig,
@@ -370,5 +455,101 @@ func initBackend() {
 				//this data was added by the code. it should not be shown to a user
 				dnsConfigSMCrn: "don't show"},
 		}}}
+	if useMockAcmeServer {
+		existingConfigs.CaConfigs[0].Config[caConfigDirectoryUrl] = "http://localhost:3333"
+	}
 	existingConfigs.save(context.Background(), storage)
+}
+
+var mockAcmeServer *http.Server
+
+func startMockLEAcmeServer() {
+	router := gin.Default()
+	gin.SetMode(gin.TestMode)
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(200, acme.Directory{
+			NewNonceURL:   "http://localhost:3333/nonce",
+			NewAccountURL: "http://localhost:3333/account",
+			NewOrderURL:   "http://localhost:3333/order",
+			NewAuthzURL:   "http://localhost:3333/authz",
+			RevokeCertURL: "http://localhost:3333/revoke",
+			KeyChangeURL:  "http://localhost:3333/key",
+			Meta:          acme.Meta{},
+		})
+	})
+	router.GET("/directory", func(c *gin.Context) {
+		fmt.Println("Received GET request to " + c.Request.URL.String())
+		c.JSON(200, acme.Directory{
+			NewNonceURL:   "http://localhost:3333/nonce",
+			NewAccountURL: "http://localhost:3333/account",
+			NewOrderURL:   "http://localhost:3333/order",
+			NewAuthzURL:   "http://localhost:3333/authz",
+			RevokeCertURL: "http://localhost:3333/revoke",
+			KeyChangeURL:  "http://localhost:3333/key",
+			Meta:          acme.Meta{},
+		})
+	})
+	router.POST("/order", func(c *gin.Context) {
+		var inputOrder acme.Order
+		c.ShouldBindJSON(&inputOrder)
+		c.Header("Replay-Nonce", "nonce")
+		c.Header("Location", "location")
+		c.JSON(200, acme.Order{
+			Status:  "Pending",
+			Expires: time.Now().Add(7 * 24 * time.Hour).Format(time.RFC3339),
+			Identifiers: []acme.Identifier{{
+				Type:  "dns",
+				Value: "domain.com",
+			}},
+			NotBefore:      "",
+			NotAfter:       "",
+			Error:          nil,
+			Authorizations: []string{"http://localhost:3333/123/authz"},
+			Finalize:       "",
+			Certificate:    "",
+		})
+	})
+	router.HEAD("/nonce", func(c *gin.Context) {
+		c.Header("Replay-Nonce", "nonce")
+		c.JSON(200, nil)
+	})
+	router.POST("/:id/authz", func(c *gin.Context) {
+		c.Header("Replay-Nonce", "nonce")
+		c.JSON(200, acme.Authorization{
+			Status:  "Pending",
+			Expires: time.Now().Add(7 * 24 * time.Hour),
+			Identifier: acme.Identifier{
+				Type:  "dns",
+				Value: "domain.com",
+			},
+			Challenges: []acme.Challenge{{
+				Type:             "dns-01",
+				URL:              "http://localhost:3333/123/authz/challenge",
+				Status:           "Pending",
+				Validated:        time.Time{},
+				Error:            nil,
+				Token:            "token",
+				KeyAuthorization: "key",
+			}},
+			Wildcard: false,
+		})
+	})
+	srv := &http.Server{
+		Addr:    "localhost:3333",
+		Handler: router,
+	}
+	go func() {
+		fmt.Println("Starting ACME server mock")
+		// service connections
+		if err := srv.ListenAndServe(); err != nil {
+			fmt.Printf("listen: %s\n", err)
+			mockAcmeServer = srv
+		}
+	}()
+}
+
+func stopMockLEAcmeServer() {
+	if mockAcmeServer != nil {
+		mockAcmeServer.Shutdown(context.Background())
+	}
 }

@@ -230,7 +230,7 @@ func Test_AutoRotate(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
 	mcm := b.GetMetadataClient().(*common.MetadataManagerMock)
-	initBackend()
+	initBackend(false)
 
 	t.Run("Auto Rotate certificates", func(t *testing.T) {
 		createCertificates()
