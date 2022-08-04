@@ -12,6 +12,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
+	"golang.org/x/sync/semaphore"
 	"gotest.tools/v3/assert"
 	"net/http"
 	"reflect"
@@ -49,7 +50,16 @@ func initOrdersHandler() *OrdersHandler {
 		secretBackend:  &mb,
 		inAllowList:    isInAllowList(),
 	}
-	oh.workerPool = NewWorkerPool(oh, 1, 2, 1*time.Second)
+	oh.orderExecutor = &OrderExecutor{
+		workerPool:     NewWorkerPool(oh, 1, 2, 1*time.Second),
+		orderSemaphore: semaphore.NewWeighted(1),
+	}
+
+	oh.orderRenewExecutor = &OrderExecutor{
+		workerPool:     NewWorkerPool(oh, 1, 2, 1*time.Second),
+		orderSemaphore: semaphore.NewWeighted(1),
+	}
+
 	return oh
 }
 

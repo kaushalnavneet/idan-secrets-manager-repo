@@ -22,22 +22,31 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_client_impl"
+	"golang.org/x/sync/semaphore"
 	"net/http"
 	"strings"
 	"time"
 )
 
 type OrdersHandler struct {
+	orderExecutor      *OrderExecutor
+	orderRenewExecutor *OrderExecutor
+	orderSemaphore     *semaphore.Weighted
+	autoRenewSemaphore *semaphore.Weighted
+	beforeOrders       map[string]WorkItem
+	runningOrders      map[string]WorkItem
+	parser             certificate_parser.CertificateParser
+	pluginConfig       *common.ICAuthConfig
+	cron               *cron.Cron
+	metadataClient     common.MetadataClient
+	metadataMapper     common.MetadataMapper
+	secretBackend      secret_backend.SecretBackend
+	inAllowList        bool
+}
+
+type OrderExecutor struct {
 	workerPool     *WorkerPool
-	beforeOrders   map[string]WorkItem
-	runningOrders  map[string]WorkItem
-	parser         certificate_parser.CertificateParser
-	pluginConfig   *common.ICAuthConfig
-	cron           *cron.Cron
-	metadataClient common.MetadataClient
-	metadataMapper common.MetadataMapper
-	secretBackend  secret_backend.SecretBackend
-	inAllowList    bool
+	orderSemaphore *semaphore.Weighted
 }
 
 func (oh *OrdersHandler) GetPolicyHandler() secret_backend.PolicyHandler {
@@ -400,6 +409,10 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 
 //takes a work item from the map  and runs certificate order
 func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
+	oh.startOrderWithExecutor(secretEntry, oh.orderExecutor)
+}
+
+func (oh *OrdersHandler) startOrderWithExecutor(secretEntry *secretentry.SecretEntry, executor *OrderExecutor) {
 	//get domains from the secret in order to build order key
 	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
 	domains := getNames(metadata.CommonName, metadata.AltName)
@@ -415,7 +428,15 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 	delete(oh.beforeOrders, orderKey)
 	addWorkItemToOrdersInProgress(workItem)
 	//start an order
-	_, err := oh.workerPool.ScheduleCertificateRequest(workItem)
+
+	ctx := context.Background()
+	if err := executor.orderSemaphore.Acquire(ctx, 1); err != nil {
+		return
+	}
+
+	defer executor.orderSemaphore.Release(1)
+
+	_, err := executor.workerPool.ScheduleCertificateRequest(workItem)
 	if err != nil {
 		result := Result{
 			workItem:    workItem,
@@ -646,7 +667,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	}
 	if startOrder {
 		common.Logger().Info(fmt.Sprintf("Start auto-rotation for secret '%s' with id %s for domains %s", entry.Name, entry.ID, domains))
-		oh.startOrder(entry)
+		oh.startOrderWithExecutor(entry, oh.orderRenewExecutor)
 	}
 	return nil
 }

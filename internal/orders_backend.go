@@ -12,6 +12,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate_parser"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
+	"golang.org/x/sync/semaphore"
 	"strings"
 	"time"
 )
@@ -41,10 +42,22 @@ func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendH
 			inAllowList:    isInAllowList(),
 		}
 
-		oh.workerPool = NewWorkerPool(oh,
-			GetEnv("MAX_WORKERS", MaxWorkers).(int),
-			GetEnv("MAX_CERT_REQUEST", MaxCertRequest).(int),
-			GetEnv("CERT_REQUEST_TIMEOUT_SECS", CertRequestTimeout).(time.Duration)*time.Second)
+		oh.orderExecutor = &OrderExecutor{
+			workerPool: NewWorkerPool(oh,
+				GetEnv("MAX_WORKERS", MaxWorkers).(int),
+				GetEnv("MAX_CERT_REQUEST", MaxCertRequest).(int),
+				GetEnv("CERT_REQUEST_TIMEOUT_SECS", CertRequestTimeout).(time.Duration)*time.Second),
+			orderSemaphore: semaphore.NewWeighted(int64(GetEnv("MAX_WORKERS", MaxWorkers).(int))),
+		}
+
+		oh.orderRenewExecutor = &OrderExecutor{
+			workerPool: NewWorkerPool(oh,
+				GetEnv("MAX_WORKERS", MaxWorkers).(int),
+				GetEnv("MAX_CERT_REQUEST", MaxCertRequest).(int),
+				GetEnv("CERT_REQUEST_TIMEOUT_SECS", CertRequestTimeout).(time.Duration)*time.Second),
+			orderSemaphore: semaphore.NewWeighted(int64(GetEnv("MAX_WORKERS", MaxWorkers).(int))),
+		}
+
 		ob.ordersHandler = oh
 	}
 	return ob.ordersHandler
