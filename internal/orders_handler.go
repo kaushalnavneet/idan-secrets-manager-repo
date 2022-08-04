@@ -3,6 +3,7 @@ package publiccerts
 import (
 	"context"
 	"crypto/x509"
+	goErrors "errors"
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
@@ -429,7 +430,6 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 
 //gets result of order and save it to secret entry
 func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
-	var certificateError logical.HTTPCodedError
 	if common.ReadOnlyEnabled(oh.metadataClient) {
 		common.Logger().Error("vault is in read only mode")
 		return
@@ -474,7 +474,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 			codedErr := commonErrors.GenerateCodedError(logdna.Error07063, http.StatusInternalServerError, failedToParseCertificate)
 			updateIssuanceInfoWithError(metadata, codedErr)
 			updateSecretEntryWithFailure(secretEntry, metadata)
-			certificateError = codedErr
+			res.Error = goErrors.New(fmt.Sprintf(errorPattern, logdna.Error07063, failedToParseCertificate))
 		} else {
 			metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateActive
 			metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateActive)
@@ -509,7 +509,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		return
 	}
 	removeWorkItemFromOrdersInProgress(res.workItem)
-	logActivityTrackerEvent(res, certificateError)
+	logActivityTrackerEvent(res)
 }
 
 func updateSecretEntryWithFailure(secretEntry *secretentry.SecretEntry, metadata *certificate.CertificateMetadata) {
@@ -798,7 +798,7 @@ func updateIssuanceInfoWithError(metadata *certificate.CertificateMetadata, err 
 // Mapping of order processing error codes to HTTP status codes (used for AT events).
 // This mapping contains only errors codes that may be found during the asynchronous processing
 // It does not contain errors that are found during reqyest handling (synchronous processing)
-var erorCodeToHttpCode = map[string]int{
+var errorCodeToHttpCode = map[string]int{
 	// certificate parse error:
 	logdna.Error07063: 500,
 	// domain not found errors:
@@ -845,22 +845,17 @@ var erorCodeToHttpCode = map[string]int{
 	logdna.Error07029: 503,
 }
 
-func logActivityTrackerEvent(res Result, certError logical.HTTPCodedError) {
+func logActivityTrackerEvent(res Result) {
 	instanceCrn := os.Getenv("CRN")
 	var outcome, severity, failureReason string
 	var reasonCode int
-	if certError != nil {
-		outcome = "failure"
-		severity = "warning"
-		reasonCode = certError.Code()
-		failureReason = certError.Error()
-	} else if res.Error != nil {
+	if res.Error != nil {
 		outcome = "failure"
 		severity = "warning"
 		orderErr := getOrderError(res)
 		// map the order error to HTTP status code. If error code not found use the default 500 internal server error
 		var ok bool
-		reasonCode, ok = erorCodeToHttpCode[orderErr.Code]
+		reasonCode, ok = errorCodeToHttpCode[orderErr.Code]
 		if !ok {
 			reasonCode = http.StatusInternalServerError
 		}
