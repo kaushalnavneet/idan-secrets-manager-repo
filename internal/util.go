@@ -274,11 +274,17 @@ func isInAllowList() bool {
 	crnParts := strings.Split(instCrn, ":")
 	//in case of invalid crn or empty allow list return false
 	if len(crnParts) < 8 || strings.Trim(allowList, " ") == "" {
-		common.Logger().Info(fmt.Sprintf("Allow list is %s \n Instance CRN is %s. \nThe instance is in allow list: %v", allowList, instCrn, false))
+		printAllowListLog(allowList, instCrn, false)
 		return false
 	}
 	account := strings.Replace(strings.Split(instCrn, ":")[6], "a/", "", 1)
 	inAllowList := strings.Contains(allowList, account)
-	common.Logger().Info(fmt.Sprintf("Allow list is %s \n Instance CRN is %s. The instance is in allow list: %v", allowList, instCrn, inAllowList))
+	printAllowListLog(allowList, instCrn, inAllowList)
 	return inAllowList
+}
+
+func printAllowListLog(allowList string, instCrn string, isInAllowList bool) {
+	if common.Logger() != nil {
+		common.Logger().Info(fmt.Sprintf("Allow list is %s. The instance is in allow list: %v. Instance CRN is %s.", allowList, isInAllowList, instCrn))
+	}
 }

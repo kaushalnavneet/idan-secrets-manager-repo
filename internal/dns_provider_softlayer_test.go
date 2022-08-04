@@ -463,6 +463,13 @@ func Test_SL_Cleanup(t *testing.T) {
 		assert.Equal(t, expectedMessage, err.Error())
 	})
 
+	t.Run("Timeout", func(t *testing.T) {
+		rc := &RestClientFactoryMock{Results: map[RequestKey]RequestResult{}}
+		slProvider := NewSoftlayerDNSProvider(providerConfig, rc)
+		propagationTimeout, pollingInterval := slProvider.Timeout()
+		assert.Equal(t, PropagationTimeoutSL, propagationTimeout)
+		assert.Equal(t, PollingIntervalSL, pollingInterval)
+	})
 }
 
 func buildSLDomainsResponse(foundId int, foundName string, resultsCount int) []byte {
