@@ -38,7 +38,7 @@ func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendH
 			metadataClient: ob.secretBackend.GetMetadataClient(),
 			metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
 			secretBackend:  ob.secretBackend,
-			inAllowList:    isInAllowList(),
+			inAllowList:    IsManualDnsFeatureEnabled(),
 		}
 
 		oh.workerPool = NewWorkerPool(oh,
@@ -74,7 +74,7 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 	if feature_util.IsFeatureEnabled("GetSecretVersion") {
 		path = framework.PathAppend(path, ob.pathListVersions())
 	}
-	if isInAllowList() {
+	if IsManualDnsFeatureEnabled() {
 		path = framework.PathAppend(path, ob.pathContinueOrder())
 	}
 	return path
