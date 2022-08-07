@@ -101,11 +101,12 @@ func (ob *OrdersBackend) pathCertificateMetadata() []*framework.Path {
 		Action: common.UpdateSecretMetadataAction, Method: http.MethodPut, SecretType: secretentry.SecretTypePublicCert}
 
 	fields := map[string]*framework.FieldSchema{
-		secretentry.FieldId:          common.Fields[secretentry.FieldId],
-		secretentry.FieldGroupId:     common.Fields[secretentry.FieldGroupId],
-		secretentry.FieldName:        common.Fields[secretentry.FieldName],
-		secretentry.FieldDescription: common.Fields[secretentry.FieldDescription],
-		secretentry.FieldLabels:      common.Fields[secretentry.FieldLabels],
+		secretentry.FieldId:                    common.Fields[secretentry.FieldId],
+		secretentry.FieldGroupId:               common.Fields[secretentry.FieldGroupId],
+		secretentry.FieldName:                  common.Fields[secretentry.FieldName],
+		secretentry.FieldDescription:           common.Fields[secretentry.FieldDescription],
+		secretentry.FieldLabels:                common.Fields[secretentry.FieldLabels],
+		secretentry.FieldVersionCustomMetadata: common.Fields[secretentry.FieldVersionCustomMetadata],
 	}
 
 	operations := map[logical.Operation]framework.OperationHandler{

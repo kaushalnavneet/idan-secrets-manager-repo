@@ -13,13 +13,12 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/google/uuid v1.3.0
-	github.com/hashicorp/go-hclog v1.2.1
-	github.com/hashicorp/vault/sdk v0.5.2
+	github.com/hashicorp/go-hclog v1.2.2
+	github.com/hashicorp/vault/sdk v0.5.3
 	github.com/robfig/cron/v3 v3.0.1
-	github.ibm.com/project-fortress/vault-client-golang v0.0.7
-	github.ibm.com/security-services/secrets-manager-common-utils v0.0.13814
+	github.ibm.com/security-services/secrets-manager-common-utils v0.0.14004
 	github.ibm.com/security-services/secrets-manager-iam v0.0.12684
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.13984
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14056
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	gotest.tools/v3 v3.1.0
 )
@@ -101,8 +100,11 @@ require (
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213 // indirect
 	github.com/kolo/xmlrpc v0.0.0-20200310150728-e0350524596b // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
+	github.com/kr/fs v0.1.0 // indirect
 	github.com/labbsr0x/bindman-dns-webhook v1.0.2 // indirect
 	github.com/labbsr0x/goh v1.0.1 // indirect
+	github.com/labstack/echo/v4 v4.6.3 // indirect
+	github.com/labstack/gommon v0.3.1 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/linode/linodego v0.31.1 // indirect
 	github.com/liquidweb/go-lwApi v0.0.5 // indirect
@@ -133,6 +135,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkg/sftp v1.13.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/pquerna/otp v1.3.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
@@ -144,12 +147,14 @@ require (
 	github.com/softlayer/xmlrpc v0.0.0-20200409220501-5f089df7cb7e // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/stretchr/objx v0.4.0 // indirect
-	github.com/stretchr/testify v1.7.5 // indirect
+	github.com/stretchr/testify v1.8.0 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.287 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/dnspod v1.0.287 // indirect
 	github.com/thoas/go-funk v0.9.2 // indirect
 	github.com/transip/gotransip/v6 v6.6.1 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasttemplate v1.2.1 // indirect
 	github.com/vinyldns/go-vinyldns v0.9.16 // indirect
 	github.com/vultr/govultr/v2 v2.7.1 // indirect
 	github.ibm.com/IAM/basiclog v0.0.0-20210427025313-aecb0b5934eb // indirect
@@ -161,7 +166,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/ratelimit v0.0.0-20180316092928-c15da0234277 // indirect
 	go.uber.org/zap v1.21.0 // indirect
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
+	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
 	golang.org/x/text v0.3.7 // indirect
