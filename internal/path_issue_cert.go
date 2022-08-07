@@ -214,5 +214,6 @@ func (ob *OrdersBackend) ContinueOrder(ctx context.Context, req *logical.Request
 		return nil, err
 	}
 	ob.ordersHandler.startOrder(secretEntry)
-	return nil, nil
+	resp := &logical.Response{}
+	return logical.RespondWithStatusCode(resp, req, http.StatusAccepted)
 }
