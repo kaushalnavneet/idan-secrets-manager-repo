@@ -16,6 +16,7 @@ require (
 	github.com/hashicorp/go-hclog v1.2.2
 	github.com/hashicorp/vault/sdk v0.5.3
 	github.com/robfig/cron/v3 v3.0.1
+	github.ibm.com/project-fortress/vault-client-golang v0.0.7
 	github.ibm.com/security-services/secrets-manager-common-utils v0.0.14078
 	github.ibm.com/security-services/secrets-manager-iam v0.0.12684
 	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14092
@@ -100,11 +101,8 @@ require (
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213 // indirect
 	github.com/kolo/xmlrpc v0.0.0-20200310150728-e0350524596b // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
-	github.com/kr/fs v0.1.0 // indirect
 	github.com/labbsr0x/bindman-dns-webhook v1.0.2 // indirect
 	github.com/labbsr0x/goh v1.0.1 // indirect
-	github.com/labstack/echo/v4 v4.6.3 // indirect
-	github.com/labstack/gommon v0.3.1 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/linode/linodego v0.31.1 // indirect
 	github.com/liquidweb/go-lwApi v0.0.5 // indirect
@@ -135,7 +133,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pkg/sftp v1.13.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/pquerna/otp v1.3.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
@@ -153,8 +150,6 @@ require (
 	github.com/thoas/go-funk v0.9.2 // indirect
 	github.com/transip/gotransip/v6 v6.6.1 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
-	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasttemplate v1.2.1 // indirect
 	github.com/vinyldns/go-vinyldns v0.9.16 // indirect
 	github.com/vultr/govultr/v2 v2.7.1 // indirect
 	github.ibm.com/IAM/basiclog v0.0.0-20210427025313-aecb0b5934eb // indirect
