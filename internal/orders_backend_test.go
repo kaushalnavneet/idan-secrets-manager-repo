@@ -36,7 +36,7 @@ func TestOrdersBackend_GetConcretePath(t *testing.T) {
 	b := OrdersBackend{secretBackend: &secret_backend.SecretBackendImpl{}}
 	res := b.GetConcretePath()
 
-	//We have 12 paths
+	//We have 25 paths
 	assert.Equal(t, len(res), 25)
 	assert.Equal(t, res[0].Pattern, "config/certificate_authorities")
 	assert.Equal(t, res[1].Pattern, "config/certificate_authorities/(?P<name>\\w(([\\w-.]+)?\\w)?)")
@@ -150,6 +150,10 @@ func (sb *MockSecretBackend) GetVersion(ctx context.Context, req *logical.Reques
 
 func (sb *MockSecretBackend) GetVersionMetadata(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	panic("implement me")
+}
+
+func (sb *MockSecretBackend) UpdateVersionMetadata(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	return nil, nil
 }
 
 func (sb *MockSecretBackend) DeleteSecretIfExpired(secret *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
