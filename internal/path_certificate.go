@@ -175,21 +175,31 @@ func (ob *OrdersBackend) pathListVersions() []*framework.Path {
 	}
 }
 
-func (ob *OrdersBackend) pathGetVersionMetadata() []*framework.Path {
-	atGetVersion := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName, TargetTypeURI: at.SecretMetadataTargetTypeURI,
+func (ob *OrdersBackend) pathVersionMetadata() []*framework.Path {
+	atGetVersionMetadata := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName, TargetTypeURI: at.SecretMetadataTargetTypeURI,
 		Description: atGetVersionMetadata, Action: common.ReadSecretMetadataAction, Method: http.MethodGet,
 		SecretType: secretentry.SecretTypePublicCert}
+	atUpdateVersionMetadata := &at.ActivityTrackerVault{DataEvent: true, TargetResourceType: secretentry.SecretResourceName, TargetTypeURI: at.SecretMetadataTargetTypeURI,
+		Description: atUpdateVersionMetadata, Action: common.UpdateSecretMetadataAction, Method: http.MethodPut,
+		SecretType: secretentry.SecretTypePublicCert}
+
 	fields := map[string]*framework.FieldSchema{
-		secretentry.FieldId:        common.Fields[secretentry.FieldId],
-		secretentry.FieldGroupId:   common.Fields[secretentry.FieldGroupId],
-		secretentry.FieldVersionId: common.Fields[secretentry.FieldVersionId],
+		secretentry.FieldId:                    common.Fields[secretentry.FieldId],
+		secretentry.FieldGroupId:               common.Fields[secretentry.FieldGroupId],
+		secretentry.FieldVersionId:             common.Fields[secretentry.FieldVersionId],
+		secretentry.FieldVersionCustomMetadata: common.Fields[secretentry.FieldVersionCustomMetadata],
 	}
 
 	operations := map[logical.Operation]framework.OperationHandler{
 		logical.ReadOperation: &framework.PathOperation{
-			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetVersionMetadata, atGetVersion, true),
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.GetVersionMetadata, atGetVersionMetadata, true),
 			Summary:     getVersionMetaOperationSummary,
 			Description: getVersionMetaOperationDescription,
+		},
+		logical.UpdateOperation: &framework.PathOperation{
+			Callback:    ob.secretBackend.PathCallback(ob.secretBackend.UpdateVersionMetadata, atUpdateVersionMetadata, false),
+			Summary:     updateVersionMetaOperationSummary,
+			Description: updateVersionMetaOperationDescription,
 		},
 	}
 
