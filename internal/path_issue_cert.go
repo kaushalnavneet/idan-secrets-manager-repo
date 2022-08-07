@@ -134,7 +134,7 @@ func (ob *OrdersBackend) pathContinueOrder() []*framework.Path {
 
 	return []*framework.Path{
 		{
-			Pattern:         PathSecrets + framework.GenericNameRegex(secretentry.FieldId) + "/validate_manual_challenge",
+			Pattern:         PathSecrets + framework.GenericNameRegex(secretentry.FieldId) + "/validate_dns_challenge",
 			Fields:          fields,
 			ExistenceCheck:  existenceCheck,
 			Operations:      operations,
@@ -142,7 +142,7 @@ func (ob *OrdersBackend) pathContinueOrder() []*framework.Path {
 			HelpDescription: pathIssueListHelpDescription,
 		},
 		{
-			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/validate_manual_challenge",
+			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/validate_dns_challenge",
 			Fields:          fields,
 			Operations:      operations,
 			ExistenceCheck:  existenceCheck,
