@@ -481,7 +481,8 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	secretEntry := res.workItem.secretEntry
 	storage := res.workItem.storage
 	//if entry state is PreActivation,it's the first order, remove empty version
-	if secretEntry.State == secretentry.StatePreActivation {
+	isFirstOrder := secretEntry.State == secretentry.StatePreActivation
+	if isFirstOrder {
 		secretEntry.Versions = make([]secretentry.SecretVersion, 0)
 	}
 	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
@@ -550,7 +551,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		return
 	}
 	removeWorkItemFromOrdersInProgress(res.workItem)
-	logActivityTrackerEvent(res)
+	logActivityTrackerEvent(res, isFirstOrder)
 }
 
 func updateSecretEntryWithFailure(secretEntry *secretentry.SecretEntry, metadata *certificate.CertificateMetadata) {
@@ -889,7 +890,7 @@ var errorCodeToHttpCode = map[string]int{
 	logdna.Error07029: 503,
 }
 
-func logActivityTrackerEvent(res Result) {
+func logActivityTrackerEvent(res Result, isFirstOrder bool) {
 	instanceCrn := os.Getenv("CRN")
 	var outcome, severity, failureReason string
 	var reasonCode int
@@ -910,11 +911,18 @@ func logActivityTrackerEvent(res Result) {
 		reasonCode = http.StatusOK
 	}
 
+	var action string
+	if isFirstOrder {
+		action = common.CreateSecretAction
+	} else {
+		action = common.RotateSecretAction
+	}
+
 	atParams := &at.ActivityTrackerParams{
 		TargetCRN:         res.workItem.secretEntry.CRN,
 		TargetName:        res.workItem.secretEntry.Name,
 		TargetTypeURI:     "secrets-manager/secret",
-		Action:            common.CreateSecretAction,
+		Action:            action,
 		CorrelationID:     res.workItem.requestID.String(),
 		Outcome:           outcome,
 		ReasonCode:        reasonCode,
