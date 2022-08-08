@@ -122,6 +122,10 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 	if err != nil {
 		return nil, nil, err
 	}
+	if issuanceInfo[FieldDNSConfig] == dnsConfigTypeManual && rotation.Rotation.AutoRotate {
+		common.ErrorLogForCustomer(autoRotationForManual, logdna.Error07207, logdna.BadRequestErrorMessage, false)
+		return nil, nil, commonErrors.GenerateCodedError(logdna.Error07207, http.StatusBadRequest, autoRotationForManual)
+	}
 	secretParams := secretentry.SecretParameters{
 		Name:        csp.Name,
 		Description: csp.Description,
@@ -248,7 +252,16 @@ func (oh *OrdersHandler) BuildPoliciesResponse(entry *secretentry.SecretEntry, p
 }
 
 func (oh *OrdersHandler) UpdatePoliciesData(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry, cpp secret_backend.CommonPolicyParams) (*logical.Response, error) {
-	err := secretEntry.Policies.UpdateRotationPolicy(cpp.Policies.Rotation, cpp.UserId, cpp.CRN)
+	metadata, err := certificate.DecodeMetadata(secretEntry.ExtraData)
+	if err != nil {
+		return nil, err
+	}
+	if metadata.IssuanceInfo[FieldDNSConfig] == dnsConfigTypeManual && cpp.Policies.Rotation.AutoRotate() {
+		common.ErrorLogForCustomer(autoRotationForManual, logdna.Error07208, logdna.BadRequestErrorMessage, false)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07208, http.StatusBadRequest, autoRotationForManual)
+	}
+
+	err = secretEntry.Policies.UpdateRotationPolicy(cpp.Policies.Rotation, cpp.UserId, cpp.CRN)
 	if err != nil {
 		common.Logger().Error("Could not update rotation policy", "error", err)
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07091, logdna.InternalErrorMessage, false)
