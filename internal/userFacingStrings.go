@@ -38,6 +38,7 @@ const (
 	rotationIsLocked        = "The requested action can't be completed because the secret version is locked. Secret ID:%s, version alias:%s" //Error07201
 	autoRotationIsLocked    = "Auto-rotation can't be completed because the secret version is locked. Secret ID:%s, version alias:%s"        //Error07202
 	versionLockedResolution = "Unlock the locked version"
+	autoRotationForManual   = "Auto-rotation can't be configured for certificate with 'manual' DNS provider" //Error07207,Error07208
 )
 
 //Order validation errors
@@ -219,6 +220,10 @@ const (
 	getVersionMetaOperationSummary     = "Reads a version metadata of a secret"
 	getVersionMetaOperationDescription = `The versions metadata read operation receives the secretId parameter as part of the path.
 It returns all of the secret's version metadata.`
+
+	updateVersionMetaOperationSummary     = "update a version metadata of a secret"
+	updateVersionMetaOperationDescription = `The update operation receives secretId & versionId parameters as part of the path.
+It updates the secret version's metadata with the parameters that were provided, and returns the updated secret version.`
 )
 
 //path issue and list certificates
@@ -276,17 +281,18 @@ It updates the secret's policy with the parameters that were provided, and retur
 
 //activity tracker actions
 const (
-	atSetConfigAction    = "Set secrets engine configuration"
-	atGetConfigAction    = "Get secrets engine configuration"
-	atDeleteConfigAction = "Delete secrets engine configuration"
-	atGetSecretData      = "Get a certificate"
-	atDeleteSecret       = "Delete a certificate"
-	atGetCertMetadata    = "Get a certificate metadata"
-	atUpdateCertMetadata = "Update a certificate metadata"
-	atGetVersionMetadata = "Get version metadata"
-	atOrderCertificate   = "Issue a new certificate"
-	atListCertificates   = "List certificates"
-	atRotateCertificate  = "Rotate a certificate"
-	atGetSecretPolicy    = "Get secret policies"
-	atSetSecretPolicy    = "Set secret policies"
+	atSetConfigAction       = "Set secrets engine configuration"
+	atGetConfigAction       = "Get secrets engine configuration"
+	atDeleteConfigAction    = "Delete secrets engine configuration"
+	atGetSecretData         = "Get a certificate"
+	atDeleteSecret          = "Delete a certificate"
+	atGetCertMetadata       = "Get a certificate metadata"
+	atUpdateCertMetadata    = "Update a certificate metadata"
+	atGetVersionMetadata    = "Get version metadata"
+	atUpdateVersionMetadata = "Update version metadata"
+	atOrderCertificate      = "Issue a new certificate"
+	atListCertificates      = "List certificates"
+	atRotateCertificate     = "Rotate a certificate"
+	atGetSecretPolicy       = "Get secret policies"
+	atSetSecretPolicy       = "Set secret policies"
 )

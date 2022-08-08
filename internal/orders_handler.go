@@ -3,12 +3,14 @@ package publiccerts
 import (
 	"context"
 	"crypto/x509"
+	goErrors "errors"
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/robfig/cron/v3"
+	at "github.ibm.com/security-services/secrets-manager-common-utils/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-common-utils/errors"
 	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
@@ -23,6 +25,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_client_impl"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -54,17 +57,6 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 		common.ErrorLogForCustomer(secretShouldBeInActiveState, logdna.Error07062, logdna.BadRequestErrorMessage, false)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07062, http.StatusBadRequest, secretShouldBeInActiveState)
 	}
-	versionLocked, err := oh.secretBackend.GetVersionsLockedMap(entry.ID)
-	if err != nil {
-		common.Logger().Error(logdna.Error07200+"Couldn't check versions locks before rotation for secret "+entry.ID, "error", err)
-		return nil, commonErrors.GenerateCodedError(logdna.Error07200, http.StatusInternalServerError, internalServerError)
-
-	}
-	if versionLocked[secret_backend.Previous] {
-		msg := fmt.Sprintf(rotationIsLocked, entry.ID, secret_backend.Previous)
-		common.ErrorLogForCustomer(msg, logdna.Error07201, versionLockedResolution, false)
-		return nil, commonErrors.GenerateCodedError(logdna.Error07201, http.StatusPreconditionFailed, msg)
-	}
 
 	rotateKey := data.Get(policies.FieldRotateKeys).(bool)
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
@@ -74,7 +66,7 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 		privateKey = []byte(rawdata.PrivateKey)
 	}
 
-	err = oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
+	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +121,10 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 	rotation, err := getRotationPolicy(rawPolicy)
 	if err != nil {
 		return nil, nil, err
+	}
+	if issuanceInfo[FieldDNSConfig] == dnsConfigTypeManual && rotation.Rotation.AutoRotate {
+		common.ErrorLogForCustomer(autoRotationForManual, logdna.Error07207, logdna.BadRequestErrorMessage, false)
+		return nil, nil, commonErrors.GenerateCodedError(logdna.Error07207, http.StatusBadRequest, autoRotationForManual)
 	}
 	secretParams := secretentry.SecretParameters{
 		Name:        csp.Name,
@@ -256,7 +252,16 @@ func (oh *OrdersHandler) BuildPoliciesResponse(entry *secretentry.SecretEntry, p
 }
 
 func (oh *OrdersHandler) UpdatePoliciesData(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry, cpp secret_backend.CommonPolicyParams) (*logical.Response, error) {
-	err := secretEntry.Policies.UpdateRotationPolicy(cpp.Policies.Rotation, cpp.UserId, cpp.CRN)
+	metadata, err := certificate.DecodeMetadata(secretEntry.ExtraData)
+	if err != nil {
+		return nil, err
+	}
+	if metadata.IssuanceInfo[FieldDNSConfig] == dnsConfigTypeManual && cpp.Policies.Rotation.AutoRotate() {
+		common.ErrorLogForCustomer(autoRotationForManual, logdna.Error07208, logdna.BadRequestErrorMessage, false)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07208, http.StatusBadRequest, autoRotationForManual)
+	}
+
+	err = secretEntry.Policies.UpdateRotationPolicy(cpp.Policies.Rotation, cpp.UserId, cpp.CRN)
 	if err != nil {
 		common.Logger().Error("Could not update rotation policy", "error", err)
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07091, logdna.InternalErrorMessage, false)
@@ -510,6 +515,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 			codedErr := commonErrors.GenerateCodedError(logdna.Error07063, http.StatusInternalServerError, failedToParseCertificate)
 			updateIssuanceInfoWithError(metadata, codedErr)
 			updateSecretEntryWithFailure(secretEntry, metadata)
+			res.Error = goErrors.New(fmt.Sprintf(errorPattern, logdna.Error07063, failedToParseCertificate))
 		} else {
 			metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateActive
 			metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateActive)
@@ -544,6 +550,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		return
 	}
 	removeWorkItemFromOrdersInProgress(res.workItem)
+	logActivityTrackerEvent(res)
 }
 
 func updateSecretEntryWithFailure(secretEntry *secretentry.SecretEntry, metadata *certificate.CertificateMetadata) {
@@ -623,16 +630,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be rotated", entry.Name, entry.ID))
 		return nil
 	}
-	versionLocked, err := oh.secretBackend.GetVersionsLockedMap(entry.ID)
-	if err != nil {
-		common.Logger().Error("Couldn't check versions locks before auto-rotation for secret "+entry.ID, "error", err)
-		return commonErrors.GenerateCodedError(logdna.Error07202, http.StatusInternalServerError, internalServerError)
-	}
-	if versionLocked[secret_backend.Previous] {
-		msg := fmt.Sprintf(autoRotationIsLocked, entry.ID, secret_backend.Previous)
-		common.ErrorLogForCustomer(msg, logdna.Error07202, versionLockedResolution, false)
-		return commonErrors.GenerateCodedError(logdna.Error07202, http.StatusPreconditionFailed, msg)
-	}
+
 	startOrder := true
 	rotateKey := entry.Policies.Rotation.RotateKeys()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
@@ -665,7 +663,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	delete(metadata.IssuanceInfo, FieldErrorMessage)
 	entry.ExtraData = metadata
 	//validate all the data and prepare it for order
-	err = oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
+	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
 	if err != nil {
 		startOrder = false
 		common.Logger().Error(fmt.Sprintf("Couldn't start auto rotation for secret '%s' with id %s for domains %s. Error: %s", entry.Name, entry.ID, domains, err.Error()))
@@ -839,4 +837,95 @@ func updateIssuanceInfoWithError(metadata *certificate.CertificateMetadata, err 
 	}
 	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
 	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated)
+}
+
+// Mapping of order processing error codes to HTTP status codes (used for AT events).
+// This mapping contains only errors codes that may be found during the asynchronous processing
+// It does not contain errors that are found during reqyest handling (synchronous processing)
+var errorCodeToHttpCode = map[string]int{
+	// certificate parse error:
+	logdna.Error07063: 500,
+	// domain not found errors:
+	logdna.Error07072: 400,
+	logdna.Error07052: 400,
+	// DNS authorization errors:
+	logdna.Error07073: 403,
+	logdna.Error07077: 403,
+	logdna.Error07080: 403,
+	logdna.Error07089: 403,
+	logdna.Error07031: 403,
+	logdna.Error07044: 403,
+	logdna.Error07048: 403,
+	logdna.Error07051: 403,
+	logdna.Error07056: 403,
+	logdna.Error07037: 403,
+	// error Response From DNS:
+	logdna.Error07074: 500,
+	logdna.Error07078: 500,
+	logdna.Error07081: 500,
+	logdna.Error07060: 500,
+	logdna.Error07032: 500,
+	logdna.Error07045: 500,
+	logdna.Error07049: 500,
+	logdna.Error07053: 500,
+	logdna.Error07057: 500,
+	logdna.Error07038: 500,
+	// Unavailable DNS Errors:
+	logdna.Error07030: 503,
+	logdna.Error07036: 503,
+	logdna.Error07047: 503,
+	logdna.Error07050: 503,
+	logdna.Error07054: 503,
+	logdna.Error07058: 503,
+	logdna.Error07071: 503,
+	logdna.Error07076: 503,
+	logdna.Error07079: 503,
+	logdna.Error07087: 503,
+	// CIS obtain token errors:
+	logdna.Error07070: 503,
+	logdna.Error07082: 503,
+	logdna.Error07084: 503,
+	logdna.Error07086: 503,
+	logdna.Error07029: 503,
+}
+
+func logActivityTrackerEvent(res Result) {
+	instanceCrn := os.Getenv("CRN")
+	var outcome, severity, failureReason string
+	var reasonCode int
+	if res.Error != nil {
+		outcome = "failure"
+		severity = "warning"
+		orderErr := getOrderError(res)
+		// map the order error to HTTP status code. If error code not found use the default 500 internal server error
+		var ok bool
+		reasonCode, ok = errorCodeToHttpCode[orderErr.Code]
+		if !ok {
+			reasonCode = http.StatusInternalServerError
+		}
+		failureReason = orderErr.Message
+	} else {
+		outcome = "success"
+		severity = "normal"
+		reasonCode = http.StatusOK
+	}
+
+	atParams := &at.ActivityTrackerParams{
+		TargetCRN:         res.workItem.secretEntry.CRN,
+		TargetName:        res.workItem.secretEntry.Name,
+		TargetTypeURI:     "secrets-manager/secret",
+		Action:            common.CreateSecretAction,
+		CorrelationID:     res.workItem.requestID.String(),
+		Outcome:           outcome,
+		ReasonCode:        reasonCode,
+		ReasonType:        http.StatusText(reasonCode),
+		ReasonForFailure:  failureReason,
+		ResourceGroupId:   at.BuildResourceGroupIdFromInstanceCRN(instanceCrn),
+		Severity:          severity,
+		DataEvent:         true,
+		InstanceCRN:       instanceCrn,
+		IamTokenAuthnName: res.workItem.secretEntry.CreatedBy,
+	}
+
+	at.LogEvent(atParams)
 }

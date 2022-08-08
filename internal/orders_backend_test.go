@@ -28,15 +28,13 @@ func init() {
 }
 
 func TestOrdersBackend_GetConcretePath(t *testing.T) {
-	os.Setenv("featureToggels", "{\"GetSecretVersion\":true}")
+	os.Setenv("featureToggels", "{\"GetSecretVersion\":true,\"manualDns\":true}")
 	feature_util.LoadFeaturesConfig()
-	os.Setenv("publicCertAccountAllowList", "791f5fb10986423e97aa8512f18b7e65")
-	defer os.Setenv("publicCertAccountAllowList", "")
 
 	b := OrdersBackend{secretBackend: &secret_backend.SecretBackendImpl{}}
 	res := b.GetConcretePath()
 
-	//We have 12 paths
+	//We have 25 paths
 	assert.Equal(t, len(res), 25)
 	assert.Equal(t, res[0].Pattern, "config/certificate_authorities")
 	assert.Equal(t, res[1].Pattern, "config/certificate_authorities/(?P<name>\\w(([\\w-.]+)?\\w)?)")
@@ -61,8 +59,8 @@ func TestOrdersBackend_GetConcretePath(t *testing.T) {
 	assert.Equal(t, res[20].Pattern, ResumeOrderPath)
 	assert.Equal(t, res[21].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/?$")
 	assert.Equal(t, res[22].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/?$")
-	assert.Equal(t, res[23].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/validate_manual_challenge")
-	assert.Equal(t, res[24].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/validate_manual_challenge")
+	assert.Equal(t, res[23].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/validate_dns_challenge")
+	assert.Equal(t, res[24].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/validate_dns_challenge")
 }
 
 func TestOrdersBackend_SetSecretBackend(t *testing.T) {
@@ -150,6 +148,10 @@ func (sb *MockSecretBackend) GetVersion(ctx context.Context, req *logical.Reques
 
 func (sb *MockSecretBackend) GetVersionMetadata(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	panic("implement me")
+}
+
+func (sb *MockSecretBackend) UpdateVersionMetadata(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	return nil, nil
 }
 
 func (sb *MockSecretBackend) DeleteSecretIfExpired(secret *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {

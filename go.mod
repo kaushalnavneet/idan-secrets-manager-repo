@@ -7,6 +7,8 @@ replace github.com/pkg/sftp => github.com/pkg/sftp v1.13.5
 
 replace github.com/labstack/echo/v4 => github.com/labstack/echo/v4 v4.7.2
 
+replace github.com/hashicorp/go-hclog => github.ibm.com/security-services/secrets-manager-vault-go-hclog v1.2.2
+
 require (
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-acme/lego/v4 v4.8.0
@@ -16,9 +18,10 @@ require (
 	github.com/hashicorp/go-hclog v1.2.2
 	github.com/hashicorp/vault/sdk v0.5.3
 	github.com/robfig/cron/v3 v3.0.1
-	github.ibm.com/security-services/secrets-manager-common-utils v0.0.14004
+	github.ibm.com/project-fortress/vault-client-golang v0.0.7
+	github.ibm.com/security-services/secrets-manager-common-utils v0.0.14078
 	github.ibm.com/security-services/secrets-manager-iam v0.0.12684
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14056
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14092
 	golang.org/x/net v0.0.0-20220802222814-0bcc04d9c69b
 	gotest.tools/v3 v3.3.0
 )

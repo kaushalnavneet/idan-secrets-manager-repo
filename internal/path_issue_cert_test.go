@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-acme/lego/v4/acme"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
@@ -51,7 +52,7 @@ func initOrdersHandler() *OrdersHandler {
 		parser:         &certificate_parser.CertificateParserImpl{},
 		metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
 		secretBackend:  &mb,
-		inAllowList:    isInAllowList(),
+		inAllowList:    IsManualDnsFeatureEnabled(),
 	}
 	oh.workerPool = NewWorkerPool(oh, 1, 2, 1*time.Second)
 	return oh
@@ -384,12 +385,16 @@ func Test_rotation(t *testing.T) {
 }
 
 func Test_Issue_cert_Manual(t *testing.T) {
-	os.Setenv("publicCertAccountAllowList", "791f5fb10986423e97aa8512f18b7e65")
+	os.Setenv("featureToggels", "{\"manualDns\":true}")
+	feature_util.LoadFeaturesConfig()
+
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
 	initBackend(true)
-	defer os.Setenv("publicCertAccountAllowList", "")
-
+	defer func() {
+		os.Setenv("featureToggels", "{\"manualDns\":false}")
+		feature_util.LoadFeaturesConfig()
+	}()
 	t.Run("Happy flow with manual dns", func(t *testing.T) {
 		startMockLEAcmeServer()
 		defer stopMockLEAcmeServer()
