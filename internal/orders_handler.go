@@ -57,17 +57,6 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 		common.ErrorLogForCustomer(secretShouldBeInActiveState, logdna.Error07062, logdna.BadRequestErrorMessage, false)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07062, http.StatusBadRequest, secretShouldBeInActiveState)
 	}
-	versionLocked, err := oh.secretBackend.GetVersionsLockedMap(entry.ID)
-	if err != nil {
-		common.Logger().Error(logdna.Error07200+"Couldn't check versions locks before rotation for secret "+entry.ID, "error", err)
-		return nil, commonErrors.GenerateCodedError(logdna.Error07200, http.StatusInternalServerError, internalServerError)
-
-	}
-	if versionLocked[secret_backend.Previous] {
-		msg := fmt.Sprintf(rotationIsLocked, entry.ID, secret_backend.Previous)
-		common.ErrorLogForCustomer(msg, logdna.Error07201, versionLockedResolution, false)
-		return nil, commonErrors.GenerateCodedError(logdna.Error07201, http.StatusPreconditionFailed, msg)
-	}
 
 	rotateKey := data.Get(policies.FieldRotateKeys).(bool)
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
@@ -77,7 +66,7 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 		privateKey = []byte(rawdata.PrivateKey)
 	}
 
-	err = oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
+	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -641,16 +630,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be rotated", entry.Name, entry.ID))
 		return nil
 	}
-	versionLocked, err := oh.secretBackend.GetVersionsLockedMap(entry.ID)
-	if err != nil {
-		common.Logger().Error("Couldn't check versions locks before auto-rotation for secret "+entry.ID, "error", err)
-		return commonErrors.GenerateCodedError(logdna.Error07202, http.StatusInternalServerError, internalServerError)
-	}
-	if versionLocked[secret_backend.Previous] {
-		msg := fmt.Sprintf(autoRotationIsLocked, entry.ID, secret_backend.Previous)
-		common.ErrorLogForCustomer(msg, logdna.Error07202, versionLockedResolution, false)
-		return commonErrors.GenerateCodedError(logdna.Error07202, http.StatusPreconditionFailed, msg)
-	}
+
 	startOrder := true
 	rotateKey := entry.Policies.Rotation.RotateKeys()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
@@ -683,7 +663,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	delete(metadata.IssuanceInfo, FieldErrorMessage)
 	entry.ExtraData = metadata
 	//validate all the data and prepare it for order
-	err = oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
+	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
 	if err != nil {
 		startOrder = false
 		common.Logger().Error(fmt.Sprintf("Couldn't start auto rotation for secret '%s' with id %s for domains %s. Error: %s", entry.Name, entry.ID, domains, err.Error()))

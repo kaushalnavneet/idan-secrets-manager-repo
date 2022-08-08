@@ -7,6 +7,8 @@ replace github.com/pkg/sftp => github.com/pkg/sftp v1.13.4
 
 replace github.com/labstack/echo/v4 => github.com/labstack/echo/v4 v4.6.3
 
+replace github.com/hashicorp/go-hclog => github.ibm.com/security-services/secrets-manager-vault-go-hclog v1.2.2
+
 require (
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-acme/lego/v4 v4.6.0
