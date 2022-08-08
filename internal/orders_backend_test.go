@@ -28,10 +28,8 @@ func init() {
 }
 
 func TestOrdersBackend_GetConcretePath(t *testing.T) {
-	os.Setenv("featureToggels", "{\"GetSecretVersion\":true}")
+	os.Setenv("featureToggels", "{\"GetSecretVersion\":true,\"manualDns\":true}")
 	feature_util.LoadFeaturesConfig()
-	os.Setenv("publicCertAccountAllowList", "791f5fb10986423e97aa8512f18b7e65")
-	defer os.Setenv("publicCertAccountAllowList", "")
 
 	b := OrdersBackend{secretBackend: &secret_backend.SecretBackendImpl{}}
 	res := b.GetConcretePath()
@@ -61,8 +59,8 @@ func TestOrdersBackend_GetConcretePath(t *testing.T) {
 	assert.Equal(t, res[20].Pattern, ResumeOrderPath)
 	assert.Equal(t, res[21].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/?$")
 	assert.Equal(t, res[22].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/versions/?$")
-	assert.Equal(t, res[23].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/validate_manual_challenge")
-	assert.Equal(t, res[24].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/validate_manual_challenge")
+	assert.Equal(t, res[23].Pattern, "secrets/(?P<id>\\w(([\\w-.]+)?\\w)?)/validate_dns_challenge")
+	assert.Equal(t, res[24].Pattern, "secrets/groups/(?P<secret_group_id>\\w(([\\w-.]+)?\\w)?)/(?P<id>\\w(([\\w-.]+)?\\w)?)/validate_dns_challenge")
 }
 
 func TestOrdersBackend_SetSecretBackend(t *testing.T) {
