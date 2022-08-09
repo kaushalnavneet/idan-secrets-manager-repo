@@ -28,9 +28,13 @@ func init() {
 }
 
 func TestOrdersBackend_GetConcretePath(t *testing.T) {
+	features := os.Getenv("featureToggels")
 	os.Setenv("featureToggels", "{\"GetSecretVersion\":true,\"manualDns\":true}")
 	feature_util.LoadFeaturesConfig()
-
+	defer func() {
+		os.Setenv("featureToggels", features)
+		feature_util.LoadFeaturesConfig()
+	}()
 	b := OrdersBackend{secretBackend: &secret_backend.SecretBackendImpl{}}
 	res := b.GetConcretePath()
 
