@@ -38,7 +38,7 @@ const (
 	rotationIsLocked        = "The requested action can't be completed because the secret version is locked. Secret ID:%s, version alias:%s" //Error07201
 	autoRotationIsLocked    = "Auto-rotation can't be completed because the secret version is locked. Secret ID:%s, version alias:%s"        //Error07202
 	versionLockedResolution = "Unlock the locked version"
-	autoRotationForManual   = "Auto-rotation can't be configured for certificate with 'manual' DNS provider" //Error07207,Error07208
+	autoRotationForManual   = "Automatic rotation is not supported for certificates with a manual DNS provider" //Error07207,Error07208
 )
 
 //Order validation errors

@@ -385,16 +385,17 @@ func Test_rotation(t *testing.T) {
 }
 
 func Test_Issue_cert_Manual(t *testing.T) {
+	features := os.Getenv("featureToggels")
 	os.Setenv("featureToggels", "{\"manualDns\":true}")
 	feature_util.LoadFeaturesConfig()
+	defer func() {
+		os.Setenv("featureToggels", features)
+		feature_util.LoadFeaturesConfig()
+	}()
 
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
 	initBackend(true)
-	defer func() {
-		os.Setenv("featureToggels", "{\"manualDns\":false}")
-		feature_util.LoadFeaturesConfig()
-	}()
 	t.Run("Happy flow with manual dns", func(t *testing.T) {
 		startMockLEAcmeServer()
 		defer stopMockLEAcmeServer()
