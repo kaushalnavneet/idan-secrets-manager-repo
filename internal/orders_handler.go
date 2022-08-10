@@ -726,7 +726,7 @@ func (oh *OrdersHandler) prepareChallenges(entry *secretentry.SecretEntry) ([]Ch
 	workItem := oh.beforeOrders[orderKey]
 	//update it with secret id
 	workItem.secretEntry = entry
-	return oh.workerPool.PrepareChallenges(workItem)
+	return oh.orderExecutor.workerPool.PrepareChallenges(workItem)
 }
 
 func addWorkItemToOrdersInProgress(workItem WorkItem) {
