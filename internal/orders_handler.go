@@ -31,8 +31,6 @@ import (
 type OrdersHandler struct {
 	orderExecutor      *OrderExecutor
 	orderRenewExecutor *OrderExecutor
-	orderSemaphore     *semaphore.Weighted
-	autoRenewSemaphore *semaphore.Weighted
 	beforeOrders       map[string]WorkItem
 	runningOrders      map[string]WorkItem
 	parser             certificate_parser.CertificateParser

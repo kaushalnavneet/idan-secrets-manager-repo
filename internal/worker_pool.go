@@ -71,6 +71,11 @@ func NewWorkerPool(handler *OrdersHandler, numWorkers, maxWorkItems int, timeout
 			for {
 				select {
 				case workItem := <-pool.workChan:
+
+					if common.Logger() != nil {
+						common.Logger().Debug(fmt.Sprintf("Pooler %d is handling request for secret ID %s", i, workItem.secretEntry.ID))
+					}
+
 					pool.execFunction(pool.cancelChan, workItem, timeout)
 					//pool.deleteCertificateRequest(workItem.domains)
 				case <-pool.cancelChan:
@@ -180,7 +185,6 @@ func (w *WorkerPool) issueCertificate(workItem WorkItem) (*Result, error) {
 		}
 		result.certificate = certificateResource
 	}
-	common.Logger().Info(fmt.Sprintf("Finished order certificate (secret Id %s) for domains: %s", workItem.secretEntry.ID, strings.Join(workItem.domains[:], ",")))
 	return &result, nil
 }
 
