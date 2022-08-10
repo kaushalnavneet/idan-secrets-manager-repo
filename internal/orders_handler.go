@@ -158,9 +158,9 @@ func (oh *OrdersHandler) MakeActionsBeforeStore(ctx context.Context, req *logica
 			common.Logger().Error(fmt.Sprintf("Couldn't decode secret ExtraDatqa for the secret id %s. Error: %s", secretEntry.ID, err.Error()))
 			common.ErrorLogForCustomer(internalServerError, logdna.Error07209, logdna.InternalErrorMessage, true)
 			return nil, commonErrors.GenerateCodedError(logdna.Error07209, http.StatusInternalServerError, errors.InternalServerError)
-			return nil, err
 		}
-		if metadata.IssuanceInfo[FieldDNSConfig] == dnsConfigTypeManual {
+		//in case of order in process for manual dns provider
+		if metadata.IssuanceInfo[FieldDNSConfig] == dnsConfigTypeManual && metadata.IssuanceInfo[secretentry.FieldState] == secretentry.StatePreActivation {
 			challenges, err := oh.prepareChallenges(secretEntry)
 			if err != nil {
 				common.Logger().Error(fmt.Sprintf("Couldn't prepare challenges for the secret id %s. Error: %s", secretEntry.ID, err.Error()))
