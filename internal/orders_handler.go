@@ -159,8 +159,9 @@ func (oh *OrdersHandler) MakeActionsBeforeStore(ctx context.Context, req *logica
 			common.ErrorLogForCustomer(internalServerError, logdna.Error07209, logdna.InternalErrorMessage, true)
 			return nil, commonErrors.GenerateCodedError(logdna.Error07209, http.StatusInternalServerError, errors.InternalServerError)
 		}
-		//in case of order in process for manual dns provider
-		if metadata.IssuanceInfo[FieldDNSConfig] == dnsConfigTypeManual && metadata.IssuanceInfo[secretentry.FieldState] == secretentry.StatePreActivation {
+		//only in case of order in process for manual dns provider
+		if metadata.IssuanceInfo[FieldDNSConfig] != nil && metadata.IssuanceInfo[FieldDNSConfig].(string) == dnsConfigTypeManual &&
+			metadata.IssuanceInfo[secretentry.FieldState] != nil && metadata.IssuanceInfo[secretentry.FieldState].(float64) == secretentry.StatePreActivation {
 			challenges, err := oh.prepareChallenges(secretEntry)
 			if err != nil {
 				common.Logger().Error(fmt.Sprintf("Couldn't prepare challenges for the secret id %s. Error: %s", secretEntry.ID, err.Error()))
