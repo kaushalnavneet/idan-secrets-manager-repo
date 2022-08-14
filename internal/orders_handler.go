@@ -170,7 +170,7 @@ func (oh *OrdersHandler) MakeActionsBeforeStore(ctx context.Context, req *logica
 			}
 			metadata.IssuanceInfo[FieldChallenges] = challenges
 			//reset validation time if we have it from the previous order
-			metadata.IssuanceInfo[FieldValidationTime] = nil
+			delete(metadata.IssuanceInfo, FieldValidationTime)
 			secretEntry.ExtraData = metadata
 		}
 	}
