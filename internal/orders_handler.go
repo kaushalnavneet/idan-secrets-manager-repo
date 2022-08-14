@@ -169,6 +169,8 @@ func (oh *OrdersHandler) MakeActionsBeforeStore(ctx context.Context, req *logica
 				return nil, commonErrors.GenerateCodedError(logdna.Error07203, http.StatusInternalServerError, errors.InternalServerError)
 			}
 			metadata.IssuanceInfo[FieldChallenges] = challenges
+			//reset validation time if we have it from the previous order
+			metadata.IssuanceInfo[FieldValidationTime] = nil
 			secretEntry.ExtraData = metadata
 		}
 	}
