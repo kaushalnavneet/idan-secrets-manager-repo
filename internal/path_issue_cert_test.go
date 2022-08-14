@@ -441,23 +441,6 @@ func Test_Issue_cert_Manual(t *testing.T) {
 
 		assert.Equal(t, len(oh.runningOrders), 0)
 	})
-	goodCertMetadata := certificate.CertificateMetadata{
-		KeyAlgorithm: keyType,
-		CommonName:   certCommonName,
-		IssuanceInfo: map[string]interface{}{
-			secretentry.FieldState:            secretentry.StatePreActivation,
-			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateActive),
-			FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldAutoRotated: true,
-			FieldOrderedOn: time.Now().UTC().Add(1 * time.Hour).Format(time.RFC3339),
-			FieldDNSConfig: dnsConfigTypeManual,
-			FieldChallenges: []Challenge{{
-				Domain:         "certCommonName",
-				TXTRecordName:  "certCommonName.acme_challenge",
-				TXTRecordValue: "txtRecordValue",
-				Status:         "Pending",
-				Expiration:     time.Time{},
-			}},
-		}}
 	secretEntry := &secretentry.SecretEntry{
 		SecretMetadataEntry: secret_metadata_entry.SecretMetadataEntry{
 			ID:             secretId,
@@ -484,6 +467,23 @@ func Test_Issue_cert_Manual(t *testing.T) {
 	}
 
 	t.Run("Validate dns challenge - happy flow", func(t *testing.T) {
+		goodCertMetadata := certificate.CertificateMetadata{
+			KeyAlgorithm: keyType,
+			CommonName:   certCommonName,
+			IssuanceInfo: map[string]interface{}{
+				secretentry.FieldState:            secretentry.StatePreActivation,
+				secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
+				FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldAutoRotated: true,
+				FieldOrderedOn: time.Now().UTC().Add(1 * time.Hour).Format(time.RFC3339),
+				FieldDNSConfig: dnsConfigTypeManual,
+				FieldChallenges: []Challenge{{
+					Domain:         "certCommonName",
+					TXTRecordName:  "certCommonName.acme_challenge",
+					TXTRecordValue: "txtRecordValue",
+					Status:         "Pending",
+					Expiration:     time.Time{},
+				}},
+			}}
 		secretEntry.ExtraData = goodCertMetadata
 		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), nil, false)
 
@@ -501,9 +501,9 @@ func Test_Issue_cert_Manual(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 
-		getSecretAndCheckItsContent(t, secretId, secretEntry, certMetadata.IssuanceInfo)
+		getMetadataResp := getSecretAndCheckItsContent(t, secretId, secretEntry, goodCertMetadata.IssuanceInfo)
 
-		validationTime := resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldValidationTime]
+		validationTime := getMetadataResp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldValidationTime]
 		assert.Equal(t, validationTime != nil, true)
 		assert.Equal(t, len(oh.runningOrders), 1)
 	})

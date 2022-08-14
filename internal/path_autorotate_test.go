@@ -261,7 +261,7 @@ func Test_AutoRotate(t *testing.T) {
 	})
 }
 
-func getSecretAndCheckItsContent(t *testing.T, secretId string, expectedentry *secretentry.SecretEntry, expectedIssuanceInfo map[string]interface{}) {
+func getSecretAndCheckItsContent(t *testing.T, secretId string, expectedentry *secretentry.SecretEntry, expectedIssuanceInfo map[string]interface{}) *logical.Response {
 	//get secret
 	req := &logical.Request{
 		Operation: logical.ReadOperation,
@@ -291,6 +291,7 @@ func getSecretAndCheckItsContent(t *testing.T, secretId string, expectedentry *s
 	assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], expectedIssuanceInfo[secretentry.FieldStateDescription])
 	assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorCode], expectedIssuanceInfo[FieldErrorCode])
 	assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorMessage], expectedIssuanceInfo[FieldErrorMessage])
+	return resp
 }
 
 func createCertificates() {
