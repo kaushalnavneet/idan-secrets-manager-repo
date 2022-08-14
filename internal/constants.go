@@ -21,6 +21,8 @@ const (
 	FieldIssuanceInfo = "issuance_info"
 	FieldChallenges   = "challenges"
 
+	FieldValidationTime = "dns_challenge_validation_time"
+
 	endCertificate  = "-----END CERTIFICATE-----"
 	errorPattern    = `{"error_code":"%s","error_message":"%s"}`
 	AutoRotatePath  = "autorotate"
@@ -53,6 +55,7 @@ const (
 	PathVersions     = "/versions/"
 	PathMetadata     = "/metadata"
 	PathRotate       = "/rotate"
+	PathValidate     = "/validate_dns_challenge"
 
 	PathOrdersInProgress = "ordersInProgress"
 )

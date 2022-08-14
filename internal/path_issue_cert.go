@@ -7,12 +7,14 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/certificate"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
+	"github.ibm.com/security-services/secrets-manager-common-utils/types_common"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	at "github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"net/http"
+	"time"
 )
 
 func (ob *OrdersBackend) pathIssueCert() []*framework.Path {
@@ -142,7 +144,7 @@ func (ob *OrdersBackend) pathContinueOrder() []*framework.Path {
 			HelpDescription: pathIssueListHelpDescription,
 		},
 		{
-			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/validate_dns_challenge",
+			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + PathValidate,
 			Fields:          fields,
 			Operations:      operations,
 			ExistenceCheck:  existenceCheck,
@@ -218,7 +220,25 @@ func (ob *OrdersBackend) ContinueOrder(ctx context.Context, req *logical.Request
 		common.ErrorLogForCustomer(msg+" Secret id: "+secretEntry.ID, logdna.Error07206, logdna.BadRequestErrorMessage, true)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07206, http.StatusBadRequest, msg)
 	}
-
+	if validationTime, ok := metadata.IssuanceInfo[FieldValidationTime]; ok {
+		msg := validationAlreadyInProcess
+		common.ErrorLogForCustomer(fmt.Sprintf(msg+" Validation started at %s. Secret id: %s.", validationTime, secretEntry.ID), logdna.Error07211, logdna.BadRequestErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07211, http.StatusBadRequest, msg)
+	}
+	// update field dns_challenge_validation_time
+	metadata.IssuanceInfo[FieldValidationTime] = time.Now().Format(time.RFC3339)
+	secretEntry.ExtraData = metadata
+	opp := common.StoreOptions{
+		Operation:     types_common.StoreOptionUpdateMetadata,
+		VersionMapper: ob.ordersHandler.metadataMapper.MapVersionMetadata,
+	}
+	common.Logger().Info(fmt.Sprintf("Updating field '%s' for secret entry %s", FieldValidationTime, secretEntry.ID))
+	err = common.StoreSecretAndVersionWithoutLocking(secretEntry, req.Storage, ctx, ob.ordersHandler.getMetadataClient(), &opp)
+	if err != nil {
+		common.Logger().Error(fmt.Sprintf("Couldn't update field '%s' in secret entry %s. Error :%s ", FieldValidationTime, secretEntry.ID, err.Error()))
+		common.ErrorLogForCustomer(internalServerError, logdna.Error07210, logdna.InternalErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07210, http.StatusInternalServerError, internalServerError)
+	}
 	err = ob.ordersHandler.prepareOrderWorkItem(ctx, req, metadata, nil)
 	if err != nil {
 		return nil, err

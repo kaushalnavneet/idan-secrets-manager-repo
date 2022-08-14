@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
+	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/certificate"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate_parser"
@@ -19,6 +20,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -439,6 +441,192 @@ func Test_Issue_cert_Manual(t *testing.T) {
 
 		assert.Equal(t, len(oh.runningOrders), 0)
 	})
+	secretEntry := &secretentry.SecretEntry{
+		SecretMetadataEntry: secret_metadata_entry.SecretMetadataEntry{
+			ID:             secretId,
+			Name:           "manualOrder",
+			Description:    certDesc,
+			Labels:         []string{},
+			CreatedAt:      today.Add(-10 * 24 * time.Hour),
+			CreatedBy:      createdBy,
+			ExpirationDate: &expirationIn20Days,
+			TTL:            0,
+			Policies: policies.Policies{
+				Rotation: &policies.RotationPolicy{
+					Rotation: &policies.RotationData{
+						RotateKeys: false,
+						AutoRotate: true,
+					},
+					Type: policies.MIMETypeForPolicyResource}},
+			Type:    secretentry.SecretTypePublicCert,
+			CRN:     strings.Replace(smInstanceCrn, "::", ":secret:", 1) + secretId,
+			GroupID: defaultGroup,
+			State:   secretentry.StatePreActivation,
+		},
+		Versions: versions,
+	}
+
+	t.Run("Validate dns challenge - happy flow", func(t *testing.T) {
+		goodCertMetadata := certificate.CertificateMetadata{
+			KeyAlgorithm: keyType,
+			CommonName:   certCommonName,
+			IssuanceInfo: map[string]interface{}{
+				secretentry.FieldState:            secretentry.StatePreActivation,
+				secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
+				FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldAutoRotated: true,
+				FieldOrderedOn: time.Now().UTC().Add(1 * time.Hour).Format(time.RFC3339),
+				FieldDNSConfig: dnsConfigTypeManual,
+				FieldChallenges: []Challenge{{
+					Domain:         "certCommonName",
+					TXTRecordName:  "certCommonName.acme_challenge",
+					TXTRecordValue: "txtRecordValue",
+					Status:         "Pending",
+					Expiration:     time.Time{},
+				}},
+			}}
+		secretEntry.ExtraData = goodCertMetadata
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), nil, false)
+
+		data := map[string]interface{}{}
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      PathSecrets + secretId + PathValidate,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		assert.NilError(t, err)
+		assert.Equal(t, false, resp.IsError())
+
+		getMetadataResp := getSecretAndCheckItsContent(t, secretId, secretEntry, goodCertMetadata.IssuanceInfo)
+
+		validationTime := getMetadataResp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldValidationTime]
+		assert.Equal(t, validationTime != nil, true)
+		assert.Equal(t, len(oh.runningOrders), 1)
+	})
+
+	t.Run("Validate dns challenge - bad extra data in secrets entry", func(t *testing.T) {
+		secretEntry.ExtraData = "string"
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), nil, false)
+
+		data := map[string]interface{}{}
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      PathSecrets + secretId + PathValidate,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := internalServerError
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07204)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusInternalServerError, expectedMessage)))
+
+	})
+
+	t.Run("Validate dns challenge - order is in Active state", func(t *testing.T) {
+		activeCertMetadata := certificate.CertificateMetadata{
+			KeyAlgorithm: keyType,
+			CommonName:   certCommonName,
+			IssuanceInfo: map[string]interface{}{
+				secretentry.FieldState:            secretentry.StateActive,
+				secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateActive),
+				FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldAutoRotated: true,
+				FieldOrderedOn: time.Now().UTC().Add(1 * time.Hour).Format(time.RFC3339),
+				FieldDNSConfig: dnsConfigTypeManual,
+			}}
+		secretEntry.ExtraData = activeCertMetadata
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), nil, false)
+
+		data := map[string]interface{}{}
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      PathSecrets + secretId + PathValidate,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := challengeValidationError
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07205)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
+
+	})
+
+	t.Run("Validate dns challenge - dns is not manual", func(t *testing.T) {
+		cisCertMetadata := certificate.CertificateMetadata{
+			KeyAlgorithm: keyType,
+			CommonName:   certCommonName,
+			IssuanceInfo: map[string]interface{}{
+				secretentry.FieldState:            secretentry.StatePreActivation,
+				secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
+				FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldAutoRotated: true,
+				FieldOrderedOn: time.Now().UTC().Add(1 * time.Hour).Format(time.RFC3339),
+				FieldDNSConfig: dnsConfig,
+			}}
+		secretEntry.ExtraData = cisCertMetadata
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), nil, false)
+
+		data := map[string]interface{}{}
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      PathSecrets + secretId + PathValidate,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := challengeValidationErrorNotManual
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07206)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
+
+	})
+
+	t.Run("Validate dns challenge - validation is in process", func(t *testing.T) {
+		certMetadataWithValidation := certificate.CertificateMetadata{
+			KeyAlgorithm: keyType,
+			CommonName:   certCommonName,
+			IssuanceInfo: map[string]interface{}{
+				secretentry.FieldState:            secretentry.StatePreActivation,
+				secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
+				FieldBundleCert:                   true, FieldCAConfig: caConfig, FieldAutoRotated: true,
+				FieldOrderedOn:      time.Now().UTC().Add(1 * time.Hour).Format(time.RFC3339),
+				FieldDNSConfig:      dnsConfigTypeManual,
+				FieldValidationTime: time.Now(),
+			}}
+		secretEntry.ExtraData = certMetadataWithValidation
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), nil, false)
+
+		data := map[string]interface{}{}
+		req := &logical.Request{
+			Operation: logical.CreateOperation,
+			Path:      PathSecrets + secretId + PathValidate,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		expectedMessage := validationAlreadyInProcess
+		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
+		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07211)
+		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
+
+	})
+
 }
 
 func initBackend(useMockAcmeServer bool) {
