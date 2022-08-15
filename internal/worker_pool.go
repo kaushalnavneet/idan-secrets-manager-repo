@@ -113,10 +113,10 @@ func (w *WorkerPool) startCertificateRequest(cancelChan chan struct{}, workItem 
 		w.handler.saveOrderResultToStorage(result)
 
 	case <-time.After(timeout):
-		common.Logger().Debug("Order request reached timeout")
+		common.Logger().Info(fmt.Sprintf("Order request reached timeout of %s. Secret Id: %s", timeout, workItem.secretEntry.ID))
 		result := Result{
 			workItem:    workItem,
-			Error:       errors.New("timeout"),
+			Error:       errors.New("order request reached timeout"),
 			certificate: nil,
 		}
 		w.handler.saveOrderResultToStorage(result)

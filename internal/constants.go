@@ -41,7 +41,7 @@ const (
 const (
 	MaxWorkers                               = 10
 	MaxCertRequest                           = 50
-	CertRequestTimeout         time.Duration = 60 * 20 //wait 20 minutes till fail order
+	CertRequestTimeout         time.Duration = 60 * 40 * time.Second //wait 60 minutes till fail order
 	RotateIfExpirationIsInDays               = 31
 	txtRecordTtl                             = 120
 	MaxAttemptsToOrder                       = 2

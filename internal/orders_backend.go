@@ -15,6 +15,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type OrdersBackend struct {
@@ -52,7 +53,12 @@ func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendH
 		if err != nil || poolSize == 0 {
 			maxWorkers = MaxCertRequest //default value
 		}
-		oh.workerPool = NewWorkerPool(oh, maxWorkers, poolSize, CertRequestTimeout)
+		timoutStr := os.Getenv("PublicCertOrderTimeout")
+		timeout, err := time.ParseDuration(timoutStr)
+		if err != nil || timeout == 0 {
+			timeout = CertRequestTimeout //default value
+		}
+		oh.workerPool = NewWorkerPool(oh, maxWorkers, poolSize, timeout)
 		ob.ordersHandler = oh
 	}
 	return ob.ordersHandler
