@@ -12,8 +12,6 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate_parser"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secret_backend"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
-	"os"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -43,22 +41,11 @@ func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendH
 			inAllowList:    IsManualDnsFeatureEnabled(),
 		}
 
-		maxWorkersStr := os.Getenv("PublicCertMaxWorkers")
-		maxWorkers, err := strconv.Atoi(maxWorkersStr)
-		if err != nil || maxWorkers == 0 {
-			maxWorkers = MaxWorkers //default value
-		}
-		poolSizeStr := os.Getenv("PublicCertPoolSize")
-		poolSize, err := strconv.Atoi(poolSizeStr)
-		if err != nil || poolSize == 0 {
-			maxWorkers = MaxCertRequest //default value
-		}
-		timoutStr := os.Getenv("PublicCertOrderTimeout")
-		timeout, err := time.ParseDuration(timoutStr)
-		if err != nil || timeout == 0 {
-			timeout = CertRequestTimeout //default value
-		}
-		oh.workerPool = NewWorkerPool(oh, maxWorkers, poolSize, timeout)
+		oh.workerPool = NewWorkerPool(oh,
+			GetEnv("MAX_WORKERS", MaxWorkers).(int),
+			GetEnv("MAX_CERT_REQUEST", MaxCertRequest).(int),
+			GetEnv("CERT_REQUEST_TIMEOUT_SECS", CertRequestTimeout).(time.Duration)*time.Second)
+
 		ob.ordersHandler = oh
 	}
 	return ob.ordersHandler
