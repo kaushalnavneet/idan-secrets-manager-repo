@@ -149,31 +149,34 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 }
 
 func (oh *OrdersHandler) MakeActionsBeforeStore(ctx context.Context, req *logical.Request, data *framework.FieldData, secretEntry *secretentry.SecretEntry) (*logical.Response, error) {
-	if req.Operation == logical.CreateOperation {
-		secretEntry.State = secretentry.StatePreActivation
+	if req.Operation != logical.CreateOperation {
+		return nil, nil
 	}
-	if secretEntry != nil && secretEntry.ExtraData != nil {
-		metadata, err := certificate.DecodeMetadata(secretEntry.ExtraData)
+	//this code is for secret creation flow
+	secretEntry.State = secretentry.StatePreActivation
+	if secretEntry.ExtraData == nil {
+		return nil, nil
+	}
+	metadata, err := certificate.DecodeMetadata(secretEntry.ExtraData)
+	if err != nil {
+		common.Logger().Error(fmt.Sprintf("Couldn't decode secret ExtraDatqa for the secret id %s. Error: %s", secretEntry.ID, err.Error()))
+		common.ErrorLogForCustomer(internalServerError, logdna.Error07209, logdna.InternalErrorMessage, true)
+		return nil, commonErrors.GenerateCodedError(logdna.Error07209, http.StatusInternalServerError, errors.InternalServerError)
+	}
+	//only in case of order in process for manual dns provider
+	if metadata.IssuanceInfo[FieldDNSConfig] != nil && metadata.IssuanceInfo[FieldDNSConfig].(string) == dnsConfigTypeManual {
+		challenges, err := oh.prepareChallenges(secretEntry)
 		if err != nil {
-			common.Logger().Error(fmt.Sprintf("Couldn't decode secret ExtraDatqa for the secret id %s. Error: %s", secretEntry.ID, err.Error()))
-			common.ErrorLogForCustomer(internalServerError, logdna.Error07209, logdna.InternalErrorMessage, true)
-			return nil, commonErrors.GenerateCodedError(logdna.Error07209, http.StatusInternalServerError, errors.InternalServerError)
+			common.Logger().Error(fmt.Sprintf("Couldn't prepare challenges for the secret id %s. Error: %s", secretEntry.ID, err.Error()))
+			common.ErrorLogForCustomer(internalServerError, logdna.Error07203, logdna.InternalErrorMessage, true)
+			return nil, commonErrors.GenerateCodedError(logdna.Error07203, http.StatusInternalServerError, errors.InternalServerError)
 		}
-		//only in case of order in process for manual dns provider
-		if metadata.IssuanceInfo[FieldDNSConfig] != nil && metadata.IssuanceInfo[FieldDNSConfig].(string) == dnsConfigTypeManual &&
-			metadata.IssuanceInfo[secretentry.FieldState] != nil && metadata.IssuanceInfo[secretentry.FieldState].(float64) == secretentry.StatePreActivation {
-			challenges, err := oh.prepareChallenges(secretEntry)
-			if err != nil {
-				common.Logger().Error(fmt.Sprintf("Couldn't prepare challenges for the secret id %s. Error: %s", secretEntry.ID, err.Error()))
-				common.ErrorLogForCustomer(internalServerError, logdna.Error07203, logdna.InternalErrorMessage, true)
-				return nil, commonErrors.GenerateCodedError(logdna.Error07203, http.StatusInternalServerError, errors.InternalServerError)
-			}
-			metadata.IssuanceInfo[FieldChallenges] = challenges
-			//reset validation time if we have it from the previous order
-			delete(metadata.IssuanceInfo, FieldValidationTime)
-			secretEntry.ExtraData = metadata
-		}
+		metadata.IssuanceInfo[FieldChallenges] = challenges
+		//reset validation time if we have it from the previous order
+		delete(metadata.IssuanceInfo, FieldValidationTime)
+		secretEntry.ExtraData = metadata
 	}
+
 	return nil, nil
 }
 
