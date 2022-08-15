@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-acme/lego/v4/acme"
+	"github.com/google/uuid"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
@@ -44,6 +45,8 @@ var (
 	labels   = []string{"first", "second"}
 	altNames = []string{"test1.domain.com", "test2.domain.com"}
 	policy   = map[string]interface{}{policies.FieldAutoRotate: true, policies.FieldRotateKeys: true}
+	iD       = uuid.New()
+	secretID = iD.String()
 )
 
 func initOrdersHandler() *OrdersHandler {
@@ -398,6 +401,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
 	initBackend(true)
+
 	t.Run("Happy flow with manual dns", func(t *testing.T) {
 		startMockLEAcmeServer()
 		defer stopMockLEAcmeServer()
@@ -443,7 +447,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 	})
 	secretEntry := &secretentry.SecretEntry{
 		SecretMetadataEntry: secret_metadata_entry.SecretMetadataEntry{
-			ID:             secretId,
+			ID:             secretID,
 			Name:           "manualOrder",
 			Description:    certDesc,
 			Labels:         []string{},
@@ -459,7 +463,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 					},
 					Type: policies.MIMETypeForPolicyResource}},
 			Type:    secretentry.SecretTypePublicCert,
-			CRN:     strings.Replace(smInstanceCrn, "::", ":secret:", 1) + secretId,
+			CRN:     strings.Replace(smInstanceCrn, "::", ":secret:", 1) + secretID,
 			GroupID: defaultGroup,
 			State:   secretentry.StatePreActivation,
 		},
@@ -490,7 +494,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 		data := map[string]interface{}{}
 		req := &logical.Request{
 			Operation: logical.CreateOperation,
-			Path:      PathSecrets + secretId + PathValidate,
+			Path:      PathSecrets + secretID + PathValidate,
 			Storage:   storage,
 			Data:      data,
 			Connection: &logical.Connection{
@@ -501,7 +505,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 
-		getMetadataResp := getSecretAndCheckItsContent(t, secretId, secretEntry, goodCertMetadata.IssuanceInfo)
+		getMetadataResp := getSecretAndCheckItsContent(t, secretID, secretEntry, goodCertMetadata.IssuanceInfo)
 
 		validationTime := getMetadataResp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldValidationTime]
 		assert.Equal(t, validationTime != nil, true)
@@ -515,7 +519,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 		data := map[string]interface{}{}
 		req := &logical.Request{
 			Operation: logical.CreateOperation,
-			Path:      PathSecrets + secretId + PathValidate,
+			Path:      PathSecrets + secretID + PathValidate,
 			Storage:   storage,
 			Data:      data,
 			Connection: &logical.Connection{
@@ -547,7 +551,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 		data := map[string]interface{}{}
 		req := &logical.Request{
 			Operation: logical.CreateOperation,
-			Path:      PathSecrets + secretId + PathValidate,
+			Path:      PathSecrets + secretID + PathValidate,
 			Storage:   storage,
 			Data:      data,
 			Connection: &logical.Connection{
@@ -579,7 +583,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 		data := map[string]interface{}{}
 		req := &logical.Request{
 			Operation: logical.CreateOperation,
-			Path:      PathSecrets + secretId + PathValidate,
+			Path:      PathSecrets + secretID + PathValidate,
 			Storage:   storage,
 			Data:      data,
 			Connection: &logical.Connection{
@@ -612,7 +616,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 		data := map[string]interface{}{}
 		req := &logical.Request{
 			Operation: logical.CreateOperation,
-			Path:      PathSecrets + secretId + PathValidate,
+			Path:      PathSecrets + secretID + PathValidate,
 			Storage:   storage,
 			Data:      data,
 			Connection: &logical.Connection{
