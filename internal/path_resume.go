@@ -113,7 +113,7 @@ func (ob *OrdersBackend) prepareAndStartOrder(ctx context.Context, req *logical.
 		}
 		return err
 	}
-	oh.startOrder(secretEntry)
+	oh.startOrder(secretEntry, oh.workerPool)
 	return nil
 }
 

@@ -243,7 +243,7 @@ func (ob *OrdersBackend) ContinueOrder(ctx context.Context, req *logical.Request
 	if err != nil {
 		return nil, err
 	}
-	ob.ordersHandler.startOrder(secretEntry)
+	ob.ordersHandler.startOrder(secretEntry, ob.ordersHandler.workerPool)
 	resp := &logical.Response{}
 	return logical.RespondWithStatusCode(resp, req, http.StatusAccepted)
 }
