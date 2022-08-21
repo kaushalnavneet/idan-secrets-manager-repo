@@ -189,7 +189,7 @@ func (ob *OrdersBackend) pathRotateCertificate() []*framework.Path {
 			HelpDescription: pathRotateHelpDescription,
 		},
 		{
-			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + "/rotate",
+			Pattern:         PathSecretGroups + framework.GenericNameRegex(secretentry.FieldGroupId) + "/" + framework.GenericNameRegex(secretentry.FieldId) + PathRotate,
 			Fields:          fields,
 			Operations:      operations,
 			HelpSynopsis:    pathRotateHelpSynopsis,
