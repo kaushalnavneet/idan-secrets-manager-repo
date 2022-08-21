@@ -26,6 +26,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_client_impl"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -509,6 +510,28 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated)
 		metadata.IssuanceInfo[FieldErrorCode] = errorObj.Code
 		metadata.IssuanceInfo[FieldErrorMessage] = errorObj.Message
+
+		if metadata.IssuanceInfo[FieldAutoRotated] == true {
+			//increase auto_renew_attempts
+			if metadata.IssuanceInfo[FieldAutoRenewAttempts] == nil {
+				metadata.IssuanceInfo[FieldAutoRenewAttempts] = 1
+			} else {
+
+				common.Logger().Error(fmt.Sprintf("Auto renew attempts for secret ID %s: %v", secretEntry.ID,
+					metadata.IssuanceInfo[FieldAutoRenewAttempts]))
+
+				attemptsString := fmt.Sprintf("%v", metadata.IssuanceInfo[FieldAutoRenewAttempts])
+
+				attempts, err := strconv.Atoi(attemptsString)
+
+				if err != nil {
+					common.Logger().Error(fmt.Sprintf("Error while parsing auto_renew_attempts for secret ID %s", secretEntry.ID), err.Error())
+					attempts = 0
+				}
+
+				metadata.IssuanceInfo[FieldAutoRenewAttempts] = attempts + 1
+			}
+		}
 		updateSecretEntryWithFailure(secretEntry, metadata)
 	} else {
 		//update secret entry with the newly created certificate data
@@ -533,6 +556,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 			metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateActive)
 			delete(metadata.IssuanceInfo, FieldErrorCode)
 			delete(metadata.IssuanceInfo, FieldErrorMessage)
+			delete(metadata.IssuanceInfo, FieldAutoRenewAttempts)
 
 			certData.Metadata.IssuanceInfo = metadata.IssuanceInfo
 			data = certData.RawData
