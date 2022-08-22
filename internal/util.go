@@ -108,8 +108,8 @@ func GetEnv(key string, fallback interface{}) interface{} {
 
 func GetEnvInt(key string, fallback int) int {
 	if value, ok := os.LookupEnv(key); ok {
-		attemptsString := fmt.Sprintf("%v", value)
-		intVal, err := strconv.Atoi(attemptsString)
+		stringVal := fmt.Sprintf("%v", value)
+		intVal, err := strconv.Atoi(stringVal)
 		if err != nil {
 			return fallback
 		}
