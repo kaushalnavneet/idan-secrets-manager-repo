@@ -42,12 +42,12 @@ func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendH
 		}
 
 		oh.workerPool = NewWorkerPool(oh,
-			GetEnv("PublicCertMaxWorkers", MaxWorkers).(int),
-			GetEnv("PublicCertPoolSize", MaxCertRequest).(int),
+			GetEnvInt("PublicCertMaxWorkers", MaxWorkers),
+			GetEnvInt("PublicCertPoolSize", MaxCertRequest),
 			GetEnv("PublicCertOrderTimeout", CertRequestTimeout).(time.Duration)*time.Second)
 		oh.autoRenewWorkerPool = NewWorkerPool(oh,
-			GetEnv("PublicCertMaxWorkers", MaxWorkers).(int),
-			GetEnv("PublicCertPoolSize", MaxCertRequest).(int),
+			GetEnvInt("PublicCertMaxAutoRenewWorkers", MaxAutoRenewWorkers),
+			GetEnvInt("PublicCertAutoRenewPoolSize", MaxAutoRenewCertRequest),
 			GetEnv("PublicCertOrderTimeout", CertRequestTimeout).(time.Duration)*time.Second)
 
 		ob.ordersHandler = oh

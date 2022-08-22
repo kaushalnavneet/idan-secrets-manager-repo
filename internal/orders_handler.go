@@ -515,25 +515,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		metadata.IssuanceInfo[FieldErrorMessage] = errorObj.Message
 
 		if metadata.IssuanceInfo[FieldAutoRotated] == true {
-			//increase auto_renew_attempts
-			if metadata.IssuanceInfo[FieldAutoRenewAttempts] == nil {
-				metadata.IssuanceInfo[FieldAutoRenewAttempts] = 1
-			} else {
-
-				common.Logger().Error(fmt.Sprintf("Auto renew attempts for secret ID %s: %v", secretEntry.ID,
-					metadata.IssuanceInfo[FieldAutoRenewAttempts]))
-
-				attemptsString := fmt.Sprintf("%v", metadata.IssuanceInfo[FieldAutoRenewAttempts])
-
-				attempts, err := strconv.Atoi(attemptsString)
-
-				if err != nil {
-					common.Logger().Error(fmt.Sprintf("Error while parsing auto_renew_attempts for secret ID %s", secretEntry.ID), err.Error())
-					attempts = 0
-				}
-
-				metadata.IssuanceInfo[FieldAutoRenewAttempts] = attempts + 1
-			}
+			incrementAutoRotationAttempts(secretEntry, metadata)
 		}
 		updateSecretEntryWithFailure(secretEntry, metadata)
 	} else {
@@ -551,7 +533,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		if err != nil {
 			common.Logger().Error(fmt.Sprintf("Failed to parse an order result for the secret %s. Error: %s", secretEntry.ID, err.Error()))
 			codedErr := commonErrors.GenerateCodedError(logdna.Error07063, http.StatusInternalServerError, failedToParseCertificate)
-			updateIssuanceInfoWithError(metadata, codedErr)
+			updateIssuanceInfoWithError(metadata, secretEntry, codedErr)
 			updateSecretEntryWithFailure(secretEntry, metadata)
 			res.Error = goErrors.New(fmt.Sprintf(errorPattern, logdna.Error07063, failedToParseCertificate))
 		} else {
@@ -592,6 +574,28 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	logActivityTrackerEvent(res, isFirstOrder)
 }
 
+func incrementAutoRotationAttempts(secretEntry *secretentry.SecretEntry, metadata *certificate.CertificateMetadata) {
+
+	if metadata.IssuanceInfo[FieldAutoRenewAttempts] == nil {
+		metadata.IssuanceInfo[FieldAutoRenewAttempts] = 1
+	} else {
+
+		common.Logger().Info(fmt.Sprintf("Auto renew attempts for secret ID %s: %v", secretEntry.ID,
+			metadata.IssuanceInfo[FieldAutoRenewAttempts]))
+
+		attemptsString := fmt.Sprintf("%v", metadata.IssuanceInfo[FieldAutoRenewAttempts])
+
+		attempts, err := strconv.Atoi(attemptsString)
+
+		if err != nil {
+			common.Logger().Error(fmt.Sprintf("Error while parsing auto_renew_attempts for secret ID %s", secretEntry.ID), err.Error())
+			attempts = 0
+		}
+
+		metadata.IssuanceInfo[FieldAutoRenewAttempts] = attempts + 1
+	}
+
+}
 func updateSecretEntryWithFailure(secretEntry *secretentry.SecretEntry, metadata *certificate.CertificateMetadata) {
 	var secretData interface{}
 	extraData := map[string]interface{}{
@@ -706,7 +710,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	if err != nil {
 		startOrder = false
 		common.Logger().Error(fmt.Sprintf("Couldn't start auto rotation for secret '%s' with id %s for domains %s. Error: %s", entry.Name, entry.ID, domains, err.Error()))
-		updateIssuanceInfoWithError(metadata, err)
+		updateIssuanceInfoWithError(metadata, entry, err)
 	}
 	//save updated entry
 
@@ -865,7 +869,7 @@ func getRotationPolicy(rawPolicy interface{}) (*policies.RotationPolicy, error) 
 	return &rotationPolicy, nil
 }
 
-func updateIssuanceInfoWithError(metadata *certificate.CertificateMetadata, err error) {
+func updateIssuanceInfoWithError(metadata *certificate.CertificateMetadata, secretEntry *secretentry.SecretEntry, err error) {
 	if codedError, ok := err.(errors.SMCodedError); ok {
 		metadata.IssuanceInfo[FieldErrorCode] = codedError.ErrCode()
 		metadata.IssuanceInfo[FieldErrorMessage] = codedError.Error()
@@ -875,6 +879,10 @@ func updateIssuanceInfoWithError(metadata *certificate.CertificateMetadata, err 
 
 	}
 	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
+
+	if metadata.IssuanceInfo[secretentry.FieldAutoRotated] == true {
+		incrementAutoRotationAttempts(secretEntry, metadata)
+	}
 	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated)
 }
 

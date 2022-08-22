@@ -40,8 +40,10 @@ const (
 )
 
 const (
-	MaxWorkers                               = 10
-	MaxCertRequest                           = 50
+	MaxWorkers                               = 20
+	MaxCertRequest                           = 200
+	MaxAutoRenewWorkers                      = 10
+	MaxAutoRenewCertRequest                  = 1000
 	CertRequestTimeout         time.Duration = 60 * 20 //wait 20 minutes till fail order
 	RotateIfExpirationIsInDays               = 31
 	txtRecordTtl                             = 120
