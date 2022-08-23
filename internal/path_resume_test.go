@@ -126,6 +126,7 @@ func Test_Resume(t *testing.T) {
 			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated),
 			FieldErrorCode:                    "secrets-manager.Error07012",
 			FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
+			FieldAutoRenewAttempts:            float64(1),
 			FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
 		getSecretAndCheckItsContent(t, entryToTest.ID, entryToTest, expectedIssuanceInfoForFailedRotation)
 	})

@@ -87,6 +87,7 @@ var (
 
 	expectedIssuanceInfoForFailedRotation = map[string]interface{}{
 		secretentry.FieldState:            secretentry.StateDeactivated,
+		FieldAutoRenewAttempts:            float64(1),
 		secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated),
 		FieldErrorCode:                    "secrets-manager.Error07012",
 		FieldErrorMessage:                 "Certificate authority configuration with name 'wrong' was not found",
@@ -291,6 +292,7 @@ func getSecretAndCheckItsContent(t *testing.T, secretId string, expectedentry *s
 	assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[secretentry.FieldStateDescription], expectedIssuanceInfo[secretentry.FieldStateDescription])
 	assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorCode], expectedIssuanceInfo[FieldErrorCode])
 	assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldErrorMessage], expectedIssuanceInfo[FieldErrorMessage])
+	assert.Equal(t, resp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldAutoRenewAttempts], expectedIssuanceInfo[FieldAutoRenewAttempts])
 	return resp
 }
 

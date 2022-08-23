@@ -26,21 +26,23 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/vault_client_impl"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
 
 type OrdersHandler struct {
-	workerPool     *WorkerPool
-	beforeOrders   map[string]WorkItem
-	runningOrders  map[string]WorkItem
-	parser         certificate_parser.CertificateParser
-	pluginConfig   *common.ICAuthConfig
-	cron           *cron.Cron
-	metadataClient common.MetadataClient
-	metadataMapper common.MetadataMapper
-	secretBackend  secret_backend.SecretBackend
-	inAllowList    bool
+	workerPool          *WorkerPool
+	autoRenewWorkerPool *WorkerPool
+	beforeOrders        map[string]WorkItem
+	runningOrders       map[string]WorkItem
+	parser              certificate_parser.CertificateParser
+	pluginConfig        *common.ICAuthConfig
+	cron                *cron.Cron
+	metadataClient      common.MetadataClient
+	metadataMapper      common.MetadataMapper
+	secretBackend       secret_backend.SecretBackend
+	inAllowList         bool
 }
 
 func (oh *OrdersHandler) GetPolicyHandler() secret_backend.PolicyHandler {
@@ -188,7 +190,7 @@ func (oh *OrdersHandler) MakeActionsAfterStore(ctx context.Context, req *logical
 	if strings.Contains(req.Path, "rotate") && req.Operation == logical.UpdateOperation || req.Operation == logical.CreateOperation {
 		metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
 		if metadata.IssuanceInfo[FieldDNSConfig] != dnsConfigTypeManual {
-			oh.startOrder(secretEntry)
+			oh.startOrder(secretEntry, oh.workerPool)
 		}
 		//config iam endpoint
 	} else if strings.Contains(req.Path, secret_backend.SecretEngineConfigPath) && req.Operation == logical.UpdateOperation {
@@ -452,7 +454,7 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 }
 
 //takes a work item from the map  and runs certificate order
-func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
+func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry, pool *WorkerPool) {
 	//get domains from the secret in order to build order key
 	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
 	domains := getNames(metadata.CommonName, metadata.AltName)
@@ -468,7 +470,7 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry) {
 	delete(oh.beforeOrders, orderKey)
 	addWorkItemToOrdersInProgress(workItem)
 	//start an order
-	_, err := oh.workerPool.ScheduleCertificateRequest(workItem)
+	_, err := pool.ScheduleCertificateRequest(workItem)
 	if err != nil {
 		result := Result{
 			workItem:    workItem,
@@ -511,6 +513,10 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated)
 		metadata.IssuanceInfo[FieldErrorCode] = errorObj.Code
 		metadata.IssuanceInfo[FieldErrorMessage] = errorObj.Message
+
+		if metadata.IssuanceInfo[FieldAutoRotated] == true {
+			incrementAutoRotationAttempts(secretEntry, metadata)
+		}
 		updateSecretEntryWithFailure(secretEntry, metadata)
 	} else {
 		//update secret entry with the newly created certificate data
@@ -527,7 +533,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 		if err != nil {
 			common.Logger().Error(fmt.Sprintf("Failed to parse an order result for the secret %s. Error: %s", secretEntry.ID, err.Error()))
 			codedErr := commonErrors.GenerateCodedError(logdna.Error07063, http.StatusInternalServerError, failedToParseCertificate)
-			updateIssuanceInfoWithError(metadata, codedErr)
+			updateIssuanceInfoWithError(metadata, secretEntry, codedErr)
 			updateSecretEntryWithFailure(secretEntry, metadata)
 			res.Error = goErrors.New(fmt.Sprintf(errorPattern, logdna.Error07063, failedToParseCertificate))
 		} else {
@@ -535,6 +541,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 			metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateActive)
 			delete(metadata.IssuanceInfo, FieldErrorCode)
 			delete(metadata.IssuanceInfo, FieldErrorMessage)
+			delete(metadata.IssuanceInfo, FieldAutoRenewAttempts)
 
 			certData.Metadata.IssuanceInfo = metadata.IssuanceInfo
 			data = certData.RawData
@@ -567,6 +574,28 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	logActivityTrackerEvent(res, isFirstOrder)
 }
 
+func incrementAutoRotationAttempts(secretEntry *secretentry.SecretEntry, metadata *certificate.CertificateMetadata) {
+
+	if metadata.IssuanceInfo[FieldAutoRenewAttempts] == nil {
+		metadata.IssuanceInfo[FieldAutoRenewAttempts] = 1
+	} else {
+
+		common.Logger().Info(fmt.Sprintf("Auto renew attempts for secret ID %s: %v", secretEntry.ID,
+			metadata.IssuanceInfo[FieldAutoRenewAttempts]))
+
+		attemptsString := fmt.Sprintf("%v", metadata.IssuanceInfo[FieldAutoRenewAttempts])
+
+		attempts, err := strconv.Atoi(attemptsString)
+
+		if err != nil {
+			common.Logger().Error(fmt.Sprintf("Error while parsing auto_renew_attempts for secret ID %s", secretEntry.ID), err.Error())
+			attempts = 0
+		}
+
+		metadata.IssuanceInfo[FieldAutoRenewAttempts] = attempts + 1
+	}
+
+}
 func updateSecretEntryWithFailure(secretEntry *secretentry.SecretEntry, metadata *certificate.CertificateMetadata) {
 	var secretData interface{}
 	extraData := map[string]interface{}{
@@ -681,7 +710,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	if err != nil {
 		startOrder = false
 		common.Logger().Error(fmt.Sprintf("Couldn't start auto rotation for secret '%s' with id %s for domains %s. Error: %s", entry.Name, entry.ID, domains, err.Error()))
-		updateIssuanceInfoWithError(metadata, err)
+		updateIssuanceInfoWithError(metadata, entry, err)
 	}
 	//save updated entry
 
@@ -697,7 +726,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	}
 	if startOrder {
 		common.Logger().Info(fmt.Sprintf("Start auto-rotation for secret '%s' with id %s for domains %s", entry.Name, entry.ID, domains))
-		oh.startOrder(entry)
+		oh.startOrder(entry, oh.autoRenewWorkerPool)
 	}
 	return nil
 }
@@ -840,7 +869,7 @@ func getRotationPolicy(rawPolicy interface{}) (*policies.RotationPolicy, error) 
 	return &rotationPolicy, nil
 }
 
-func updateIssuanceInfoWithError(metadata *certificate.CertificateMetadata, err error) {
+func updateIssuanceInfoWithError(metadata *certificate.CertificateMetadata, secretEntry *secretentry.SecretEntry, err error) {
 	if codedError, ok := err.(errors.SMCodedError); ok {
 		metadata.IssuanceInfo[FieldErrorCode] = codedError.ErrCode()
 		metadata.IssuanceInfo[FieldErrorMessage] = codedError.Error()
@@ -850,6 +879,10 @@ func updateIssuanceInfoWithError(metadata *certificate.CertificateMetadata, err 
 
 	}
 	metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
+
+	if metadata.IssuanceInfo[secretentry.FieldAutoRotated] == true {
+		incrementAutoRotationAttempts(secretEntry, metadata)
+	}
 	metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated)
 }
 

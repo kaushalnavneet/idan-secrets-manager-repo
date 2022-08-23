@@ -6,20 +6,21 @@ import (
 )
 
 const (
-	PluginMountPath   = "/v1/ibmcloud/public_cert/"
-	FieldName         = "name"
-	FieldConfig       = "config"
-	FieldType         = "type"
-	FieldCAConfig     = "ca"
-	FieldDNSConfig    = "dns"
-	FieldBundleCert   = "bundle_certs"
-	FieldRotation     = "rotation"
-	FieldOrderedOn    = "ordered_on"
-	FieldErrorCode    = "error_code"
-	FieldErrorMessage = "error_message"
-	FieldAutoRotated  = "auto_rotated"
-	FieldIssuanceInfo = "issuance_info"
-	FieldChallenges   = "challenges"
+	PluginMountPath        = "/v1/ibmcloud/public_cert/"
+	FieldName              = "name"
+	FieldConfig            = "config"
+	FieldType              = "type"
+	FieldCAConfig          = "ca"
+	FieldDNSConfig         = "dns"
+	FieldBundleCert        = "bundle_certs"
+	FieldRotation          = "rotation"
+	FieldOrderedOn         = "ordered_on"
+	FieldErrorCode         = "error_code"
+	FieldErrorMessage      = "error_message"
+	FieldAutoRotated       = "auto_rotated"
+	FieldAutoRenewAttempts = "auto_renew_attempts"
+	FieldIssuanceInfo      = "issuance_info"
+	FieldChallenges        = "challenges"
 
 	FieldValidationTime = "dns_challenge_validation_time"
 
@@ -39,8 +40,10 @@ const (
 )
 
 const (
-	MaxWorkers                               = 10
-	MaxCertRequest                           = 50
+	MaxWorkers                               = 20
+	MaxCertRequest                           = 200
+	MaxAutoRenewWorkers                      = 10
+	MaxAutoRenewCertRequest                  = 1000
 	CertRequestTimeout         time.Duration = 60 * 20 //wait 20 minutes till fail order
 	RotateIfExpirationIsInDays               = 31
 	txtRecordTtl                             = 120

@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -101,6 +102,19 @@ func CreateEnvVariable(envMap map[string]string) error {
 func GetEnv(key string, fallback interface{}) interface{} {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
+	}
+	return fallback
+}
+
+func GetEnvInt(key string, fallback int) int {
+	if value, ok := os.LookupEnv(key); ok {
+		stringVal := fmt.Sprintf("%v", value)
+		intVal, err := strconv.Atoi(stringVal)
+		if err != nil {
+			return fallback
+		}
+
+		return intVal
 	}
 	return fallback
 }

@@ -9,6 +9,7 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
 	"gotest.tools/v3/assert"
 	"net/http"
+	"os"
 	"testing"
 )
 
@@ -68,6 +69,23 @@ func Test_Utils_GetOrderError(t *testing.T) {
 			Code:    "errorCode",
 			Message: "errorMessage",
 		})
+	})
+
+	t.Run("Test GetEnvInt fallback should be used", func(t *testing.T) {
+		value := GetEnvInt("MyKey", 10)
+		assert.Equal(t, 10, value)
+	})
+
+	t.Run("Test GetEnvInt invalid int fallback should be used", func(t *testing.T) {
+		os.Setenv("MyKey", "not_int")
+		value := GetEnvInt("MyKey", 10)
+		assert.Equal(t, 10, value)
+	})
+
+	t.Run("Test GetEnvInt env should be used", func(t *testing.T) {
+		os.Setenv("MyKey", "5")
+		value := GetEnvInt("MyKey", 10)
+		assert.Equal(t, 5, value)
 	})
 
 	t.Run("Not formatted error", func(t *testing.T) {

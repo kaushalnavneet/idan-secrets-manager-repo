@@ -60,6 +60,7 @@ func initOrdersHandler() *OrdersHandler {
 		inAllowList:    IsManualDnsFeatureEnabled(),
 	}
 	oh.workerPool = NewWorkerPool(oh, 1, 2, 1*time.Second)
+	oh.autoRenewWorkerPool = NewWorkerPool(oh, 1, 2, 1*time.Second)
 	return oh
 }
 
