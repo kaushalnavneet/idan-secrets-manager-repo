@@ -1,7 +1,21 @@
 {
-    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": [
-        "local>cloud-platform-sre/cloud-platform-build-dependency-updater:dependencyUpdaterConfig"
-    ],
-    "postUpdateOptions": ["gomodTidy"]
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "local>cloud-platform-sre/cloud-platform-build-dependency-updater:dependencyUpdaterConfig"
+  ],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
+  "packageRules": [
+    {
+      "description": "Opt-out minimum Go version updates: https://github.com/renovatebot/renovate/issues/16715",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchDepTypes": [
+        "golang"
+      ],
+      "enabled": false
+    }
+  ]
 }
