@@ -5,7 +5,7 @@ go 1.17
 //fix CVE Snyk Vulnerability Database
 replace github.com/pkg/sftp => github.com/pkg/sftp v1.13.5
 
-replace github.com/labstack/echo/v4 => github.com/labstack/echo/v4 v4.7.2
+replace github.com/labstack/echo/v4 => github.com/labstack/echo/v4 v4.8.0
 
 require (
 	github.com/gin-gonic/gin v1.8.1
@@ -16,10 +16,10 @@ require (
 	github.com/hashicorp/go-hclog v1.2.2
 	github.com/hashicorp/vault/sdk v0.5.3
 	github.com/robfig/cron/v3 v3.0.1
-	github.ibm.com/security-services/secrets-manager-common-utils v0.0.14078
-	github.ibm.com/security-services/secrets-manager-iam v0.0.12684
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14177
-	golang.org/x/net v0.0.0-20220802222814-0bcc04d9c69b
+	github.ibm.com/security-services/secrets-manager-common-utils v0.0.14465
+	github.ibm.com/security-services/secrets-manager-iam v0.0.14451
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14484
+	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b
 	gotest.tools/v3 v3.3.0
 )
 
@@ -38,7 +38,7 @@ require (
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/OpenDNS/vegadns2client v0.0.0-20180418235048-a3fa4a771d87 // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.7 // indirect
-	github.com/akamai/AkamaiOPEN-edgegrid-golang v1.1.1 // indirect
+	github.com/akamai/AkamaiOPEN-edgegrid-golang v1.2.1 // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1183 // indirect
 	github.com/armon/go-metrics v0.3.9 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
