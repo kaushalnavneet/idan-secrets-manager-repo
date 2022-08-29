@@ -28,14 +28,15 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 type OrdersHandler struct {
 	workerPool          *WorkerPool
 	autoRenewWorkerPool *WorkerPool
-	beforeOrders        map[string]WorkItem
-	runningOrders       map[string]WorkItem
+	beforeOrders        sync.Map
+	runningOrders       sync.Map
 	parser              certificate_parser.CertificateParser
 	pluginConfig        *common.ICAuthConfig
 	cron                *cron.Cron
@@ -443,13 +444,12 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	}
 
 	orderKey := getOrderID(domains)
-	if _, ok := oh.runningOrders[orderKey]; ok {
+	if _, ok := oh.runningOrders.Load(orderKey); ok {
 		message := orderAlreadyInProcess
 		common.ErrorLogForCustomer(message, logdna.Error07042, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07042, http.StatusBadRequest, message)
 	}
-	//todo need to prevent "concurrent map writes"
-	oh.beforeOrders[orderKey] = workItem
+	oh.beforeOrders.Store(orderKey, workItem)
 	return nil
 }
 
@@ -460,14 +460,17 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry, pool *
 	domains := getNames(metadata.CommonName, metadata.AltName)
 	orderKey := getOrderID(domains)
 	//get work item from cache
-	workItem := oh.beforeOrders[orderKey]
+	val, _ := oh.beforeOrders.Load(orderKey)
+
+	workItem := val.(WorkItem)
+
 	//update it with secret id
 	workItem.secretEntry = secretEntry
-	oh.runningOrders[orderKey] = workItem
+	oh.runningOrders.Store(orderKey, workItem)
 	common.Logger().Info(fmt.Sprintf("Order (secret id %s) is begining, added to running orders for domains %s", workItem.secretEntry.ID, workItem.domains))
 	//empty beforeOrders, current workItem is moved to runningOrders
 	//some previous order requests could fail on validations so their beforeOrders should be removed too
-	delete(oh.beforeOrders, orderKey)
+	oh.beforeOrders.Delete(orderKey)
 	addWorkItemToOrdersInProgress(workItem)
 	//start an order
 	_, err := pool.ScheduleCertificateRequest(workItem)
@@ -490,7 +493,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 
 	//delete the order from cache of orders in process
 	orderKey := getOrderID(res.workItem.domains)
-	delete(oh.runningOrders, orderKey)
+	oh.runningOrders.Delete(orderKey)
 	common.Logger().Info(fmt.Sprintf("Order (secret id %s) finished, removed from running orders for domains %s", res.workItem.secretEntry.ID, res.workItem.domains))
 	//update secret entry
 	secretEntry := res.workItem.secretEntry
@@ -745,7 +748,10 @@ func (oh *OrdersHandler) prepareChallenges(entry *secretentry.SecretEntry) ([]Ch
 	domains := getNames(metadata.CommonName, metadata.AltName)
 	orderKey := getOrderID(domains)
 	//get work item from cache
-	workItem := oh.beforeOrders[orderKey]
+
+	val, _ := oh.beforeOrders.Load(orderKey)
+	workItem := val.(WorkItem)
+
 	//update it with secret id
 	workItem.secretEntry = entry
 	return oh.workerPool.PrepareChallenges(workItem)

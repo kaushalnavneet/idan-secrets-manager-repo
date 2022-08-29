@@ -256,8 +256,6 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 
 	t.Run("First order - order succeeded, but parsing failed", func(t *testing.T) {
 		badParserHandler := &OrdersHandler{
-			runningOrders:  make(map[string]WorkItem),
-			beforeOrders:   make(map[string]WorkItem),
 			parser:         &parserMock{},
 			metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
 		}
@@ -367,7 +365,11 @@ func createOrderResult(withError bool, bundleCert bool, rotation bool) Result {
 }
 
 func resetOrdersInProgress() {
-	oh.runningOrders = make(map[string]WorkItem)
+	oh.runningOrders.Range(func(key, value interface{}) bool {
+		oh.runningOrders.Delete(key)
+		return true
+	})
+
 	ordersInProgress := getOrdersInProgress(storage)
 	ordersInProgress.Orders = []OrderDetails{}
 	ordersInProgress.save(storage)

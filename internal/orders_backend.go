@@ -31,8 +31,6 @@ func (ob *OrdersBackend) GetSecretBackendHandler() secret_backend.SecretBackendH
 	//first time create order handler
 	if ob.ordersHandler == nil {
 		oh := &OrdersHandler{
-			runningOrders:  make(map[string]WorkItem),
-			beforeOrders:   make(map[string]WorkItem),
 			parser:         &certificate_parser.CertificateParserImpl{},
 			cron:           ob.secretBackend.(*secret_backend.SecretBackendImpl).Cron,
 			metadataClient: ob.secretBackend.GetMetadataClient(),

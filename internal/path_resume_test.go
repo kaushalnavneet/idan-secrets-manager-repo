@@ -35,7 +35,7 @@ func Test_Resume(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 		checkOrdersInProgress(t, []OrderDetails{})
-		assert.Equal(t, len(oh.runningOrders), 0)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 0)
 	})
 
 	t.Run("Order exist but already Active", func(t *testing.T) {
@@ -55,7 +55,7 @@ func Test_Resume(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 		checkOrdersInProgress(t, []OrderDetails{})
-		assert.Equal(t, len(oh.runningOrders), 0)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 0)
 	})
 
 	t.Run("Order started more than 3 hours ago", func(t *testing.T) {
@@ -86,12 +86,11 @@ func Test_Resume(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
 		checkOrdersInProgress(t, []OrderDetails{})
-		assert.Equal(t, len(oh.runningOrders), 0)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 0)
 	})
 
 	t.Run("Resume order - config doesn't exist", func(t *testing.T) {
 		//reset running orders
-		oh.runningOrders = make(map[string]WorkItem)
 		issuanceInfoToTest := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StatePreActivation,
 			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
@@ -118,7 +117,7 @@ func Test_Resume(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
-		assert.Equal(t, len(oh.runningOrders), 0)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 0)
 		checkOrdersInProgress(t, []OrderDetails{})
 		//should become Deactivated
 		expectedIssuanceInfoForFailedRotation := map[string]interface{}{
@@ -133,7 +132,6 @@ func Test_Resume(t *testing.T) {
 
 	t.Run("Resume order - happy flow", func(t *testing.T) {
 		//reset running orders
-		oh.runningOrders = make(map[string]WorkItem)
 		issuanceInfoToTest := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StatePreActivation,
 			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
@@ -160,13 +158,13 @@ func Test_Resume(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
-		assert.Equal(t, len(oh.runningOrders), 1)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: entryToTest.ID, Attempts: 2}})
 	})
 
 	t.Run("Resume order - third attempt = failure", func(t *testing.T) {
 		//reset running orders
-		oh.runningOrders = make(map[string]WorkItem)
+		resetOrdersInProgress()
 		issuanceInfoToTest := map[string]interface{}{
 			secretentry.FieldState:            secretentry.StatePreActivation,
 			secretentry.FieldStateDescription: secret_metadata_entry.GetNistStateDescription(secretentry.StatePreActivation),
@@ -193,7 +191,7 @@ func Test_Resume(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
-		assert.Equal(t, len(oh.runningOrders), 0)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 0)
 		checkOrdersInProgress(t, []OrderDetails{})
 
 		//check secret
