@@ -22,6 +22,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -52,8 +53,6 @@ var (
 func initOrdersHandler() *OrdersHandler {
 	mb := MockSecretBackend{name: "public_cert mock"}
 	oh = &OrdersHandler{
-		runningOrders:  make(map[string]WorkItem),
-		beforeOrders:   make(map[string]WorkItem),
 		parser:         &certificate_parser.CertificateParserImpl{},
 		metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
 		secretBackend:  &mb,
@@ -110,7 +109,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], false)
 
 		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: resp.Data[secretentry.FieldId].(string), Attempts: 1}})
-		assert.Equal(t, len(oh.runningOrders), 1)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 
 	t.Run("Happy flow with all fields", func(t *testing.T) {
@@ -164,7 +163,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], true)
 
 		checkOrdersInProgress(t, []OrderDetails{{GroupId: groupId, Id: resp.Data[secretentry.FieldId].(string), Attempts: 1}})
-		assert.Equal(t, len(oh.runningOrders), 1)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 
 	t.Run("Happy flow + rotation when it's still pre-activate", func(t *testing.T) {
@@ -188,7 +187,7 @@ func Test_Issue_cert(t *testing.T) {
 		resp, err := b.HandleRequest(context.Background(), req)
 		assert.NilError(t, err)
 		assert.Equal(t, false, resp.IsError())
-		assert.Equal(t, len(oh.runningOrders), 1)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 
 		//rotate created secret
 		createdSecretId := resp.Data[secretentry.FieldId].(string)
@@ -238,7 +237,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
 		checkOrdersInProgress(t, []OrderDetails{})
-		assert.Equal(t, len(oh.runningOrders), 0)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 0)
 	})
 
 	t.Run("Invalid key algorithm", func(t *testing.T) {
@@ -267,7 +266,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
 		checkOrdersInProgress(t, []OrderDetails{})
-		assert.Equal(t, len(oh.runningOrders), 0)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 0)
 	})
 
 	t.Run("Not existing CA config", func(t *testing.T) {
@@ -296,7 +295,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
 		checkOrdersInProgress(t, []OrderDetails{})
-		assert.Equal(t, len(oh.runningOrders), 0)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 0)
 	})
 
 	t.Run("Not existing DNS config", func(t *testing.T) {
@@ -325,17 +324,25 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
 		checkOrdersInProgress(t, []OrderDetails{})
-		assert.Equal(t, len(oh.runningOrders), 0)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 0)
 	})
 }
 
+func countOrdersMap(m *sync.Map) int {
+	total := 0
+	m.Range(func(key, value interface{}) bool {
+		total = total + 1
+		return true
+	})
+
+	return total
+}
 func Test_rotation(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
 
 	t.Run("Happy flow", func(t *testing.T) {
 		initBackend(false)
-		oh.runningOrders = make(map[string]WorkItem)
 		//the order was already in progress, it's the second attempt
 		setOrdersInProgress(expiresIn20Days_autoRotateTrue_id, 1)
 		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
@@ -358,12 +365,12 @@ func Test_rotation(t *testing.T) {
 		assert.Equal(t, false, resp.IsError())
 		// it's the second attempt
 		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 2}})
-		assert.Equal(t, len(oh.runningOrders), 1)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 
 	t.Run("Happy flow for manual dns provider", func(t *testing.T) {
 		initBackend(true)
-		oh.runningOrders = make(map[string]WorkItem)
+		resetOrdersInProgress()
 		//the order was already in progress, it's the second attempt
 		setOrdersInProgress("", 0)
 		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
@@ -386,7 +393,7 @@ func Test_rotation(t *testing.T) {
 		assert.Equal(t, false, resp.IsError())
 		// it's the second attempt
 		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 1}})
-		assert.Equal(t, len(oh.runningOrders), 1)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 }
 
@@ -444,7 +451,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldAutoRotate], false)
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], false)
 
-		assert.Equal(t, len(oh.runningOrders), 0)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 0)
 	})
 	secretEntry := &secretentry.SecretEntry{
 		SecretMetadataEntry: secret_metadata_entry.SecretMetadataEntry{
@@ -510,7 +517,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 
 		validationTime := getMetadataResp.Data[FieldIssuanceInfo].(map[string]interface{})[FieldValidationTime]
 		assert.Equal(t, validationTime != nil, true)
-		assert.Equal(t, len(oh.runningOrders), 1)
+		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 
 	t.Run("Validate dns challenge - bad extra data in secrets entry", func(t *testing.T) {
