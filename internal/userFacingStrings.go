@@ -214,17 +214,16 @@ It receives the secretId parameter and and optionally also the group ID as part 
 
 // path get version metadata
 const (
-	pathVersionMetaHelpSynopsis    = `Read metadata for secrets version in the public certificate secrets store.`
-	pathVersionMetaHelpDescription = `This path takes a secretId and attempts to perform the version metadata read operation on the secret with this secretId.` +
-		"\n" + getVersionMetaOperationDescription
+	pathVersionMetaHelpSynopsis    = `Read all the version metadata and update only the version custom metadata of a public certificate secret.`
+	pathVersionMetaHelpDescription = `This path uses a secret ID to read all the metadata and update only the custom metadata for a specific version of a secret.` +
+		"\n" + getVersionMetaOperationDescription +
+		"\n" + updateVersionMetaOperationDescription
 
-	getVersionMetaOperationSummary     = "Reads a version metadata of a secret"
-	getVersionMetaOperationDescription = `The versions metadata read operation receives the secretId parameter as part of the path.
-It returns all of the secret's version metadata.`
+	getVersionMetaOperationSummary     = "Read the version metadata of a secret"
+	getVersionMetaOperationDescription = `This path uses a secret ID to read the version metadata of a secret.`
 
-	updateVersionMetaOperationSummary     = "update a version metadata of a secret"
-	updateVersionMetaOperationDescription = `The update operation receives secretId & versionId parameters as part of the path.
-It updates the secret version's metadata with the parameters that were provided, and returns the updated secret version.`
+	updateVersionMetaOperationSummary     = "Update the version metadata of a secret"
+	updateVersionMetaOperationDescription = `This path uses a secret ID and version ID to update the version metadata of a secret.`
 )
 
 //path issue and list certificates
