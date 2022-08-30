@@ -44,7 +44,7 @@ const (
 	MaxCertRequest                           = 200
 	MaxAutoRenewWorkers                      = 10
 	MaxAutoRenewCertRequest                  = 1000
-	CertRequestTimeout         time.Duration = 60 * 20 //wait 20 minutes till fail order
+	CertRequestTimeout         time.Duration = 60 * 35 //wait 35 minutes till fail order (max polling timout is 30 mins)
 	RotateIfExpirationIsInDays               = 31
 	txtRecordTtl                             = 120
 	MaxAttemptsToOrder                       = 2
