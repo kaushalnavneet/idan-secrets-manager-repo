@@ -40,9 +40,11 @@ var (
 	urlCisToGetZoneId       = fmt.Sprintf(`%s/%s/zones?name=%s&status=active`, urlCISProd, url.QueryEscape(cisCrn), domainName)
 	urlCisToSetChallenge    = fmt.Sprintf(`%s/%s/zones/%s/dns_records`, urlCISProd, url.QueryEscape(cisCrn), domainId)
 	urlCisToRemoveTxtRecord = fmt.Sprintf(`%s/%s/zones/%s/dns_records/%s`, urlCISProd, url.QueryEscape(cisCrn), domainId, txtRecordId)
-	urlCisToGetTxtRecord    = fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&content=%s`, urlCISProd, url.QueryEscape(cisCrn), domainId, txtRecName, txtRecValue)
-	urlCisToGetTxtNoPoint   = fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&content=%s`, urlCISProd, url.QueryEscape(cisCrn), domainId, txtRecName[:len(txtRecName)-1], txtRecValue)
-	expectedCisDomainData   = CISDomainData{
+	urlCisToGetTxtRecord    = fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s`, urlCISProd, url.QueryEscape(cisCrn), domainId, txtRecName)
+	urlCisToGetTxtNoPoint   = fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s`, urlCISProd, url.QueryEscape(cisCrn), domainId, txtRecName[:len(txtRecName)-1])
+
+	txtRecordAlreadyExistsResponse = "{\"errors\":[{\"code\":81057}]}"
+	expectedCisDomainData          = CISDomainData{
 		name:           domainName,
 		zoneId:         domainId,
 		txtRecordName:  txtRecName,
@@ -288,7 +290,7 @@ func Test_CIS_Present(t *testing.T) {
 				//get zone id by domain name
 				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: txtRecordAlreadyExistsResponse},
 				//get existing txt record
 				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(txtRecordId))},
 			},
@@ -346,7 +348,7 @@ func Test_CIS_Present(t *testing.T) {
 				//get zone id by domain name
 				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: txtRecordAlreadyExistsResponse},
 				//get existing txt record
 				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: http.StatusForbidden, JsonBody: "{}"},
 			},
@@ -392,7 +394,7 @@ func Test_CIS_Present(t *testing.T) {
 				//get zone id by domain name
 				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: txtRecordAlreadyExistsResponse},
 				//get existing txt record
 				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: http.StatusServiceUnavailable, JsonBody: "{}"},
 			},
@@ -438,7 +440,7 @@ func Test_CIS_Present(t *testing.T) {
 				//get zone id by domain name
 				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: txtRecordAlreadyExistsResponse},
 				//get existing txt record
 				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {Error: clientError},
 			},
@@ -455,7 +457,7 @@ func Test_CIS_Present(t *testing.T) {
 				//get zone id by domain name
 				RequestKey{Method: http.MethodGet, Path: urlCisToGetZoneId}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(domainId))},
 				//set challenge
-				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: "{}"},
+				RequestKey{Method: http.MethodPost, Path: urlCisToSetChallenge}: {StatusCode: http.StatusBadRequest, JsonBody: txtRecordAlreadyExistsResponse},
 				//get existing txt record
 				RequestKey{Method: http.MethodGet, Path: urlCisToGetTxtRecord}: {StatusCode: http.StatusOK, JsonBody: string(buildCISListResponse(""))},
 				//get existing txt record
