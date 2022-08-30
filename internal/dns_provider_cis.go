@@ -54,10 +54,13 @@ type CISResponseList struct {
 }
 
 type CISResponseResult struct {
-	Trace   string      `json:"trace"`
-	Success bool        `json:"success"`
-	Result  CISResult   `json:"result"`
-	Errors  interface{} `json:"errors,omitempty"`
+	Trace   string    `json:"trace"`
+	Success bool      `json:"success"`
+	Result  CISResult `json:"result"`
+	Errors  []struct {
+		Code    float64 `json:"code"`
+		Message string  `json:"message"`
+	} `json:"errors,omitempty"`
 }
 
 type CISRequest struct {
@@ -223,7 +226,8 @@ func (c *CISDNSConfig) setChallenge(domain *CISDomainData) (string, error) {
 	//success
 	if resp.StatusCode() == http.StatusOK && response.Success {
 		return response.Result.ID, nil
-	} else if resp.StatusCode() == http.StatusBadRequest {
+	} else if resp.StatusCode() == http.StatusBadRequest && len(response.Errors) > 0 && response.Errors[0].Code == 81057 { //error code for the error "Record already exists."
+		common.Logger().Error(logdna.Error07078 + errorLog + fmt.Sprintf(CisServerError, resp.StatusCode(), response.Trace, response.Errors) + " Trying to get existing challenge record")
 		//maybe the record already exists, check it
 		id, err := c.getChallengeRecordId(*domain)
 		if err != nil {
@@ -267,8 +271,8 @@ func (c *CISDNSConfig) removeChallenge(domain *CISDomainData) error {
 
 func (c *CISDNSConfig) getChallengeRecordId(domain CISDomainData) (string, error) {
 	errorLog := errorGetTxtRec + domain.name + ": "
-	reqUrl := fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&content=%s&match=all`, c.CISEndpoint, url.QueryEscape(c.CRN),
-		url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordName), url.QueryEscape(domain.txtRecordValue))
+	reqUrl := fmt.Sprintf(`%s/%s/zones/%s/dns_records?type=TXT&name=%s&match=all`, c.CISEndpoint, url.QueryEscape(c.CRN),
+		url.QueryEscape(domain.zoneId), url.QueryEscape(domain.txtRecordName))
 	headers, err := c.buildRequestHeader()
 	if err != nil {
 		common.Logger().Error(logdna.Error07086 + errorBuildHeaderFailed + err.Error())
