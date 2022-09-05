@@ -129,11 +129,11 @@ It deletes the configuration with the given name.`
 // DNS provider config create and list path
 const (
 	pathDNSConfigHelpSynopsis    = "Create and list the DNS provider configuration"
-	pathDNSConfigHelpDescription = `This path supports creating a new DNS provider configuration, 
-and listing the existing DNS provider configuration of the public certificates secrets store.`
+	pathDNSConfigHelpDescription = `This path supports creating a new DNS provider configuration 
+and listing the existing DNS provider configuration of public certificates.`
 
 	listDNSConfigOperationSummary     = "List DNS provider configurations"
-	listDNSConfigOperationDescription = `The list operation returns the DNS provider configurations that are in the public certificate secrets store.`
+	listDNSConfigOperationDescription = `The list operation returns the DNS provider configurations of public certificates.`
 
 	createDNSConfigOperationSummary     = "Create a DNS provider configuration"
 	createDNSConfigOperationDescription = `The create operation creates a new DNS provider configuration. The following parameters are used to create a new configuration:
