@@ -430,7 +430,7 @@ github.com/labbsr0x/bindman-dns-webhook v1.0.2 h1:I7ITbmQPAVwrDdhd6dHKi+MYJTJqPC
 github.com/labbsr0x/bindman-dns-webhook v1.0.2/go.mod h1:p6b+VCXIR8NYKpDr8/dg1HKfQoRHCdcsROXKvmoehKA=
 github.com/labbsr0x/goh v1.0.1 h1:97aBJkDjpyBZGPbQuOK5/gHcSFbcr5aRsq3RSRJFpPk=
 github.com/labbsr0x/goh v1.0.1/go.mod h1:8K2UhVoaWXcCU7Lxoa2omWnC8gyW8px7/lmO61c027w=
-github.com/labstack/echo/v4 v4.8.0/go.mod h1:xkCDAdFCIf8jsFQ5NnbK7oqaF/yU1A1X20Ltm0OvSks=
+github.com/labstack/echo/v4 v4.9.0/go.mod h1:xkCDAdFCIf8jsFQ5NnbK7oqaF/yU1A1X20Ltm0OvSks=
 github.com/labstack/gommon v0.3.1/go.mod h1:uW6kP17uPlLJsD3ijUYn3/M5bAxtlZhMI6m3MFxTMTM=
 github.com/leodido/go-urn v1.2.1 h1:BqpAaACuzVSgi/VLzGZIobT2z4v53pjosyNd9Yv6n/w=
 github.com/leodido/go-urn v1.2.1/go.mod h1:zt4jvISO2HfUBqxjfIshjdMTYS56ZS/qv49ictyFfxY=
@@ -709,8 +709,8 @@ github.ibm.com/security-services/secrets-manager-common-utils v0.0.14657 h1:/Uzt
 github.ibm.com/security-services/secrets-manager-common-utils v0.0.14657/go.mod h1:HPlszEQRx98yF4vEY44ec5SYYI472aHgqLz8wNh/5hQ=
 github.ibm.com/security-services/secrets-manager-iam v0.0.14645 h1:rzj1Fz75dghN4jSDQviVheqU339AGoW4YnXlwq377cU=
 github.ibm.com/security-services/secrets-manager-iam v0.0.14645/go.mod h1:74l0SY73EOHbseDGE7IcQVFcLH4JqNI4xJjhAA65Hu4=
-github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14691 h1:yaJyquezZsaUOh1/bXtHE6CB/4JqZjS+dYlbyeaoBbU=
-github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14691/go.mod h1:mRh8IrT1+WTkZygB4XDG8z0exjgxXNflL2JVkv+s8F4=
+github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14718 h1:P8v2PJ4gSqUJKTS4uw3J9ix1vYSLnM2htOCoq8664jk=
+github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14718/go.mod h1:mRh8IrT1+WTkZygB4XDG8z0exjgxXNflL2JVkv+s8F4=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
