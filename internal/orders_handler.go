@@ -568,7 +568,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	}
 	common.Logger().Info(fmt.Sprintf("Saving order result (secret id %s) to storage", secretEntry.ID))
 	err := common.StoreSecretAndVersionWithoutLocking(secretEntry, storage, context.Background(), oh.getMetadataClient(), &opp)
-
+	//todo check blocked
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf("Couldn't save order (secret id %s) result to storage:%s ", secretEntry.ID, err.Error()))
 		return
@@ -688,7 +688,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 			common.Logger().Debug("In new metadata manager flow of rotate certificate if needed")
 			// we need to add the secret version to the secret entry because we dont have versions in metadata manager
 			secretPath := entry.GroupID + "/" + entry.ID
-			secretEntry, err := common.GetSecretWithoutLocking(secretPath, req.Storage, ctx, oh.getMetadataClient())
+			secretEntry, err := common.GetSecretWithoutLocking(secretPath, secretentry.SecretTypePublicCert, req.Storage, ctx, oh.getMetadataClient())
 			if err != nil {
 				// todo: improve autorotation
 				common.Logger().Error(fmt.Sprintf("Couldn't get the secret entry %s from COS. Error: %s", entry.ID, err.Error()))

@@ -46,7 +46,7 @@ func (ob *OrdersBackend) resumeOrdersInProgress(ctx context.Context, req *logica
 
 func (ob *OrdersBackend) resumeOrder(ctx context.Context, req *logical.Request, item OrderDetails) {
 	secretPath := item.GroupId + "/" + item.Id
-	secretEntry, err := common.GetSecretWithoutLocking(secretPath, req.Storage, ctx, ob.secretBackend.GetMetadataClient())
+	secretEntry, err := common.GetSecretWithoutLocking(secretPath, secretentry.SecretTypePublicCert, req.Storage, ctx, ob.secretBackend.GetMetadataClient())
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf("Couldn't get secret entry '%s' in order to resume its order: %s", secretPath, err.Error()))
 		return
