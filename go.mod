@@ -18,8 +18,8 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.ibm.com/security-services/secrets-manager-common-utils v0.0.14749
 	github.ibm.com/security-services/secrets-manager-iam v0.0.14746
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14823
-	golang.org/x/net v0.0.0-20220906165146-f3363e06e74c
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14832
+	golang.org/x/net v0.0.0-20220907135653-1e95f45603a7
 	gotest.tools/v3 v3.3.0
 )
 
