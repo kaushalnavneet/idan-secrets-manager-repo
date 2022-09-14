@@ -29,7 +29,7 @@ func init() {
 
 func TestOrdersBackend_GetConcretePath(t *testing.T) {
 	features := os.Getenv("featureToggels")
-	os.Setenv("featureToggels", "{\"GetSecretVersion\":true,\"manualDns\":true}")
+	os.Setenv("featureToggels", "{\"manualDns\":true}")
 	feature_util.LoadFeaturesConfig()
 	defer func() {
 		os.Setenv("featureToggels", features)

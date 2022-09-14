@@ -12,6 +12,7 @@ import (
 	"github.com/robfig/cron/v3"
 	at "github.ibm.com/security-services/secrets-manager-common-utils/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-common-utils/errors"
+	errors2 "github.ibm.com/security-services/secrets-manager-common-utils/errors"
 	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/certificate"
@@ -495,8 +496,9 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	orderKey := getOrderID(res.workItem.domains)
 	oh.runningOrders.Delete(orderKey)
 	common.Logger().Info(fmt.Sprintf("Order (secret id %s) finished, removed from running orders for domains %s", res.workItem.secretEntry.ID, res.workItem.domains))
-	//update secret entry
-	secretEntry := res.workItem.secretEntry
+	//create a clone of secret entry
+	clone := *res.workItem.secretEntry
+	secretEntry := &clone
 	storage := res.workItem.storage
 	//if entry state is PreActivation,it's the first order, remove empty version
 	isFirstOrder := secretEntry.State == secretentry.StatePreActivation
@@ -509,6 +511,11 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	}
 	var data interface{}
 	var extraData map[string]interface{}
+	//in case of error we don't add a new version it just updates secret metadata with the order error, operation = update
+	opp := common.StoreOptions{
+		Operation:     types_common.StoreOptionUpdateMetadata,
+		VersionMapper: oh.metadataMapper.MapVersionMetadata,
+	}
 	if res.Error != nil {
 		common.Logger().Error(fmt.Sprintf("Order (secret id %s) failed with error: %s", secretEntry.ID, res.Error.Error()))
 		errorObj := getOrderError(res)
@@ -559,19 +566,41 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 			secretEntry.ExtraData = certData.Metadata
 			secretEntry.ExpirationDate = certData.Metadata.NotAfter
 			secretEntry.State = secretentry.StateActive
+			//in case of success we add a new version it should be checked for locks + notification, operation = rotation
+			opp.Operation = types_common.StoreOptionRotate
 		}
 	}
 
-	opp := common.StoreOptions{
-		Operation:     types_common.StoreOptionRotate,
-		VersionMapper: oh.metadataMapper.MapVersionMetadata,
-	}
 	common.Logger().Info(fmt.Sprintf("Saving order result (secret id %s) to storage", secretEntry.ID))
 	err := common.StoreSecretAndVersionWithoutLocking(secretEntry, storage, context.Background(), oh.getMetadataClient(), &opp)
-	//todo check blocked
 	if err != nil {
-		common.Logger().Error(fmt.Sprintf("Couldn't save order (secret id %s) result to storage:%s ", secretEntry.ID, err.Error()))
-		return
+		// if we couldn't save the newly added version because the previous version was locked
+		if codedErr, ok := err.(errors2.SMCodedError); ok && codedErr.Code() == http.StatusPreconditionFailed {
+			common.Logger().Error(fmt.Sprintf("Failed to update secret entry %s in group %s with an order result because it's locked. Updating secret metadata with the error", secretEntry.ID, secretEntry.GroupID))
+			//take original secret entry without a newly added version
+			clone = *res.workItem.secretEntry
+			secretEntry = &clone
+			// update issuance info with error about locked secret
+			metadata.IssuanceInfo[secretentry.FieldState] = secretentry.StateDeactivated
+			metadata.IssuanceInfo[secretentry.FieldStateDescription] = secret_metadata_entry.GetNistStateDescription(secretentry.StateDeactivated)
+			metadata.IssuanceInfo[FieldErrorCode] = codedErr.ErrCode()
+			metadata.IssuanceInfo[FieldErrorMessage] = codedErr.Error()
+			if metadata.IssuanceInfo[FieldAutoRotated] == true {
+				incrementAutoRotationAttempts(secretEntry, metadata)
+			}
+			secretEntry.ExtraData = metadata
+			//in case of error we don't add a new version it just updates secret metadata with the order error, operation = update
+			opp.Operation = types_common.StoreOptionUpdateMetadata
+		} else {
+			// save secret failed for some other reason, just retry
+			common.Logger().Warn(fmt.Sprintf("Update secret entry %s in group %s with an order result failed, retrying...", secretEntry.ID, secretEntry.GroupID))
+		}
+		//try to save again
+		err = common.StoreSecretAndVersionWithoutLocking(secretEntry, storage, context.Background(), oh.getMetadataClient(), &opp)
+		if err != nil {
+			common.Logger().Error(fmt.Sprintf("Failed to update secret entry %s in group %s after a second retry: %s", secretEntry.ID, secretEntry.GroupID, err.Error()))
+			return
+		}
 	}
 	removeWorkItemFromOrdersInProgress(res.workItem)
 	logActivityTrackerEvent(res, isFirstOrder)
