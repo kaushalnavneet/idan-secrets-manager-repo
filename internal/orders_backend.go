@@ -72,6 +72,7 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 		//autorotate+cleanup
 		ob.pathAutoRotate(),
 		ob.pathResume(),
+		//list versions
 		ob.pathListVersions(),
 	)
 	if IsManualDnsFeatureEnabled() {
