@@ -16,9 +16,9 @@ require (
 	github.com/hashicorp/go-hclog v1.3.0
 	github.com/hashicorp/vault/sdk v0.5.3
 	github.com/robfig/cron/v3 v3.0.1
-	github.ibm.com/security-services/secrets-manager-common-utils v0.0.14749
-	github.ibm.com/security-services/secrets-manager-iam v0.0.14746
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14884
+	github.ibm.com/security-services/secrets-manager-common-utils v0.0.14945
+	github.ibm.com/security-services/secrets-manager-iam v0.0.14929
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14947
 	golang.org/x/net v0.0.0-20220909164309-bea034e7d591
 	gotest.tools/v3 v3.3.0
 )
@@ -51,7 +51,6 @@ require (
 	github.com/cpu/goacmedns v0.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.6.1 // indirect
-	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dnsimple/dnsimple-go v0.70.1 // indirect
 	github.com/evanphx/json-patch/v5 v5.5.0 // indirect
@@ -69,7 +68,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/go-cmp v0.5.8 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
 	github.com/gophercloud/gophercloud v0.16.0 // indirect
@@ -151,15 +150,16 @@ require (
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/vinyldns/go-vinyldns v0.9.16 // indirect
 	github.com/vultr/govultr/v2 v2.16.0 // indirect
-	github.ibm.com/IAM/basiclog v0.0.0-20210427025313-aecb0b5934eb // indirect
-	github.ibm.com/IAM/go-jwks v0.0.0-20200729154309-e396993d7f76 // indirect
-	github.ibm.com/IAM/pep/v2 v2.0.5 // indirect
-	github.ibm.com/IAM/token/v3 v3.0.3 // indirect
+	github.ibm.com/IAM/basiclog v0.0.1 // indirect
+	github.ibm.com/IAM/context-token v0.0.1 // indirect
+	github.ibm.com/IAM/go-jwks v1.0.2 // indirect
+	github.ibm.com/IAM/pep/v3 v3.3.1 // indirect
+	github.ibm.com/IAM/token/v5 v5.2.0 // indirect
 	go.opencensus.io v0.22.3 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/ratelimit v0.0.0-20180316092928-c15da0234277 // indirect
-	go.uber.org/zap v1.21.0 // indirect
+	go.uber.org/zap v1.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
