@@ -6,7 +6,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
-	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/rest_client"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/certificate_parser"
@@ -73,10 +72,8 @@ func (ob *OrdersBackend) GetConcretePath() []*framework.Path {
 		//autorotate+cleanup
 		ob.pathAutoRotate(),
 		ob.pathResume(),
+		ob.pathListVersions(),
 	)
-	if feature_util.IsFeatureEnabled("GetSecretVersion") {
-		path = framework.PathAppend(path, ob.pathListVersions())
-	}
 	if IsManualDnsFeatureEnabled() {
 		path = framework.PathAppend(path, ob.pathContinueOrder())
 	}
