@@ -17,8 +17,8 @@ require (
 	github.com/hashicorp/vault/sdk v0.5.3
 	github.com/robfig/cron/v3 v3.0.1
 	github.ibm.com/security-services/secrets-manager-common-utils v0.0.14945
-	github.ibm.com/security-services/secrets-manager-iam v0.0.14929
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.14947
+	github.ibm.com/security-services/secrets-manager-iam v0.0.15026
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.15027
 	golang.org/x/net v0.0.0-20220909164309-bea034e7d591
 	gotest.tools/v3 v3.3.0
 )
@@ -160,7 +160,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/ratelimit v0.0.0-20180316092928-c15da0234277 // indirect
 	go.uber.org/zap v1.23.0 // indirect
-	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
+	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
