@@ -54,10 +54,10 @@ Remove the extra domain or the wildcard domain from the certificate order.`  //E
 	secretShouldBeInActiveState = "Secret should be in the Active state"                                                    //Error07062
 	orderCouldNotBeProcessed    = "The order could not be resumed after 2 attempts."                                        //Error07046
 	failedToParseCertificate    = "Failed to parse ordered certificate"                                                     //Error07063
-	challengeValidationError    = "A secret should be in Preactivation state in order to validate manually set challenge"   //Error07205
+	challengeValidationError    = "A secret should be in Preactivation state in order to validate a manually set challenge"   //Error07205
 	validationAlreadyInProcess  = "Challenges validation is already in process."                                            //Error07211
 
-	challengeValidationErrorNotManual = "Challenges validation can be done only for manual dns provider" //Error07206
+	challengeValidationErrorNotManual = "Challenges validation can be done only for a manual dns provider" //Error07206
 )
 
 //Errors in communication with DNS providers
@@ -129,34 +129,34 @@ It deletes the configuration with the given name.`
 // DNS provider config create and list path
 const (
 	pathDNSConfigHelpSynopsis    = "Create and list the DNS provider configuration"
-	pathDNSConfigHelpDescription = `This path supports creating a new DNS provider configuration, 
-and listing the existing DNS provider configuration of the public certificates secrets store.`
+	pathDNSConfigHelpDescription = `This path supports creating a new DNS provider configuration 
+and listing the existing DNS provider configuration of public certificates.`
 
 	listDNSConfigOperationSummary     = "List DNS provider configurations"
-	listDNSConfigOperationDescription = `The list operation returns the DNS provider configurations that are in the public certificate secrets store.`
+	listDNSConfigOperationDescription = `The list operation returns the DNS provider configurations of public certificates.`
 
 	createDNSConfigOperationSummary     = "Create a DNS provider configuration"
 	createDNSConfigOperationDescription = `The create operation creates a new DNS provider configuration. The following parameters are used to create a new configuration:
 name (required), type (required), config (required).
-The created config is returned in the response.`
+The created configuration is returned in the response.`
 )
 
 // DNS provider config  get update delete path
 const (
 	pathDNSConfigWithNameHelpSynopsis    = "Read, update, and delete the DNS provider configuration"
-	pathDNSConfigWithNameHelpDescription = `This path takes the config name and attempts to read, udpate, and delete the DNS provider configuration.`
+	pathDNSConfigWithNameHelpDescription = `This path uses the config name parameter to read, udpate, and delete the DNS provider configuration.`
 
 	getDNSConfigOperationSummary     = "Read the DNS provider configuration"
-	getDNSConfigOperationDescription = `The read operation receives the config name parameter as part of the path.
+	getDNSConfigOperationDescription = `The read operation uses the config name parameter as part of the path.
 It returns the DNS provider configuration.`
 
 	updateDNSConfigOperationSummary     = "Update the DNS provider configuration"
-	updateDNSConfigOperationDescription = `The update operation receives the config name parameter as part of the path and the new payload as a required parameter.
-It updates the DNS provider configuration, and returns the updated configuration.`
+	updateDNSConfigOperationDescription = `The update operation uses the config name parameter as part of the path and the new payload as a required parameter.
+It updates the DNS provider configuration and returns the updated configuration.`
 
 	deleteDNSConfigOperationSummary     = "Delete the DNS provider configuration"
-	deleteDNSConfigOperationDescription = `The delete operation receives the config name parameter as part of the path.
-It deletes the configuration with the given name.`
+	deleteDNSConfigOperationDescription = `The delete operation uses the config name parameter as part of the path.
+It deletes the configuration that is associated with the config name.`
 )
 
 // Root config get path
