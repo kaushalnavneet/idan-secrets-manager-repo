@@ -151,7 +151,7 @@ const (
 It returns the DNS provider configuration.`
 
 	updateDNSConfigOperationSummary     = "Update the DNS provider configuration"
-	updateDNSConfigOperationDescription = `The update operation uses the config name and the new payload parameters as part of the path.
+	updateDNSConfigOperationDescription = `The update operation uses the config name parameter as part of the path and the new payload as a required parameter.
 It updates the DNS provider configuration and returns the updated configuration.`
 
 	deleteDNSConfigOperationSummary     = "Delete the DNS provider configuration"
