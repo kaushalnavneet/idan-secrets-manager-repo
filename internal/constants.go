@@ -78,11 +78,12 @@ const (
 	caConfigTypeLEProd  = "letsencrypt"
 	caConfigTypeLEStage = "letsencrypt-stage"
 
-	caConfigPrivateKey   = "private_key"
-	caConfigRegistration = "registration"
-	caConfigEmail        = "email"
-	caConfigDirectoryUrl = "directory_url"
-	caConfigCARootCert   = "ca_root_cert"
+	caConfigPrivateKey     = "private_key"
+	caConfigPreferredChain = "preferred_chain"
+	caConfigRegistration   = "registration"
+	caConfigEmail          = "email"
+	caConfigDirectoryUrl   = "directory_url"
+	caConfigCARootCert     = "ca_root_cert"
 
 	UrlLetsEncryptProd  = "https://acme-v02.api.letsencrypt.org/directory"
 	UrlLetsEncryptStage = "https://acme-staging-v02.api.letsencrypt.org/directory"
