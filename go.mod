@@ -10,7 +10,7 @@ replace github.com/labstack/echo/v4 => github.com/labstack/echo/v4 v4.9.0
 require (
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-acme/lego/v4 v4.8.0
-	github.com/go-playground/validator/v10 v10.11.0
+	github.com/go-playground/validator/v10 v10.11.1
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-hclog v1.3.0
@@ -19,8 +19,8 @@ require (
 	github.ibm.com/project-fortress/vault-client-golang v0.0.7
 	github.ibm.com/security-services/secrets-manager-common-utils v0.0.14945
 	github.ibm.com/security-services/secrets-manager-iam v0.0.15026
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.15027
-	golang.org/x/net v0.0.0-20220909164309-bea034e7d591
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.15104
+	golang.org/x/net v0.0.0-20220919232410-f2f64ebce3c1
 	gotest.tools/v3 v3.3.0
 )
 
