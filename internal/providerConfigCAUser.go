@@ -16,14 +16,15 @@ import (
 )
 
 type CAUserConfig struct {
-	Name         string `json:"name"`
-	CAType       string `json:"type"`
-	CARootCert   string `json:"ca_cert"`
-	DirectoryURL string `json:"directory_url"`
-	Email        string `json:"email"`
-	Registration *registration.Resource
-	key          crypto.PrivateKey
-	byoa         bool
+	Name           string `json:"name"`
+	CAType         string `json:"type"`
+	CARootCert     string `json:"ca_cert"`
+	DirectoryURL   string `json:"directory_url"`
+	Email          string `json:"email"`
+	PreferredChain string `json:"preferred_chain"`
+	Registration   *registration.Resource
+	key            crypto.PrivateKey
+	byoa           bool
 }
 
 var caProviders map[string]string
@@ -56,7 +57,7 @@ func (u *CAUserConfig) GetPrivateKey() crypto.PrivateKey {
 	return u.key
 }
 
-func NewCAUserConfig(caType, privateKeyPEM, caRootCertPath, email string) (*CAUserConfig, error) {
+func NewCAUserConfig(caType, privateKeyPEM, caRootCertPath, email, preferredChain string) (*CAUserConfig, error) {
 	//set directory url according to ca
 	directoryUrl, ok := caProviders[caType]
 	if !ok { //should not happen because of input validation
@@ -81,12 +82,13 @@ func NewCAUserConfig(caType, privateKeyPEM, caRootCertPath, email string) (*CAUs
 		return nil, commonErrors.GenerateCodedError(logdna.Error07021, http.StatusBadRequest, message)
 	}
 	userConfig := &CAUserConfig{
-		CAType:       caType,
-		Email:        email,
-		key:          privateKey,
-		DirectoryURL: directoryUrl,
-		CARootCert:   caRootCertPath,
-		byoa:         byoa,
+		CAType:         caType,
+		Email:          email,
+		key:            privateKey,
+		DirectoryURL:   directoryUrl,
+		CARootCert:     caRootCertPath,
+		PreferredChain: preferredChain,
+		byoa:           byoa,
 	}
 	return userConfig, nil
 }
@@ -123,11 +125,12 @@ func (u *CAUserConfig) getConfigToStore() (map[string]string, error) {
 	}
 
 	storageEntry := map[string]string{
-		caConfigRegistration: u.Registration.URI,
-		caConfigEmail:        u.Email,
-		caConfigPrivateKey:   pemEncoded,
-		caConfigDirectoryUrl: u.DirectoryURL,
-		caConfigCARootCert:   u.CARootCert,
+		caConfigRegistration:   u.Registration.URI,
+		caConfigEmail:          u.Email,
+		caConfigPrivateKey:     pemEncoded,
+		caConfigDirectoryUrl:   u.DirectoryURL,
+		caConfigCARootCert:     u.CARootCert,
+		caConfigPreferredChain: u.PreferredChain,
 	}
 	return storageEntry, nil
 }
@@ -141,18 +144,19 @@ func prepareCAConfigToStore(p *ProviderConfig) error {
 		common.ErrorLogForCustomer(message, logdna.Error07018, logdna.BadRequestErrorMessage, true)
 		return commonErrors.GenerateCodedError(logdna.Error07018, http.StatusBadRequest, message)
 	}
+	preferredChain := p.Config[caConfigPreferredChain]
 	email := p.Config[caConfigEmail]
 	//it's not expected to get this field we can fill it with constant LE root cert if needed
 	caCert := p.Config[caConfigCARootCert]
 	for k := range p.Config {
-		// for now, we expect only 1 field - Private key
-		if k != caConfigPrivateKey {
-			message := fmt.Sprintf(invalidConfigStruct, providerTypeCA, p.Type, "["+caConfigPrivateKey+"]")
+		// for now, we expect 2 fields - Private key and Preferred Chain
+		if k != caConfigPrivateKey && k != caConfigPreferredChain {
+			message := fmt.Sprintf(invalidConfigStruct, providerTypeCA, p.Type, "["+caConfigPrivateKey+","+caConfigPreferredChain+"]")
 			common.ErrorLogForCustomer(message, logdna.Error07019, logdna.BadRequestErrorMessage, true)
 			return commonErrors.GenerateCodedError(logdna.Error07019, http.StatusBadRequest, message)
 		}
 	}
-	ca, err := NewCAUserConfig(p.Type, privateKeyPEM, caCert, email)
+	ca, err := NewCAUserConfig(p.Type, privateKeyPEM, caCert, email, preferredChain)
 	if err != nil {
 		return err
 	}
@@ -170,5 +174,8 @@ func prepareCAConfigToStore(p *ProviderConfig) error {
 func getCAConfigForResponse(p *ProviderConfig) map[string]string {
 	result := make(map[string]string)
 	result[caConfigPrivateKey] = p.Config[caConfigPrivateKey]
+	if prefChain, ok := p.Config[caConfigPreferredChain]; ok && prefChain != "" {
+		result[caConfigPreferredChain] = prefChain
+	}
 	return result
 }

@@ -59,6 +59,7 @@ var (
 func Test_saveOrderResultToStorage(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
+
 	t.Run("First order - order succeeded", func(t *testing.T) {
 		setOrdersInProgress(secretId, 2)
 		bundleCerts := false

@@ -407,9 +407,10 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	}
 
 	ca := &CAUserConfig{
-		CARootCert:   caConfig.Config[caConfigCARootCert],
-		DirectoryURL: caConfig.Config[caConfigDirectoryUrl],
-		Email:        caConfig.Config[caConfigEmail],
+		CARootCert:     caConfig.Config[caConfigCARootCert],
+		DirectoryURL:   caConfig.Config[caConfigDirectoryUrl],
+		Email:          caConfig.Config[caConfigEmail],
+		PreferredChain: caConfig.Config[caConfigPreferredChain],
 		Registration: &registration.Resource{
 			URI: caConfig.Config[caConfigRegistration],
 		},

@@ -81,10 +81,39 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		assert.Equal(t, false, resp.IsError())
 		assert.Equal(t, resp.Data[logical.HTTPContentType], applicationJson)
 		assert.Equal(t, resp.Data[logical.HTTPStatusCode], 201)
-		//expectedBody := fmt.Sprintf(
-		//	"{\"request_id\":\"\",\"lease_id\":\"\",\"renewable\":false,\"lease_duration\":0,\"data\":{\"config\":{\"private_key\":%s},\"name\":%s,\"type\":%s},\"wrap_info\":null,\"warnings\":null,\"auth\":null}",
-		//	validPrivateKey, configName, caConfigTypeLEStage)
-		//assert.Equal(t, resp.Data[logical.HTTPRawBody].(string), expectedBody)
+		expectedBody := fmt.Sprintf(
+			"{\"request_id\":\"\",\"lease_id\":\"\",\"renewable\":false,\"lease_duration\":0,\"data\":{\"config\":{\"private_key\":%q},\"name\":\"%s\",\"type\":\"%s\"},\"wrap_info\":null,\"warnings\":null,\"auth\":null}",
+			validPrivateKey, configName, caConfigTypeLEStage)
+		assert.Equal(t, resp.Data[logical.HTTPRawBody].(string), expectedBody)
+	})
+
+	t.Run("Happy flow for CA config with preferredChain", func(t *testing.T) {
+		config := map[string]interface{}{caConfigPrivateKey: validPrivateKey, caConfigPreferredChain: "Issuer CN"}
+		testConfigName := configName + "pr"
+		data := map[string]interface{}{
+			FieldName:   testConfigName,
+			FieldType:   caConfigTypeLEStage,
+			FieldConfig: config,
+		}
+
+		req := &logical.Request{
+			Operation: logical.UpdateOperation,
+			Path:      ConfigCAPath,
+			Storage:   storage,
+			Data:      data,
+			Connection: &logical.Connection{
+				RemoteAddr: "0.0.0.0",
+			},
+		}
+		resp, err := b.HandleRequest(context.Background(), req)
+		assert.NilError(t, err)
+		assert.Equal(t, false, resp.IsError())
+		assert.Equal(t, resp.Data[logical.HTTPContentType], applicationJson)
+		assert.Equal(t, resp.Data[logical.HTTPStatusCode], 201)
+		expectedBody := fmt.Sprintf(
+			"{\"request_id\":\"\",\"lease_id\":\"\",\"renewable\":false,\"lease_duration\":0,\"data\":{\"config\":{\"preferred_chain\":\"Issuer CN\",\"private_key\":%q},\"name\":\"%s\",\"type\":\"%s\"},\"wrap_info\":null,\"warnings\":null,\"auth\":null}",
+			validPrivateKey, testConfigName, caConfigTypeLEStage)
+		assert.Equal(t, resp.Data[logical.HTTPRawBody].(string), expectedBody)
 	})
 
 	t.Run("Happy flow for CA config, RSA key", func(t *testing.T) {
@@ -156,6 +185,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07043)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 	})
+
 	t.Run("Invalid name start with -", func(t *testing.T) {
 		data := map[string]interface{}{
 			FieldName: "-invalid-name",
@@ -409,7 +439,7 @@ func Test_Config_Path_CreateConfig(t *testing.T) {
 			},
 		}
 		resp, err := b.HandleRequest(context.Background(), req)
-		expectedMessage := fmt.Sprintf(invalidConfigStruct, providerTypeCA, caConfigTypeLEProd, "["+caConfigPrivateKey+"]")
+		expectedMessage := fmt.Sprintf(invalidConfigStruct, providerTypeCA, caConfigTypeLEProd, "["+caConfigPrivateKey+","+caConfigPreferredChain+"]")
 		assert.Equal(t, len(resp.Headers[smErrors.ErrorCodeHeader]), 1)
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07019)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
@@ -1057,6 +1087,7 @@ func Test_Config_Path_AuthorizationCheck(t *testing.T) {
 	})
 
 }
+
 func checkConfigInStorage(t *testing.T, expectedPrivKey string) {
 	//get config from the storage
 	rootConfig, _ := getRootConfig(context.Background(), storage)

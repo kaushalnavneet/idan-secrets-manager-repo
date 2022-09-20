@@ -143,10 +143,11 @@ func (client *Client) QueryRegistration() (*registration.Resource, error) {
 	return client.LegoClient.Registration.QueryRegistration()
 }
 
-func (client *Client) ObtainCertificate(domain []string, isBundle bool) (*certificate.Resource, error) {
+func (client *Client) ObtainCertificate(domain []string, isBundle bool, preferredChain string) (*certificate.Resource, error) {
 	request := certificate.ObtainRequest{
-		Domains: domain,
-		Bundle:  isBundle,
+		Domains:        domain,
+		Bundle:         isBundle,
+		PreferredChain: preferredChain,
 	}
 
 	return client.LegoClient.Certificate.Obtain(request)

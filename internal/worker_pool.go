@@ -174,7 +174,7 @@ func (w *WorkerPool) issueCertificate(workItem WorkItem) (*Result, error) {
 		certificateResource.PrivateKey = workItem.privateKey
 		result.certificate = certificateResource
 	} else {
-		certificateResource, err := client.ObtainCertificate(workItem.domains, workItem.isBundle)
+		certificateResource, err := client.ObtainCertificate(workItem.domains, workItem.isBundle, workItem.caConfig.PreferredChain)
 		if err != nil {
 			return nil, err
 		}
