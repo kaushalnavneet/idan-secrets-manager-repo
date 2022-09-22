@@ -13,7 +13,6 @@ import (
 	at "github.ibm.com/security-services/secrets-manager-common-utils/activity_tracker"
 	"github.ibm.com/security-services/secrets-manager-common-utils/errors"
 	errors2 "github.ibm.com/security-services/secrets-manager-common-utils/errors"
-	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/certificate"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
@@ -714,18 +713,14 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	common.Logger().Info(fmt.Sprintf("Secret '%s' with id %s SHOULD be auto-rotated. Certificate domains: %s", entry.Name, entry.ID, domains))
 	var privateKey []byte
 	if !rotateKey {
-		if feature_util.IsFeatureEnabled("metadataIntegration") || strings.Contains(metadataManagerWhitelist, instanceCRN) {
-			common.Logger().Debug("In new metadata manager flow of rotate certificate if needed")
-			// we need to add the secret version to the secret entry because we dont have versions in metadata manager
-			secretPath := entry.GroupID + "/" + entry.ID
-			secretEntry, err := common.GetSecretWithoutLocking(secretPath, secretentry.SecretTypePublicCert, req.Storage, ctx, oh.getMetadataClient())
-			if err != nil {
-				// todo: improve autorotation
-				common.Logger().Error(fmt.Sprintf("Couldn't get the secret entry %s from COS. Error: %s", entry.ID, err.Error()))
-				return nil
-			}
-			entry.Versions = secretEntry.Versions
+		// we need to add the secret version to the secret entry because we dont have versions in metadata manager
+		secretPath := entry.GroupID + "/" + entry.ID
+		secretEntry, err := common.GetSecretWithoutLocking(secretPath, secretentry.SecretTypePublicCert, req.Storage, ctx, oh.getMetadataClient())
+		if err != nil {
+			common.Logger().Error(fmt.Sprintf("Couldn't get the secret entry %s from COS. Error: %s", entry.ID, err.Error()))
+			return nil
 		}
+		entry.Versions = secretEntry.Versions
 		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s will be rotated with the same private key", entry.Name, entry.ID))
 		rawdata, _ := certificate.DecodeRawData(entry.LastVersionData())
 		privateKey = []byte(rawdata.PrivateKey)

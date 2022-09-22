@@ -218,7 +218,7 @@ var (
 					Type: policies.MIMETypeForPolicyResource}},
 			Type:    secretentry.SecretTypePublicCert,
 			CRN:     expiresIn30Days_autoRotateTrue_notExistConfig_crn,
-			GroupID: "",
+			GroupID: defaultGroup,
 			State:   secretentry.StateActive,
 		},
 		Versions: versionsWithData,
@@ -226,11 +226,13 @@ var (
 )
 
 var oh *OrdersHandler
+var mcm *common.MetadataManagerMock
 
 func Test_AutoRotate(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
-	mcm := b.GetMetadataClient().(*common.MetadataManagerMock)
+	oh.metadataClient = b.GetMetadataClient()
+	mcm = oh.metadataClient.(*common.MetadataManagerMock)
 	initBackend(false)
 
 	t.Run("Auto Rotate certificates", func(t *testing.T) {
@@ -298,11 +300,11 @@ func getSecretAndCheckItsContent(t *testing.T, secretId string, expectedentry *s
 
 func createCertificates() {
 
-	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
+	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), mcm, false)
 
-	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateFalse, storage, context.Background(), nil, false)
+	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateFalse, storage, context.Background(), mcm, false)
 
-	common.StoreSecretWithoutLocking(failedOrder, storage, context.Background(), nil, false)
+	common.StoreSecretWithoutLocking(failedOrder, storage, context.Background(), mcm, false)
 
-	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue_notExistConfig, storage, context.Background(), nil, false)
+	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue_notExistConfig, storage, context.Background(), mcm, false)
 }

@@ -59,6 +59,7 @@ var (
 func Test_saveOrderResultToStorage(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
+	oh.metadataClient = b.GetMetadataClient()
 
 	t.Run("First order - order succeeded", func(t *testing.T) {
 		setOrdersInProgress(secretId, 2)
@@ -259,6 +260,7 @@ func Test_saveOrderResultToStorage(t *testing.T) {
 		badParserHandler := &OrdersHandler{
 			parser:         &parserMock{},
 			metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
+			metadataClient: b.GetMetadataClient(),
 		}
 		setOrdersInProgress(secretId, 2)
 		bundleCerts := false

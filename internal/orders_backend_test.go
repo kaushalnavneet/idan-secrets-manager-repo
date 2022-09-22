@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
-	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/activity_tracker"
@@ -28,13 +27,6 @@ func init() {
 }
 
 func TestOrdersBackend_GetConcretePath(t *testing.T) {
-	features := os.Getenv("featureToggels")
-	os.Setenv("featureToggels", "{\"manualDns\":true}")
-	feature_util.LoadFeaturesConfig()
-	defer func() {
-		os.Setenv("featureToggels", features)
-		feature_util.LoadFeaturesConfig()
-	}()
 	b := OrdersBackend{secretBackend: &secret_backend.SecretBackendImpl{}}
 	res := b.GetConcretePath()
 

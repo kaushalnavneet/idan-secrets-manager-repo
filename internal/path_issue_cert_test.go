@@ -7,7 +7,6 @@ import (
 	"github.com/go-acme/lego/v4/acme"
 	"github.com/google/uuid"
 	"github.com/hashicorp/vault/sdk/logical"
-	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/certificate"
 	"github.ibm.com/security-services/secrets-manager-common-utils/secret_metadata_entry/policies"
@@ -19,7 +18,6 @@ import (
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/secretentry"
 	"gotest.tools/v3/assert"
 	"net/http"
-	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -56,7 +54,7 @@ func initOrdersHandler() *OrdersHandler {
 		parser:         &certificate_parser.CertificateParserImpl{},
 		metadataMapper: secret_backend.GetDefaultMetadataMapper(secretentry.SecretTypePublicCert),
 		secretBackend:  &mb,
-		inAllowList:    IsManualDnsFeatureEnabled(),
+		inAllowList:    true,
 	}
 	oh.workerPool = NewWorkerPool(oh, 1, 2, 1*time.Second)
 	oh.autoRenewWorkerPool = NewWorkerPool(oh, 1, 2, 1*time.Second)
@@ -340,12 +338,13 @@ func countOrdersMap(m *sync.Map) int {
 func Test_rotation(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
+	oh.metadataClient = b.GetMetadataClient()
 
 	t.Run("Happy flow", func(t *testing.T) {
 		initBackend(false)
 		//the order was already in progress, it's the second attempt
 		setOrdersInProgress(expiresIn20Days_autoRotateTrue_id, 1)
-		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
+		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false)
 		data := map[string]interface{}{
 			policies.FieldRotateKeys: true,
 		}
@@ -373,7 +372,7 @@ func Test_rotation(t *testing.T) {
 		resetOrdersInProgress()
 		//the order was already in progress, it's the second attempt
 		setOrdersInProgress("", 0)
-		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
+		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false)
 		data := map[string]interface{}{
 			policies.FieldRotateKeys: true,
 		}
@@ -398,17 +397,10 @@ func Test_rotation(t *testing.T) {
 }
 
 func Test_Issue_cert_Manual(t *testing.T) {
-	features := os.Getenv("featureToggels")
-	os.Setenv("featureToggels", "{\"manualDns\":true}")
-	feature_util.LoadFeaturesConfig()
-	defer func() {
-		os.Setenv("featureToggels", features)
-		feature_util.LoadFeaturesConfig()
-	}()
-
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
 	initBackend(true)
+	oh.metadataClient = b.GetMetadataClient()
 
 	t.Run("Happy flow with manual dns", func(t *testing.T) {
 		startMockLEAcmeServer()
@@ -497,7 +489,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 				}},
 			}}
 		secretEntry.ExtraData = goodCertMetadata
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), nil, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
 
 		data := map[string]interface{}{}
 		req := &logical.Request{
@@ -522,7 +514,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 
 	t.Run("Validate dns challenge - bad extra data in secrets entry", func(t *testing.T) {
 		secretEntry.ExtraData = "string"
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), nil, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
 
 		data := map[string]interface{}{}
 		req := &logical.Request{
@@ -554,7 +546,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 				FieldDNSConfig: dnsConfigTypeManual,
 			}}
 		secretEntry.ExtraData = activeCertMetadata
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), nil, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
 
 		data := map[string]interface{}{}
 		req := &logical.Request{
@@ -586,7 +578,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 				FieldDNSConfig: dnsConfig,
 			}}
 		secretEntry.ExtraData = cisCertMetadata
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), nil, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
 
 		data := map[string]interface{}{}
 		req := &logical.Request{
@@ -619,7 +611,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 				FieldValidationTime: time.Now(),
 			}}
 		secretEntry.ExtraData = certMetadataWithValidation
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), nil, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
 
 		data := map[string]interface{}{}
 		req := &logical.Request{

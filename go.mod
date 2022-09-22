@@ -16,9 +16,10 @@ require (
 	github.com/hashicorp/go-hclog v1.3.1
 	github.com/hashicorp/vault/sdk v0.6.0
 	github.com/robfig/cron/v3 v3.0.1
+	github.ibm.com/project-fortress/vault-client-golang v0.0.7
 	github.ibm.com/security-services/secrets-manager-common-utils v0.0.14945
 	github.ibm.com/security-services/secrets-manager-iam v0.0.15026
-	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.15153
+	github.ibm.com/security-services/secrets-manager-vault-plugins-common v0.0.15181
 	golang.org/x/net v0.0.0-20220921203646-d300de134e69
 	gotest.tools/v3 v3.3.0
 )
@@ -89,7 +90,7 @@ require (
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/hashicorp/vault/api v1.7.2 // indirect
+	github.com/hashicorp/vault/api v1.8.0 // indirect
 	github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb // indirect
 	github.com/iij/doapi v0.0.0-20190504054126-0bbf12d6d7df // indirect
 	github.com/infobloxopen/infoblox-go-client v1.1.1 // indirect
@@ -160,7 +161,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/ratelimit v0.0.0-20180316092928-c15da0234277 // indirect
 	go.uber.org/zap v1.23.0 // indirect
-	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90 // indirect
+	golang.org/x/crypto v0.0.0-20220919173607-35f4265a4bc0 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
