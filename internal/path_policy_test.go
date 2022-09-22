@@ -19,8 +19,9 @@ import (
 func Test_ReadPolicy_Happy(t *testing.T) {
 	oh := initOrdersHandler()
 	b, storage = secret_backend.SetupTestBackend(&OrdersBackend{ordersHandler: oh})
-	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue, storage, context.Background(), nil, false)
-	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), nil, false)
+	oh.metadataClient = b.GetMetadataClient()
+	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false)
+	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false)
 
 	t.Run("Read policy", func(t *testing.T) {
 		data := map[string]interface{}{

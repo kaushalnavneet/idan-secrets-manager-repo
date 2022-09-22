@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"github.com/go-acme/lego/v4/certcrypto"
 	"github.com/go-acme/lego/v4/registration"
-	"github.ibm.com/security-services/secrets-manager-common-utils/feature_util"
 	common "github.ibm.com/security-services/secrets-manager-vault-plugins-common"
 	commonErrors "github.ibm.com/security-services/secrets-manager-vault-plugins-common/errors"
 	"github.ibm.com/security-services/secrets-manager-vault-plugins-common/logdna"
@@ -281,26 +280,4 @@ func getOrderError(res Result) *OrderError {
 		errorObj.Message = res.Error.Error()
 	}
 	return errorObj
-}
-
-func IsManualDnsFeatureEnabled() bool {
-	return feature_util.IsFeatureEnabled("manualDns")
-	//instCrn := os.Getenv("CRN")
-	//allowList := os.Getenv("publicCertAccountAllowList")
-	//crnParts := strings.Split(instCrn, ":")
-	////in case of invalid crn or empty allow list return false
-	//if len(crnParts) < 8 || strings.Trim(allowList, " ") == "" {
-	//	printAllowListLog(allowList, instCrn, false)
-	//	return false
-	//}
-	//account := strings.Replace(strings.Split(instCrn, ":")[6], "a/", "", 1)
-	//inAllowList := strings.Contains(allowList, account)
-	//printAllowListLog(allowList, instCrn, inAllowList)
-	//return inAllowList
-}
-
-func printAllowListLog(allowList string, instCrn string, isInAllowList bool) {
-	if common.Logger() != nil {
-		common.Logger().Info(fmt.Sprintf("Allow list is %s. The instance is in allow list: %v. Instance CRN is %s.", allowList, isInAllowList, instCrn))
-	}
 }
