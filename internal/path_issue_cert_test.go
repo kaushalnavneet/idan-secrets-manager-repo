@@ -344,7 +344,7 @@ func Test_rotation(t *testing.T) {
 		initBackend(false)
 		//the order was already in progress, it's the second attempt
 		setOrdersInProgress(expiresIn20Days_autoRotateTrue_id, 1)
-		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false, secret_backend.ServiceName)
 		data := map[string]interface{}{
 			policies.FieldRotateKeys: true,
 		}
@@ -372,7 +372,7 @@ func Test_rotation(t *testing.T) {
 		resetOrdersInProgress()
 		//the order was already in progress, it's the second attempt
 		setOrdersInProgress("", 0)
-		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 		data := map[string]interface{}{
 			policies.FieldRotateKeys: true,
 		}
@@ -489,7 +489,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 				}},
 			}}
 		secretEntry.ExtraData = goodCertMetadata
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 
 		data := map[string]interface{}{}
 		req := &logical.Request{
@@ -514,7 +514,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 
 	t.Run("Validate dns challenge - bad extra data in secrets entry", func(t *testing.T) {
 		secretEntry.ExtraData = "string"
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 
 		data := map[string]interface{}{}
 		req := &logical.Request{
@@ -546,7 +546,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 				FieldDNSConfig: dnsConfigTypeManual,
 			}}
 		secretEntry.ExtraData = activeCertMetadata
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 
 		data := map[string]interface{}{}
 		req := &logical.Request{
@@ -578,7 +578,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 				FieldDNSConfig: dnsConfig,
 			}}
 		secretEntry.ExtraData = cisCertMetadata
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 
 		data := map[string]interface{}{}
 		req := &logical.Request{
@@ -611,7 +611,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 				FieldValidationTime: time.Now(),
 			}}
 		secretEntry.ExtraData = certMetadataWithValidation
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 
 		data := map[string]interface{}{}
 		req := &logical.Request{

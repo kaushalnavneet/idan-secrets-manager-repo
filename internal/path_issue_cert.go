@@ -228,9 +228,16 @@ func (ob *OrdersBackend) ContinueOrder(ctx context.Context, req *logical.Request
 	// update field dns_challenge_validation_time
 	metadata.IssuanceInfo[FieldValidationTime] = time.Now().Format(time.RFC3339)
 	secretEntry.ExtraData = metadata
+	//get the user id triggered the action
+	userId, err := common.GetSubjectFromRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
 	opp := common.StoreOptions{
-		Operation:     types_common.StoreOptionUpdateMetadata,
-		VersionMapper: ob.ordersHandler.metadataMapper.MapVersionMetadata,
+		Operation:            types_common.StoreOptionUpdateMetadata,
+		OperationTriggeredBy: userId,
+		VersionMapper:        ob.ordersHandler.metadataMapper.MapVersionMetadata,
 	}
 	common.Logger().Info(fmt.Sprintf("Updating field '%s' for secret entry %s", FieldValidationTime, secretEntry.ID))
 	err = common.StoreSecretAndVersionWithoutLocking(secretEntry, req.Storage, ctx, ob.ordersHandler.getMetadataClient(), &opp)
@@ -239,7 +246,7 @@ func (ob *OrdersBackend) ContinueOrder(ctx context.Context, req *logical.Request
 		common.ErrorLogForCustomer(internalServerError, logdna.Error07210, logdna.InternalErrorMessage, true)
 		return nil, commonErrors.GenerateCodedError(logdna.Error07210, http.StatusInternalServerError, internalServerError)
 	}
-	err = ob.ordersHandler.prepareOrderWorkItem(ctx, req, metadata, nil)
+	err = ob.ordersHandler.prepareOrderWorkItem(ctx, req, metadata, nil, userId)
 	if err != nil {
 		return nil, err
 	}

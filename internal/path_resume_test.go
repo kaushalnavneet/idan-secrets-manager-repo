@@ -40,7 +40,7 @@ func Test_Resume(t *testing.T) {
 	})
 
 	t.Run("Order exist but already Active", func(t *testing.T) {
-		common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 		setOrdersInProgress(expiresIn30Days_autoRotateTrue_id, 1)
 		//get secret
 		req := &logical.Request{
@@ -71,7 +71,7 @@ func Test_Resume(t *testing.T) {
 		entryToTest := expiresIn30Days_autoRotateTrue
 		entryToTest.ExtraData = certMetadataToTest
 		entryToTest.ID = uuid.New().String()
-		common.StoreSecretWithoutLocking(entryToTest, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(entryToTest, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 		setOrdersInProgress(entryToTest.ID, 1)
 		//get secret
 		req := &logical.Request{
@@ -103,7 +103,7 @@ func Test_Resume(t *testing.T) {
 		entryToTest := expiresIn30Days_autoRotateTrue //copy all fields and override reference type fields
 		entryToTest.ExtraData = certMetadataToTest
 		entryToTest.ID = uuid.New().String()
-		common.StoreSecretWithoutLocking(entryToTest, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(entryToTest, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 		setOrdersInProgress(entryToTest.ID, 1)
 		//get secret
 		req := &logical.Request{
@@ -144,7 +144,7 @@ func Test_Resume(t *testing.T) {
 		entryToTest := expiresIn30Days_autoRotateTrue //copy all fields and override reference type fields
 		entryToTest.ExtraData = certMetadataToTest
 		entryToTest.ID = uuid.New().String()
-		common.StoreSecretWithoutLocking(entryToTest, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(entryToTest, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 		setOrdersInProgressWithAttempts(entryToTest.ID, 1)
 		//get secret
 		req := &logical.Request{
@@ -177,7 +177,7 @@ func Test_Resume(t *testing.T) {
 		entryToTest := expiresIn30Days_autoRotateTrue //copy all fields and override reference type fields
 		entryToTest.ExtraData = certMetadataToTest
 		entryToTest.ID = uuid.New().String()
-		common.StoreSecretWithoutLocking(entryToTest, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(entryToTest, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 		setOrdersInProgressWithAttempts(entryToTest.ID, MaxAttemptsToOrder)
 		//resume orders
 		req := &logical.Request{

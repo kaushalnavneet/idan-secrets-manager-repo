@@ -44,6 +44,7 @@ type WorkItem struct {
 	//secret data
 	secretEntry *secretentry.SecretEntry //this secretEntry should be updated when an order is finished
 	storage     logical.Storage          //this storage should be used to save secretEntry
+	triggeredBy string                   //the user that triggered the order
 }
 
 type Result struct {

@@ -384,15 +384,15 @@ func setOrdersInProgress(id string, count int) {
 	case 0:
 		ordersInProgress.Orders = []OrderDetails{}
 	case 1:
-		ordersInProgress.Orders = []OrderDetails{{GroupId: defaultGroup, Id: id, Attempts: 1}}
+		ordersInProgress.Orders = []OrderDetails{{GroupId: defaultGroup, Id: id, Attempts: 1, TriggeredBy: "IBMid-1110000RRH1"}}
 	default:
 		ids := make([]OrderDetails, count)
 		//build array of ids of length count
 		for i := range ids {
-			ids[i] = OrderDetails{GroupId: defaultGroup, Id: strconv.Itoa(i), Attempts: 1}
+			ids[i] = OrderDetails{GroupId: defaultGroup, Id: strconv.Itoa(i), Attempts: 1, TriggeredBy: "IBMid-1110000RRH1"}
 		}
 		//the one before last will be expected id
-		ids[count-2] = OrderDetails{GroupId: defaultGroup, Id: id, Attempts: 1}
+		ids[count-2] = OrderDetails{GroupId: defaultGroup, Id: id, Attempts: 1, TriggeredBy: "IBMid-1110000RRH1"}
 		ordersInProgress.Orders = ids
 	}
 	ordersInProgress.save(storage)
