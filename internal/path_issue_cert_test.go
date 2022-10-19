@@ -106,7 +106,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldAutoRotate], false)
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], false)
 
-		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: resp.Data[secretentry.FieldId].(string), Attempts: 1}})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: resp.Data[secretentry.FieldId].(string), Attempts: 1, TriggeredBy: "iam-ServiceId-MOCK"}})
 		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 
@@ -160,7 +160,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldAutoRotate], true)
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], true)
 
-		checkOrdersInProgress(t, []OrderDetails{{GroupId: groupId, Id: resp.Data[secretentry.FieldId].(string), Attempts: 1}})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: groupId, Id: resp.Data[secretentry.FieldId].(string), Attempts: 1, TriggeredBy: "iam-ServiceId-MOCK"}})
 		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 
@@ -207,7 +207,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07062)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
-		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: createdSecretId, Attempts: 1}})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: createdSecretId, Attempts: 1, TriggeredBy: "iam-ServiceId-MOCK"}})
 	})
 
 	t.Run("Invalid domain", func(t *testing.T) {
@@ -363,7 +363,7 @@ func Test_rotation(t *testing.T) {
 		//common fields
 		assert.Equal(t, false, resp.IsError())
 		// it's the second attempt
-		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 2}})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 2, TriggeredBy: createdBy}})
 		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 
@@ -391,7 +391,7 @@ func Test_rotation(t *testing.T) {
 		//common fields
 		assert.Equal(t, false, resp.IsError())
 		// it's the second attempt
-		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 1}})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 1, TriggeredBy: "iam-ServiceId-MOCK"}})
 		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 }
