@@ -106,7 +106,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldAutoRotate], false)
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], false)
 
-		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: resp.Data[secretentry.FieldId].(string), Attempts: 1}})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: resp.Data[secretentry.FieldId].(string), Attempts: 1, TriggeredBy: "iam-ServiceId-MOCK"}})
 		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 
@@ -160,7 +160,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldAutoRotate], true)
 		assert.Equal(t, resp.Data[policies.PolicyTypeRotation].(map[string]interface{})[policies.FieldRotateKeys], true)
 
-		checkOrdersInProgress(t, []OrderDetails{{GroupId: groupId, Id: resp.Data[secretentry.FieldId].(string), Attempts: 1}})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: groupId, Id: resp.Data[secretentry.FieldId].(string), Attempts: 1, TriggeredBy: "iam-ServiceId-MOCK"}})
 		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 
@@ -207,7 +207,7 @@ func Test_Issue_cert(t *testing.T) {
 		assert.Equal(t, resp.Headers[smErrors.ErrorCodeHeader][0], logdna.Error07062)
 		assert.Equal(t, true, reflect.DeepEqual(err, logical.CodedError(http.StatusBadRequest, expectedMessage)))
 
-		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: createdSecretId, Attempts: 1}})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: createdSecretId, Attempts: 1, TriggeredBy: "iam-ServiceId-MOCK"}})
 	})
 
 	t.Run("Invalid domain", func(t *testing.T) {
@@ -344,7 +344,7 @@ func Test_rotation(t *testing.T) {
 		initBackend(false)
 		//the order was already in progress, it's the second attempt
 		setOrdersInProgress(expiresIn20Days_autoRotateTrue_id, 1)
-		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false, secret_backend.ServiceName)
 		data := map[string]interface{}{
 			policies.FieldRotateKeys: true,
 		}
@@ -363,7 +363,7 @@ func Test_rotation(t *testing.T) {
 		//common fields
 		assert.Equal(t, false, resp.IsError())
 		// it's the second attempt
-		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 2}})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 2, TriggeredBy: createdBy}})
 		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 
@@ -372,7 +372,7 @@ func Test_rotation(t *testing.T) {
 		resetOrdersInProgress()
 		//the order was already in progress, it's the second attempt
 		setOrdersInProgress("", 0)
-		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 		data := map[string]interface{}{
 			policies.FieldRotateKeys: true,
 		}
@@ -391,7 +391,7 @@ func Test_rotation(t *testing.T) {
 		//common fields
 		assert.Equal(t, false, resp.IsError())
 		// it's the second attempt
-		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 1}})
+		checkOrdersInProgress(t, []OrderDetails{{GroupId: defaultGroup, Id: expiresIn20Days_autoRotateTrue_id, Attempts: 1, TriggeredBy: "iam-ServiceId-MOCK"}})
 		assert.Equal(t, countOrdersMap(&oh.runningOrders), 1)
 	})
 }
@@ -489,7 +489,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 				}},
 			}}
 		secretEntry.ExtraData = goodCertMetadata
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 
 		data := map[string]interface{}{}
 		req := &logical.Request{
@@ -514,7 +514,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 
 	t.Run("Validate dns challenge - bad extra data in secrets entry", func(t *testing.T) {
 		secretEntry.ExtraData = "string"
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 
 		data := map[string]interface{}{}
 		req := &logical.Request{
@@ -546,7 +546,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 				FieldDNSConfig: dnsConfigTypeManual,
 			}}
 		secretEntry.ExtraData = activeCertMetadata
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 
 		data := map[string]interface{}{}
 		req := &logical.Request{
@@ -578,7 +578,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 				FieldDNSConfig: dnsConfig,
 			}}
 		secretEntry.ExtraData = cisCertMetadata
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 
 		data := map[string]interface{}{}
 		req := &logical.Request{
@@ -611,7 +611,7 @@ func Test_Issue_cert_Manual(t *testing.T) {
 				FieldValidationTime: time.Now(),
 			}}
 		secretEntry.ExtraData = certMetadataWithValidation
-		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false)
+		common.StoreSecretWithoutLocking(secretEntry, storage, context.Background(), oh.metadataClient, false, "IBMid-1110000RRH1")
 
 		data := map[string]interface{}{}
 		req := &logical.Request{

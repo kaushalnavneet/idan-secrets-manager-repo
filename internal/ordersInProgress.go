@@ -10,9 +10,10 @@ type OrdersInProgress struct {
 	Orders []OrderDetails `json:"orders"`
 }
 type OrderDetails struct {
-	GroupId  string `json:"group_id"`
-	Id       string `json:"id"`
-	Attempts int    `json:"attempts"`
+	GroupId     string `json:"group_id"`
+	Id          string `json:"id"`
+	Attempts    int    `json:"attempts"`
+	TriggeredBy string `json:"triggered_by"`
 }
 
 func getOrdersInProgress(storage logical.Storage) *OrdersInProgress {

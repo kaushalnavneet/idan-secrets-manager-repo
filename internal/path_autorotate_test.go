@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-//certificates ids and crns
+// certificates ids and crns
 var (
 	expiresIn30Days_autoRotateTrue_id                = uuid.New().String()
 	expiresIn20Days_autoRotateTrue_id                = uuid.New().String()
@@ -32,7 +32,7 @@ var (
 	expiresIn30Days_autoRotateTrue_notExistConfig_crn = strings.Replace(smInstanceCrn, "::", ":secret:", 1) + expiresIn30Days_autoRotateTrue_notExistConfig_id
 )
 
-//entries data
+// entries data
 var (
 	secretData = map[string]interface{}{
 		secretentry.FieldCertificate:  previousCert,
@@ -94,7 +94,7 @@ var (
 		FieldBundleCert:                   true, FieldCAConfig: "wrong", FieldDNSConfig: dnsConfig, FieldAutoRotated: true}
 )
 
-//certificates in storage before rotation
+// certificates in storage before rotation
 var (
 	expiresIn30Days_autoRotateTrue = &secretentry.SecretEntry{
 		SecretMetadataEntry: secret_metadata_entry.SecretMetadataEntry{
@@ -300,11 +300,11 @@ func getSecretAndCheckItsContent(t *testing.T, secretId string, expectedentry *s
 
 func createCertificates() {
 
-	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), mcm, false)
+	common.StoreSecretWithoutLocking(expiresIn20Days_autoRotateTrue, storage, context.Background(), mcm, false, "IBMid-1110000RRH1")
 
-	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateFalse, storage, context.Background(), mcm, false)
+	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateFalse, storage, context.Background(), mcm, false, secret_backend.ServiceName)
 
-	common.StoreSecretWithoutLocking(failedOrder, storage, context.Background(), mcm, false)
+	common.StoreSecretWithoutLocking(failedOrder, storage, context.Background(), mcm, false, "IBMid-1110000RRH1")
 
-	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue_notExistConfig, storage, context.Background(), mcm, false)
+	common.StoreSecretWithoutLocking(expiresIn30Days_autoRotateTrue_notExistConfig, storage, context.Background(), mcm, false, secret_backend.ServiceName)
 }

@@ -69,7 +69,7 @@ func (oh *OrdersHandler) UpdateSecretEntrySecretData(ctx context.Context, req *l
 		privateKey = []byte(rawdata.PrivateKey)
 	}
 
-	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
+	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey, "")
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (oh *OrdersHandler) BuildSecretParams(ctx context.Context, req *logical.Req
 		AltName:      data.Get(secretentry.FieldAltNames).([]string),
 		IssuanceInfo: issuanceInfo,
 	}
-	err := oh.prepareOrderWorkItem(ctx, req, certMetadata, nil)
+	err := oh.prepareOrderWorkItem(ctx, req, certMetadata, nil, "")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -365,8 +365,8 @@ func (oh *OrdersHandler) getCertMetadata(entry *secretentry.SecretEntry, include
 	return e
 }
 
-//builds work item (with validation) and save it in memory
-func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.Request, data *certificate.CertificateMetadata, privateKey []byte) error {
+// builds work item (with validation) and save it in memory
+func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.Request, data *certificate.CertificateMetadata, privateKey []byte, triggeredBy string) error {
 	err := oh.configureIamIfNeeded(ctx, req)
 	if err != nil {
 		return err
@@ -422,13 +422,23 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 		return err
 	}
 
+	var opTriggeredBy string
+	if triggeredBy == "" {
+		//get the user id from request
+		opTriggeredBy, err = common.GetSubjectFromRequest(req)
+		if err != nil {
+			return err
+		}
+	}
+
 	workItem := WorkItem{
-		storage:   req.Storage,
-		caConfig:  ca,
-		keyType:   keyType,
-		dnsConfig: dnsConfig,
-		domains:   domains,
-		isBundle:  isBundle,
+		storage:     req.Storage,
+		caConfig:    ca,
+		keyType:     keyType,
+		dnsConfig:   dnsConfig,
+		domains:     domains,
+		isBundle:    isBundle,
+		triggeredBy: opTriggeredBy,
 	}
 	if privateKey != nil && len(privateKey) > 0 {
 		certPrivKey, err := certcrypto.ParsePEMPrivateKey(privateKey)
@@ -454,7 +464,7 @@ func (oh *OrdersHandler) prepareOrderWorkItem(ctx context.Context, req *logical.
 	return nil
 }
 
-//takes a work item from the map  and runs certificate order
+// takes a work item from the map  and runs certificate order
 func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry, pool *WorkerPool) {
 	//get domains from the secret in order to build order key
 	metadata, _ := certificate.DecodeMetadata(secretEntry.ExtraData)
@@ -485,7 +495,7 @@ func (oh *OrdersHandler) startOrder(secretEntry *secretentry.SecretEntry, pool *
 	}
 }
 
-//gets result of order and save it to secret entry
+// gets result of order and save it to secret entry
 func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	if common.ReadOnlyEnabled(oh.metadataClient) {
 		common.Logger().Error("vault is in read only mode")
@@ -513,8 +523,9 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 	var extraData map[string]interface{}
 	//in case of error we don't add a new version it just updates secret metadata with the order error, operation = update
 	opp := common.StoreOptions{
-		Operation:     types_common.StoreOptionUpdateMetadata,
-		VersionMapper: oh.metadataMapper.MapVersionMetadata,
+		Operation:            types_common.StoreOptionUpdateMetadata,
+		OperationTriggeredBy: res.workItem.triggeredBy,
+		VersionMapper:        oh.metadataMapper.MapVersionMetadata,
 	}
 	if res.Error != nil {
 		common.Logger().Error(fmt.Sprintf("Order (secret id %s) failed with error: %s", secretEntry.ID, res.Error.Error()))
@@ -562,7 +573,7 @@ func (oh *OrdersHandler) saveOrderResultToStorage(res Result) {
 				secretentry.FieldSerialNumber: certData.Metadata.SerialNumber,
 				FieldIssuanceInfo:             certData.Metadata.IssuanceInfo,
 			}
-			updateLatestSecretVersion(secretEntry, data, extraData)
+			updateLatestSecretVersion(secretEntry, data, extraData, res.workItem.triggeredBy)
 			secretEntry.ExtraData = certData.Metadata
 			secretEntry.ExpirationDate = certData.Metadata.NotAfter
 			secretEntry.State = secretentry.StateActive
@@ -637,19 +648,19 @@ func updateSecretEntryWithFailure(secretEntry *secretentry.SecretEntry, metadata
 	//update secret state and data only in the first order, not in rotation
 	if secretEntry.State == secretentry.StatePreActivation {
 		secretEntry.State = secretentry.StateDeactivated
-		updateLatestSecretVersion(secretEntry, secretData, extraData)
+		updateLatestSecretVersion(secretEntry, secretData, extraData, "")
 	}
 	return
 }
 
-func updateLatestSecretVersion(secretEntry *secretentry.SecretEntry, secretData interface{}, extraData map[string]interface{}) {
-	err := secretEntry.UpdateSecretDataV2(secretData, secretEntry.CreatedBy, extraData)
+func updateLatestSecretVersion(secretEntry *secretentry.SecretEntry, secretData interface{}, extraData map[string]interface{}, triggeredBy string) {
+	err := secretEntry.UpdateSecretDataV2(secretData, triggeredBy, extraData)
 	if err != nil {
 		common.Logger().Error(fmt.Sprintf("IT SHOULD NOT HAPPEN! Failed to update secret %s version with order result. Error: %s", secretEntry.ID, err.Error()))
 	}
 }
 
-//build response for create and rotate requests
+// build response for create and rotate requests
 func (oh *OrdersHandler) buildOrderResponse(entry *secretentry.SecretEntry) map[string]interface{} {
 	e := entry.ToMapMeta()
 	metadata, _ := certificate.DecodeMetadata(entry.ExtraData)
@@ -670,7 +681,7 @@ func (oh *OrdersHandler) buildOrderResponse(entry *secretentry.SecretEntry) map[
 	return e
 }
 
-//is called from endpoints where we need iam
+// is called from endpoints where we need iam
 func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.Request) error {
 	storage := req.Storage
 	if oh.pluginConfig == nil {
@@ -687,7 +698,7 @@ func (oh *OrdersHandler) configureIamIfNeeded(ctx context.Context, req *logical.
 	return nil
 }
 
-//is called from endpoints where we need metadata client
+// is called from endpoints where we need metadata client
 // this is to prevent a nil metadata client in orders handler
 func (oh *OrdersHandler) getMetadataClient() common.MetadataClient {
 	if oh.metadataClient == nil {
@@ -699,7 +710,7 @@ func (oh *OrdersHandler) getMetadataClient() common.MetadataClient {
 	return oh.metadataClient
 }
 
-//is called from path_rotate for every certificate in the storage
+// is called from path_rotate for every certificate in the storage
 func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, enginePolicies policies.Policies, req *logical.Request, ctx context.Context) error {
 	if !isRotationNeeded(entry) {
 		common.Logger().Debug(fmt.Sprintf("Secret '%s' with id %s should NOT be rotated", entry.Name, entry.ID))
@@ -734,7 +745,7 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	delete(metadata.IssuanceInfo, FieldErrorMessage)
 	entry.ExtraData = metadata
 	//validate all the data and prepare it for order
-	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey)
+	err := oh.prepareOrderWorkItem(ctx, req, metadata, privateKey, secret_backend.ServiceName)
 	if err != nil {
 		startOrder = false
 		common.Logger().Error(fmt.Sprintf("Couldn't start auto rotation for secret '%s' with id %s for domains %s. Error: %s", entry.Name, entry.ID, domains, err.Error()))
@@ -743,8 +754,9 @@ func (oh *OrdersHandler) rotateCertIfNeeded(entry *secretentry.SecretEntry, engi
 	//save updated entry
 
 	opp := common.StoreOptions{
-		Operation:     types_common.StoreOptionRotate,
-		VersionMapper: oh.metadataMapper.MapVersionMetadata,
+		Operation:            types_common.StoreOptionRotate,
+		OperationTriggeredBy: secret_backend.ServiceName,
+		VersionMapper:        oh.metadataMapper.MapVersionMetadata,
 	}
 
 	err = common.StoreSecretAndVersionWithoutLocking(entry, req.Storage, context.Background(), oh.getMetadataClient(), &opp)
@@ -801,14 +813,14 @@ func addWorkItemToOrdersInProgress(workItem WorkItem) {
 	}
 	if !found {
 		//add it to the list
-		ordersInProgress.Orders = append(ordersInProgress.Orders, OrderDetails{Id: workItem.secretEntry.ID, GroupId: workItem.secretEntry.GroupID, Attempts: 1})
+		ordersInProgress.Orders = append(ordersInProgress.Orders, OrderDetails{Id: workItem.secretEntry.ID, GroupId: workItem.secretEntry.GroupID, Attempts: 1, TriggeredBy: workItem.triggeredBy})
 	}
 	ordersInProgress.save(workItem.storage)
 	return
 }
 
 func removeWorkItemFromOrdersInProgress(workItem WorkItem) {
-	removeOrderFromOrdersInProgress(workItem.storage, OrderDetails{Id: workItem.secretEntry.ID, GroupId: workItem.secretEntry.GroupID})
+	removeOrderFromOrdersInProgress(workItem.storage, OrderDetails{Id: workItem.secretEntry.ID, GroupId: workItem.secretEntry.GroupID, TriggeredBy: workItem.triggeredBy})
 }
 
 func removeOrderFromOrdersInProgress(storage logical.Storage, itemToRemove OrderDetails) {
